@@ -1,26 +1,386 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-navy-950: #0a1628;
+  --color-navy-900: #0d1b2a;
+  --color-navy-800: #142236;
+  --color-navy-700: #1b2d45;
+  --color-navy-600: #243b5e;
+  --color-teal-500: #0891b2;
+  --color-teal-400: #22d3ee;
+  --color-teal-300: #67e8f9;
+  --color-gold-500: #d4a843;
+  --color-gold-400: #e4be6a;
+  --color-gold-300: #f0d68a;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --font-heading: "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: auto !important;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   Bangla typography support
+   ============================================================ */
+[lang="bn"] body,
+html[lang="bn"] body {
+  font-family: var(--font-hind), var(--font-body);
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+[lang="bn"] h1,
+[lang="bn"] h2,
+[lang="bn"] h3,
+[lang="bn"] h4,
+[lang="bn"] h5,
+[lang="bn"] h6 {
+  font-family: var(--font-hind), var(--font-heading);
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+
+/* Bangla headings - slightly reduced size for better fit */
+[lang="bn"] h1 {
+  font-size: 0.9em;
+}
+
+[lang="bn"] h2 {
+  font-size: 0.92em;
+}
+
+/* Bangla body text - wider line spacing for readability */
+[lang="bn"] p {
+  line-height: 1.8;
+}
+
+/* Bangla buttons - prevent text overflow */
+[lang="bn"] button,
+[lang="bn"] a.btn {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Bangla nav items - allow wrapping if needed */
+[lang="bn"] nav a {
+  white-space: normal;
+  text-align: center;
+}
+
+/* Bangla card titles */
+[lang="bn"] .card-title,
+[lang="bn"] .section-title {
+  font-size: 0.95em;
+}
+
+/* Hide default scrollbar - Lenis handles smooth scrolling */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ============================================================
+   Gradient text
+   ============================================================ */
+.gradient-text {
+  background: linear-gradient(135deg, #22d3ee 0%, #0891b2 50%, #d4a843 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ============================================================
+   Hero text animation
+   ============================================================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+.animate-fade-in-right {
+  animation: fadeInRight 0.8s ease forwards;
+}
+
+/* ============================================================
+   Globe animation
+   ============================================================ */
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+}
+
+.animate-rotate-slow {
+  animation: rotate-slow 30s linear infinite;
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 8s ease-in-out infinite;
+}
+
+/* ============================================================
+   Card hover effect
+   ============================================================ */
+.card-hover {
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================================
+   Noise texture overlay
+   ============================================================ */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='6' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   Section transition gradients
+   ============================================================ */
+.section-transition-top {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, var(--transition-from), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.section-transition-bottom {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to top, var(--transition-to), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ============================================================
+   Section separator — animated gradient line
+   ============================================================ */
+.section-separator {
+  position: relative;
+  height: 1px;
+  overflow: hidden;
+}
+
+.section-separator::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(34,211,238,0.15), rgba(212,168,67,0.1), transparent);
+  animation: separator-sweep 4s ease-in-out infinite;
+}
+
+@keyframes separator-sweep {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+
+/* ============================================================
+   Parallax layers
+   ============================================================ */
+.parallax-layer {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* ============================================================
+   Focus card transitions
+   ============================================================ */
+.focus-card-glow {
+  transition: opacity 0.4s ease, background 0.3s ease;
+}
+
+/* ============================================================
+   Custom scrollbar
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a1628;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #243b5e;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0891b2;
+}
+
+/* ============================================================
+   Selection color
+   ============================================================ */
+::selection {
+  background: rgba(8, 145, 178, 0.3);
+  color: white;
+}
+
+/* ============================================================
+   Skip to content - screen reader only
+   ============================================================ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only.focus\:not-sr-only:focus {
+  position: fixed;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ============================================================
+   Focus ring for keyboard navigation
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Touch-friendly hit targets for mobile
+   ============================================================ */
+@media (hover: none) and (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ============================================================
+   Reduced motion: disable custom cursor
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  [style*="mix-blend-mode: difference"] {
+    display: none !important;
+  }
+}
+
+/* ============================================================
+   Reduced motion preference
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-float,
+  .animate-float-slow,
+  .animate-rotate-slow,
+  .animate-bounce,
+  .animate-pulse,
+  .animate-ping {
+    animation: none !important;
+  }
+
+  .noise-overlay {
+    display: none;
+  }
+
+  .section-separator::before {
+    animation: none;
+  }
 }

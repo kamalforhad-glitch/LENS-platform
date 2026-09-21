@@ -1,0 +1,803 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Users & Authentication
+// ============================================================
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  name         String
+  passwordHash String    @map("password_hash")
+  role         String    @default("editor")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  sessions         Session[]
+  researchArticles ResearchArticle[] @relation("ResearchAuthor")
+  publications     Publication[]     @relation("PublicationAuthor")
+  events           Event[]           @relation("EventAuthor")
+  teamMembers      TeamMember[]      @relation("TeamAuthor")
+  mediaFiles       MediaFile[]
+  reviewAssignments ReviewAssignment[]
+  researchVersions  ResearchVersion[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ============================================================
+// CMS Content
+// ============================================================
+
+model ResearchArticle {
+  id            String    @id @default(uuid())
+  slug          String    @unique
+  title         String
+  description   String
+  content       String    @default("")
+  category      String    @default("Research Report")
+  author        String    @default("LENS Research Team")
+  tags          String    @default("[]")
+  image         String?
+  pdfUrl        String?   @map("pdf_url")
+  status        String    @default("draft")
+  featured      Boolean   @default(false)
+  downloads     Int       @default(0)
+  citations     String    @default("[]")
+  datePublished DateTime? @map("date_published")
+  dateCreated   DateTime  @default(now()) @map("date_created")
+  dateModified  DateTime  @updatedAt @map("date_modified")
+  createdBy     String?   @map("created_by")
+
+  // Academic workflow fields
+  abstract      String    @default("")
+  methodology   String    @default("")
+  doi           String?
+  version       Int       @default(1)
+  submitterName String?   @map("submitter_name")
+  submitterEmail String?  @map("submitter_email")
+  submitterAffiliation String? @map("submitter_affiliation")
+  reviewStatus  String    @default("none") @map("review_status")
+  submittedAt   DateTime? @map("submitted_at")
+  reviewedAt    DateTime? @map("reviewed_at")
+  approvedAt    DateTime? @map("approved_at")
+  publishedVersion Int?   @map("published_version")
+
+  creator User? @relation("ResearchAuthor", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  versions           ResearchVersion[]
+  reviewAssignments  ReviewAssignment[]
+  citationRecords    CitationRecord[]
+  authorProfileLinks AuthorArticle[]
+
+  @@index([status])
+  @@index([category])
+  @@index([datePublished])
+  @@index([featured])
+  @@index([slug])
+  @@index([doi])
+  @@index([reviewStatus])
+  @@map("research_articles")
+}
+
+model Publication {
+  id            String    @id @default(uuid())
+  slug          String    @unique
+  title         String
+  description   String
+  type          String    @default("Research Report")
+  author        String    @default("LENS Research Team")
+  tags          String    @default("[]")
+  pdfUrl        String?   @map("pdf_url")
+  pages         Int?
+  status        String    @default("draft")
+  downloads     Int       @default(0)
+  datePublished DateTime? @map("date_published")
+  dateCreated   DateTime  @default(now()) @map("date_created")
+  dateModified  DateTime  @updatedAt @map("date_modified")
+  createdBy     String?   @map("created_by")
+
+  creator User? @relation("PublicationAuthor", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([type])
+  @@index([datePublished])
+  @@index([slug])
+  @@map("publications")
+}
+
+model Event {
+  id              String    @id @default(uuid())
+  slug            String    @unique
+  name            String
+  description     String
+  startDate       DateTime  @map("start_date")
+  endDate         DateTime  @map("end_date")
+  time            String    @default("")
+  location        String
+  locationUrl     String?   @map("location_url")
+  registrationUrl String?   @map("registration_url")
+  category        String    @default("Workshop")
+  capacity        Int?
+  registered      Int       @default(0)
+  status          String    @default("draft")
+  dateCreated     DateTime  @default(now()) @map("date_created")
+  dateModified    DateTime  @updatedAt @map("date_modified")
+  createdBy       String?   @map("created_by")
+
+  creator User? @relation("EventAuthor", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([startDate])
+  @@index([category])
+  @@index([slug])
+  @@map("events")
+}
+
+model TeamMember {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  role        String
+  department  String   @default("General")
+  bio         String   @default("")
+  image       String?
+  email       String?
+  social      String   @default("{}")
+  sortOrder   Int      @default(0) @map("sort_order")
+  active      Boolean  @default(true)
+  dateCreated DateTime @default(now()) @map("date_created")
+  dateModified DateTime @updatedAt @map("date_modified")
+  createdBy   String?  @map("created_by")
+
+  creator User? @relation("TeamAuthor", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([active])
+  @@index([department])
+  @@index([sortOrder])
+  @@index([slug])
+  @@map("team_members")
+}
+
+// ============================================================
+// Media & Files
+// ============================================================
+
+model MediaFile {
+  id           String   @id @default(uuid())
+  filename     String
+  originalName String   @map("original_name")
+  mimeType     String   @map("mime_type")
+  size         Int
+  url          String
+  alt          String   @default("")
+  uploadedBy   String?  @map("uploaded_by")
+  dateCreated  DateTime @default(now()) @map("date_created")
+
+  uploader  User?          @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+  downloads DownloadLog[]
+
+  @@index([mimeType])
+  @@index([dateCreated])
+  @@map("media_files")
+}
+
+model DownloadLog {
+  id          String   @id @default(uuid())
+  contentType String   @map("content_type")
+  contentId   String   @map("content_id")
+  ipHash      String?  @map("ip_hash")
+  userAgent   String?  @map("user_agent")
+  dateCreated DateTime @default(now()) @map("date_created")
+
+  mediaFile MediaFile? @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentType, contentId])
+  @@index([dateCreated])
+  @@map("download_logs")
+}
+
+// ============================================================
+// Newsletter Subscribers
+// ============================================================
+
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  status      String    @default("pending") // pending | confirmed | unsubscribed
+  token       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  confirmedAt DateTime? @map("confirmed_at")
+
+  @@index([status])
+  @@index([email])
+  @@map("newsletter_subscribers")
+}
+
+// ============================================================
+// Contact Form Submissions
+// ============================================================
+
+model ContactSubmission {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("new")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("contact_submissions")
+}
+
+// ============================================================
+// Email Delivery Tracking
+// ============================================================
+
+model EmailLog {
+  id        String   @id @default(uuid())
+  to        String
+  subject   String
+  type      String   // contact_notification, newsletter_confirmation, admin_notification, backup_report
+  status    String   @default("sent")
+  messageId String?  @map("message_id")
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_logs")
+}
+
+// ============================================================
+// Backup Records
+// ============================================================
+
+model BackupRecord {
+  id        String   @id @default(uuid())
+  filename  String
+  size      Int      @default(0)
+  status    String   @default("pending")
+  type      String   @default("manual")
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@map("backup_records")
+}
+
+// ============================================================
+// Academic Research Workflow
+// ============================================================
+
+model AuthorProfile {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  name          String
+  email         String?
+  affiliation   String   @default("")
+  orcid         String?
+  bio           String   @default("")
+  expertise     String   @default("[]")
+  image         String?
+  website       String?
+  social        String   @default("{}")
+  articleCount  Int      @default(0) @map("article_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  articles AuthorArticle[]
+
+  @@index([slug])
+  @@index([name])
+  @@map("author_profiles")
+}
+
+model AuthorArticle {
+  id              String   @id @default(uuid())
+  authorProfileId String   @map("author_profile_id")
+  articleId       String   @map("article_id")
+  authorOrder     Int      @default(1) @map("author_order")
+  isCorresponding Boolean  @default(false) @map("is_corresponding")
+  researcherProfileId String? @map("researcher_profile_id")
+
+  authorProfile AuthorProfile @relation(fields: [authorProfileId], references: [id], onDelete: Cascade)
+  article       ResearchArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  researcherProfile ResearcherProfile? @relation(fields: [researcherProfileId], references: [id], onDelete: SetNull)
+
+  @@unique([authorProfileId, articleId])
+  @@index([articleId])
+  @@index([researcherProfileId])
+  @@map("author_articles")
+}
+
+model ResearchVersion {
+  id        String   @id @default(uuid())
+  articleId String   @map("article_id")
+  version   Int
+  title     String
+  description String
+  content   String
+  tags      String   @default("[]")
+  changelog String   @default("")
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  creator User? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  article ResearchArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@unique([articleId, version])
+  @@map("research_versions")
+}
+
+model ReviewAssignment {
+  id         String   @id @default(uuid())
+  articleId  String   @map("article_id")
+  reviewerId String?  @map("reviewer_id")
+  status     String   @default("pending") // pending | in_progress | completed | declined
+  deadline   DateTime?
+  notes      String   @default("")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  article  ResearchArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  reviewer User?           @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  comments ReviewComment[]
+
+  @@index([articleId])
+  @@index([reviewerId])
+  @@index([status])
+  @@map("review_assignments")
+}
+
+model ReviewComment {
+  id          String   @id @default(uuid())
+  assignmentId String  @map("assignment_id")
+  section     String   @default("general")
+  lineRef     String?  @map("line_ref")
+  comment     String
+  severity    String   @default("suggestion") // suggestion | issue | critical | praise
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  assignment ReviewAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+  @@index([severity])
+  @@map("review_comments")
+}
+
+model CitationRecord {
+  id        String   @id @default(uuid())
+  articleId String   @map("article_id")
+  type      String   @default("journal") // journal | book | conference | report | web | other
+  authors   String   @default("")
+  title     String
+  journal   String?
+  year      Int?
+  volume    String?
+  issue     String?
+  pages     String?
+  doi       String?
+  url       String?
+  isbn      String?
+  citationKey String? @map("citation_key")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  article ResearchArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@index([doi])
+  @@index([citationKey])
+  @@map("citation_records")
+}
+
+model SearchQuery {
+  id        String   @id @default(uuid())
+  query     String
+  userId    String?  @map("user_id")
+  results   Int      @default(0)
+  clickedId String?  @map("clicked_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([query])
+  @@index([createdAt])
+  @@map("search_queries")
+}
+
+// ============================================================
+// AI Research Assistant (RAG)
+// ============================================================
+
+model AIConversation {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  title     String?
+  language  String   @default("en")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  messages AIMessage[]
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("ai_conversations")
+}
+
+model AIMessage {
+  id             String   @id @default(uuid())
+  conversationId String   @map("conversation_id")
+  role           String   // user | assistant | system
+  content        String
+  sources        String   @default("[]") // JSON array of source document references
+  tokenCount     Int?     @map("token_count")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("ai_messages")
+}
+
+model DocumentEmbedding {
+  id           String   @id @default(uuid())
+  documentType String   @map("document_type") // research_article | publication | event | team
+  documentId   String   @map("document_id")
+  chunkIndex   Int      @default(0) @map("chunk_index")
+  chunkText    String   @map("chunk_text")
+  embedding    String   // JSON array of floats (stored as text for pgvector compatibility)
+  metadata     String   @default("{}") // JSON: title, author, category, date, etc.
+  tokenCount   Int      @default(0) @map("token_count")
+  indexed      Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([documentType, documentId])
+  @@index([indexed])
+  @@index([createdAt])
+  @@map("document_embeddings")
+}
+
+// ============================================================
+// Researcher Network
+// ============================================================
+
+model ResearcherProfile {
+  id              String   @id @default(uuid())
+  slug            String   @unique
+  name            String
+  email           String?
+  affiliation     String   @default("")
+  position        String   @default("")
+  bio             String   @default("")
+  image           String?
+  orcid           String?
+  website         String?
+  social          String   @default("{}")
+  researchAreas   String   @default("[]") @map("research_areas")
+  expertise       String   @default("[]")
+  education       String   @default("[]")
+  languages       String   @default("[]")
+  totalDownloads  Int      @default(0) @map("total_downloads")
+  totalCitations  Int      @default(0) @map("total_citations")
+  featured        Boolean  @default(false)
+  status          String   @default("active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  articleLinks AuthorArticle[]
+
+  @@index([slug])
+  @@index([name])
+  @@index([featured])
+  @@index([status])
+  @@map("researcher_profiles")
+}
+
+// ============================================================
+// Impact Metrics
+// ============================================================
+
+model ImpactMetric {
+  id        String   @id @default(uuid())
+  date      DateTime
+  category  String   // research | engagement | partnership | reach
+  metric    String   // total_downloads | total_citations | visitors | etc.
+  value     Float
+  metadata  String   @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([category, metric])
+  @@index([date])
+  @@index([createdAt])
+  @@map("impact_metrics")
+}
+
+// ============================================================
+// Multi-Language Translations
+// ============================================================
+
+model Translation {
+  id        String   @id @default(uuid())
+  locale    String   // en | bn
+  namespace String   @default("common") // common | research | events | admin
+  key       String
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([locale, namespace, key])
+  @@index([locale, namespace])
+  @@index([key])
+  @@map("translations")
+}
+
+// ============================================================
+// CMS Page Builder & Content Management
+// ============================================================
+
+model Page {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  title         String
+  titleBn       String   @default("") @map("title_bn")
+  description   String   @default("")
+  descriptionBn String   @default("") @map("description_bn")
+  status        String   @default("draft") // draft | published | scheduled
+  scheduledAt   DateTime? @map("scheduled_at")
+  publishedAt   DateTime? @map("published_at")
+  sortOrder     Int      @default(0) @map("sort_order")
+  template      String   @default("default")
+  metaTitle     String?  @map("meta_title")
+  metaTitleBn   String?  @map("meta_title_bn")
+  metaDescription String? @map("meta_description")
+  metaDescriptionBn String? @map("meta_description_bn")
+  ogImage       String?  @map("og_image")
+  keywords      String   @default("[]")
+  canonicalUrl  String?  @map("canonical_url")
+  dateCreated   DateTime @default(now()) @map("date_created")
+  dateModified  DateTime @updatedAt @map("date_modified")
+  createdBy     String?  @map("created_by")
+
+  sections PageSection[]
+
+  @@index([status])
+  @@index([slug])
+  @@map("pages")
+}
+
+model PageSection {
+  id            String   @id @default(uuid())
+  pageId        String   @map("page_id")
+  type          String   // hero | text | cards | image | stats | timeline | cta | newsletter | gallery | custom
+  title         String   @default("")
+  titleBn       String   @default("") @map("title_bn")
+  description   String   @default("")
+  descriptionBn String   @default("") @map("description_bn")
+  sortOrder     Int      @default(0) @map("sort_order")
+  visible       Boolean  @default(true)
+  settings      String   @default("{}") // JSON: type-specific settings
+  content       String   @default("{}") // JSON: section content data
+  contentBn     String   @default("{}") @map("content_bn")
+  dateCreated   DateTime @default(now()) @map("date_created")
+  dateModified  DateTime @updatedAt @map("date_modified")
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@index([sortOrder])
+  @@index([type])
+  @@map("page_sections")
+}
+
+model SiteSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   @default("")
+  valueBn     String   @default("") @map("value_bn")
+  type        String   @default("text") // text | json | boolean | image
+  group       String   @default("general") // general | seo | social | footer | menu
+  label       String   @default("")
+  labelBn     String   @default("") @map("label_bn")
+  sortOrder   Int      @default(0) @map("sort_order")
+  dateCreated DateTime @default(now()) @map("created_at")
+  dateModified DateTime @updatedAt @map("updated_at")
+
+  @@index([key])
+  @@index([group])
+  @@map("site_settings")
+}
+
+model MenuItem {
+  id          String   @id @default(uuid())
+  location    String   // header | footer
+  label       String
+  labelBn     String   @default("") @map("label_bn")
+  url         String
+  sortOrder   Int      @default(0) @map("sort_order")
+  visible     Boolean  @default(true)
+  target      String   @default("_self") // _self | _blank
+  parentId    String?  @map("parent_id")
+  dateCreated DateTime @default(now()) @map("created_at")
+  dateModified DateTime @updatedAt @map("updated_at")
+
+  @@index([location])
+  @@index([sortOrder])
+  @@map("menu_items")
+}
+
+// ============================================================
+// Content Types (Programs, Blog, Media, Resources, Careers)
+// ============================================================
+
+model Program {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  title         String
+  titleBn       String   @default("") @map("title_bn")
+  description   String
+  descriptionBn String   @default("") @map("description_bn")
+  content       String   @default("")
+  contentBn     String   @default("") @map("content_bn")
+  image         String?
+  category      String   @default("Training")
+  status        String   @default("draft")
+  featured      Boolean  @default(false)
+  sortOrder     Int      @default(0) @map("sort_order")
+  metaTitle     String?  @map("meta_title")
+  metaDescription String? @map("meta_description")
+  dateCreated   DateTime @default(now()) @map("date_created")
+  dateModified  DateTime @updatedAt @map("date_modified")
+  createdBy     String?  @map("created_by")
+
+  @@index([status])
+  @@index([slug])
+  @@index([category])
+  @@map("programs")
+}
+
+model BlogPost {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  title         String
+  titleBn       String   @default("") @map("title_bn")
+  description   String
+  descriptionBn String   @default("") @map("description_bn")
+  content       String   @default("")
+  contentBn     String   @default("") @map("content_bn")
+  image         String?
+  author        String   @default("LENS Team")
+  category      String   @default("Analysis")
+  tags          String   @default("[]")
+  status        String   @default("draft")
+  featured      Boolean  @default(false)
+  downloads     Int      @default(0)
+  metaTitle     String?  @map("meta_title")
+  metaDescription String? @map("meta_description")
+  datePublished DateTime? @map("date_published")
+  dateCreated   DateTime @default(now()) @map("date_created")
+  dateModified  DateTime @updatedAt @map("date_modified")
+  createdBy     String?  @map("created_by")
+
+  @@index([status])
+  @@index([slug])
+  @@index([category])
+  @@index([datePublished])
+  @@map("blog_posts")
+}
+
+model MediaItem {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  title         String
+  titleBn       String   @default("") @map("title_bn")
+  description   String
+  descriptionBn String   @default("") @map("description_bn")
+  content       String   @default("")
+  contentBn     String   @default("") @map("content_bn")
+  image         String?
+  type          String   @default("press_release") // press_release | interview | report | statement
+  source        String   @default("")
+  sourceUrl     String?  @map("source_url")
+  status        String   @default("draft")
+  featured      Boolean  @default(false)
+  metaTitle     String?  @map("meta_title")
+  metaDescription String? @map("meta_description")
+  datePublished DateTime? @map("date_published")
+  dateCreated   DateTime @default(now()) @map("date_created")
+  dateModified  DateTime @updatedAt @map("date_modified")
+  createdBy     String?  @map("created_by")
+
+  @@index([status])
+  @@index([slug])
+  @@index([type])
+  @@index([datePublished])
+  @@map("media_items")
+}
+
+model Resource {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  title         String
+  titleBn       String   @default("") @map("title_bn")
+  description   String
+  descriptionBn String   @default("") @map("description_bn")
+  content       String   @default("")
+  contentBn     String   @default("") @map("content_bn")
+  image         String?
+  fileUrl       String?  @map("file_url")
+  externalUrl   String?  @map("external_url")
+  category      String   @default("Document")
+  type          String   @default("document") // document | link | dataset | tool
+  tags          String   @default("[]")
+  status        String   @default("draft")
+  downloads     Int      @default(0)
+  metaTitle     String?  @map("meta_title")
+  metaDescription String? @map("meta_description")
+  dateCreated   DateTime @default(now()) @map("date_created")
+  dateModified  DateTime @updatedAt @map("date_modified")
+  createdBy     String?  @map("created_by")
+
+  @@index([status])
+  @@index([slug])
+  @@index([type])
+  @@index([category])
+  @@map("resources")
+}
+
+model Career {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  title         String
+  titleBn       String   @default("") @map("title_bn")
+  department    String   @default("General")
+  location      String   @default("Dhaka, Bangladesh")
+  type          String   @default("full_time") // full_time | part_time | contract | internship
+  description   String
+  descriptionBn String   @default("") @map("description_bn")
+  requirements  String   @default("")
+  requirementsBn String @default("") @map("requirements_bn")
+  salary        String?
+  applicationUrl String? @map("application_url")
+  status        String   @default("draft") // draft | open | closed
+  metaTitle     String?  @map("meta_title")
+  metaDescription String? @map("meta_description")
+  dateCreated   DateTime @default(now()) @map("date_created")
+  dateModified  DateTime @updatedAt @map("date_modified")
+  createdBy     String?  @map("created_by")
+
+  @@index([status])
+  @@index([slug])
+  @@index([department])
+  @@map("careers")
+}

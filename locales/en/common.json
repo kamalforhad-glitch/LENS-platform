@@ -1,0 +1,146 @@
+{
+  "site": {
+    "name": "LENS Bangladesh",
+    "tagline": "Research Intelligence for Media Studies",
+    "description": "A multilingual AI-powered research intelligence ecosystem for media studies, knowledge discovery, and evidence-based communication."
+  },
+  "nav": {
+    "home": "Home",
+    "research": "Research",
+    "publications": "Publications",
+    "events": "Events",
+    "team": "Team",
+    "researchers": "Researchers",
+    "impact": "Impact",
+    "assistant": "AI Assistant",
+    "contact": "Contact"
+  },
+  "hero": {
+    "title": "Advancing Media Research in Bangladesh",
+    "subtitle": "Evidence-based insights for independent journalism and democratic discourse",
+    "cta_research": "Explore Research",
+    "cta_assistant": "Ask AI Assistant"
+  },
+  "research": {
+    "title": "Research Library",
+    "subtitle": "Browse our collection of research papers, policy briefs, and data analyses",
+    "search": "Search research...",
+    "filter_all": "All Categories",
+    "no_results": "No research articles found",
+    "downloads": "{{count}} downloads",
+    "published": "Published {{date}}",
+    "read_more": "Read More",
+    "cite": "Cite This",
+    "export": "Export Citation",
+    "pdf_download": "Download PDF"
+  },
+  "publications": {
+    "title": "Publications",
+    "subtitle": "Our published reports and policy briefs"
+  },
+  "events": {
+    "title": "Events",
+    "subtitle": "Workshops, seminars, and conferences"
+  },
+  "team": {
+    "title": "Our Team",
+    "subtitle": "Meet the researchers and staff behind LENS"
+  },
+  "researchers": {
+    "title": "Researcher Network",
+    "subtitle": "Our affiliated researchers and their work",
+    "publications": "Publications",
+    "citations": "Citations",
+    "downloads": "Downloads",
+    "research_areas": "Research Areas",
+    "expertise": "Expertise",
+    "affiliation": "Affiliation",
+    "orcid": "ORCID",
+    "view_profile": "View Profile"
+  },
+  "assistant": {
+    "title": "AI Research Assistant",
+    "subtitle": "Ask questions about LENS research and publications",
+    "placeholder": "Ask a question about our research...",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "sources": "Sources",
+    "related": "Related Publications",
+    "suggested": "Suggested Questions",
+    "suggested_questions": [
+      "What are the main findings of LENS media monitoring reports?",
+      "Summarize research on digital rights in Bangladesh",
+      "What studies exist on journalism ethics?",
+      "Compare research on social media and traditional media"
+    ],
+    "no_conversation": "Start a conversation with our AI Research Assistant",
+    "new_chat": "New Conversation",
+    "history": "Conversation History"
+  },
+  "impact": {
+    "title": "Institutional Impact",
+    "subtitle": "Measuring our contribution to media research and democratic discourse",
+    "research_impact": "Research Impact",
+    "knowledge_reach": "Knowledge Reach",
+    "community_engagement": "Community Engagement",
+    "partnership_network": "Partnership Network",
+    "total_publications": "Total Publications",
+    "total_downloads": "Total Downloads",
+    "citation_count": "Citation Count",
+    "active_researchers": "Active Researchers",
+    "research_topics": "Research Topics",
+    "website_visitors": "Website Visitors",
+    "geographic_reach": "Geographic Reach",
+    "publication_views": "Publication Views",
+    "event_participation": "Event Participation"
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "Get in touch with the LENS team",
+    "name": "Name",
+    "email": "Email",
+    "subject": "Subject",
+    "message": "Message",
+    "send": "Send Message",
+    "success": "Message sent successfully!",
+    "error": "Failed to send message. Please try again."
+  },
+  "newsletter": {
+    "title": "Stay Updated",
+    "subtitle": "Subscribe to our newsletter for the latest research and updates",
+    "email_placeholder": "Enter your email",
+    "subscribe": "Subscribe",
+    "success": "Successfully subscribed!",
+    "error": "Failed to subscribe. Please try again."
+  },
+  "footer": {
+    "about": "About LENS",
+    "about_text": "LENS Bangladesh is a research organization dedicated to advancing media studies and evidence-based communication in Bangladesh.",
+    "quick_links": "Quick Links",
+    "contact_info": "Contact Information",
+    "copyright": "© {{year}} LENS Bangladesh. All rights reserved."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try Again",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view_all": "View All",
+    "see_more": "See More",
+    "see_less": "See Less",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "date": "Date",
+    "author": "Author",
+    "category": "Category",
+    "status": "Status"
+  }
+}

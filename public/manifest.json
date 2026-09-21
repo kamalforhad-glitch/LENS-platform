@@ -1,0 +1,16 @@
+{
+  "name": "LENS — Lighthouse for Evolving Narrative Systems",
+  "short_name": "LENS",
+  "description": "Research-driven think tank strengthening Bangladesh's narrative ecosystem.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0891b2",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
