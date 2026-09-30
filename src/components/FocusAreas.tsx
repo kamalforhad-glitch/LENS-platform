@@ -122,7 +122,7 @@ function FocusCard({ area, t }: { area: typeof focusAreaKeys[0]; t: (key: string
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="group relative rounded-2xl border border-slate-100 bg-white hover:border-slate-200 transition-colors duration-300 cursor-pointer overflow-hidden"
+      className="group relative min-h-full rounded-2xl border border-slate-100 bg-white hover:border-slate-200 transition-colors duration-300 cursor-pointer overflow-hidden"
       style={{ transformStyle: "preserve-3d" }}
     >
       <div
@@ -135,8 +135,8 @@ function FocusCard({ area, t }: { area: typeof focusAreaKeys[0]; t: (key: string
         style={{ background: `linear-gradient(90deg, transparent, ${area.accentColor}, transparent)` }}
       />
 
-      <div className="relative z-10 p-6">
-        <div className="w-14 h-14 rounded-2xl bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center mb-4 transition-colors duration-300">
+      <div className="relative z-10 p-5 flex gap-4">
+        <div className="w-12 h-12 shrink-0 rounded-2xl bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center transition-colors duration-300">
           <area.icon
             className="w-6 h-6 transition-all duration-500 group-hover:scale-110"
             style={{ color: area.accentColor }}
@@ -144,27 +144,29 @@ function FocusCard({ area, t }: { area: typeof focusAreaKeys[0]; t: (key: string
           />
         </div>
 
-        <h3 className="text-base font-bold text-slate-900 mb-2 group-hover:text-slate-950 transition-colors">
-          {t(`focus.${area.key}.title`)}
-        </h3>
-        <p className="text-sm text-slate-500 leading-relaxed mb-3">
-          {t(`focus.${area.key}.description`)}
-        </p>
-
-        <div
-          ref={detailRef}
-          className="overflow-hidden"
-          style={{ height: 0, opacity: 0, marginTop: 0 }}
-        >
-          <p className="text-xs text-slate-400 leading-relaxed">
-            {t(`focus.${area.key}.detail`)}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-slate-950 transition-colors">
+            {t(`focus.${area.key}.title`)}
+          </h3>
+          <p className="text-sm text-slate-500 leading-relaxed mb-2">
+            {t(`focus.${area.key}.description`)}
           </p>
-        </div>
 
-        <span className="text-sm font-semibold text-teal-600 group-hover:text-teal-500 transition-colors inline-flex items-center gap-1">
-          {t("focus.learn_more")}
-          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-        </span>
+          <div
+            ref={detailRef}
+            className="overflow-hidden"
+            style={{ height: 0, opacity: 0, marginTop: 0 }}
+          >
+            <p className="text-xs text-slate-400 leading-relaxed">
+              {t(`focus.${area.key}.detail`)}
+            </p>
+          </div>
+
+          <span className="text-sm font-semibold text-teal-600 group-hover:text-teal-500 transition-colors inline-flex items-center gap-1">
+            {t("focus.learn_more")}
+            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+          </span>
+        </div>
       </div>
     </div>
   );
