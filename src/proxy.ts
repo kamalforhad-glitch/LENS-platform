@@ -2,10 +2,23 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
 
+// Legitimate search-engine crawlers — must always reach public pages,
+// /sitemap.xml and /robots.txt (matched before the block list).
+const ALLOWED_CRAWLERS = [
+  /googlebot/i,
+  /bingbot/i,
+  /slurp/i,
+  /duckduckbot/i,
+  /baiduspider/i,
+  /yandex/i,
+  /applebot/i,
+  /petalbot/i,
+  /sogou/i,
+];
+
 // Bot user agents to block
 const BLOCKED_BOTS = [
   /crawler/i,
-  /bot(?!om)/i,
   /spider/i,
   /scraper/i,
   /curl/i,
@@ -68,10 +81,16 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // Bot detection for non-API routes
+  // Bot detection for non-API routes (search-engine crawlers are exempt)
   if (!pathname.startsWith("/api/") && !pathname.startsWith("/_next/")) {
     const userAgent = request.headers.get("user-agent") || "";
-    if (BLOCKED_BOTS.some((pattern) => pattern.test(userAgent))) {
+    const isAllowedCrawler = ALLOWED_CRAWLERS.some((pattern) =>
+      pattern.test(userAgent)
+    );
+    if (
+      !isAllowedCrawler &&
+      BLOCKED_BOTS.some((pattern) => pattern.test(userAgent))
+    ) {
       return new NextResponse("Forbidden", { status: 403 });
     }
   }
