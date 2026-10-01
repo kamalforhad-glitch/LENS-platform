@@ -237,7 +237,7 @@ export async function getArticleCitations(articleId: string) {
     issue: null,
     pages: null,
     doi: article.doi,
-    url: article.pdfUrl || `${process.env.NEXT_PUBLIC_SITE_URL || "https://lens.org.bd"}/library/${article.slug}`,
+    url: article.pdfUrl || `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.lensbd.org"}/library/${article.slug}`,
     publisher: "LENS Bangladesh",
     isbn: null,
     type: article.category.toLowerCase().includes("report") ? "report" : "journal",

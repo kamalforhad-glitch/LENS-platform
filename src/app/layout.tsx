@@ -114,6 +114,45 @@ export default function RootLayout({
         {process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && (
           <meta name="google-site-verification" content={process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION} />
         )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  name: "LENS",
+                  alternateName: "Lighthouse for Evolving Narrative Systems",
+                  url: `https://${CANONICAL_HOST}/`,
+                  description: DEFAULT_DESCRIPTION,
+                  logo: {
+                    "@type": "ImageObject",
+                    url: `https://${CANONICAL_HOST}/favicon.svg`,
+                  },
+                  sameAs: [
+                    "https://www.facebook.com/lensorgbd",
+                    "https://twitter.com/lensorgbd",
+                    "https://www.linkedin.com/company/lensorgbd",
+                    "https://www.youtube.com/@lensorgbd",
+                  ],
+                },
+                {
+                  "@type": "WebSite",
+                  name: "LENS — Lighthouse for Evolving Narrative Systems",
+                  alternateName: "LENS",
+                  url: `https://${CANONICAL_HOST}/`,
+                  description: DEFAULT_DESCRIPTION,
+                  publisher: {
+                    "@type": "Organization",
+                    name: "LENS",
+                  },
+                  inLanguage: ["en", "bn"],
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-inter)]">
         <a

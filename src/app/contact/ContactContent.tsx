@@ -54,7 +54,7 @@ export default function ContactContent() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 mb-1">Email</h3>
-                  <p className="text-sm text-slate-500">info@lens.org.bd</p>
+                  <p className="text-sm text-slate-500">info@lensbd.org</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 mb-1">Address</h3>
@@ -62,11 +62,11 @@ export default function ContactContent() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 mb-1">General Inquiries</h3>
-                  <p className="text-sm text-slate-500">info@lens.org.bd</p>
+                  <p className="text-sm text-slate-500">info@lensbd.org</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 mb-1">Media Queries</h3>
-                  <p className="text-sm text-slate-500">media@lens.org.bd</p>
+                  <p className="text-sm text-slate-500">media@lensbd.org</p>
                 </div>
               </div>
             </div>

@@ -55,7 +55,7 @@ export default function PreviewModal({ open, onClose, onPublish, title, content,
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Google Search Preview</h3>
                 <div className="bg-white rounded-lg p-4 border border-slate-200">
                   <p className="text-blue-700 text-lg font-medium hover:underline cursor-pointer truncate">{metaTitle || title}</p>
-                  <p className="text-green-700 text-xs mt-1">lens.org.bd/{title.toLowerCase().replace(/\s+/g, "-")}</p>
+                  <p className="text-green-700 text-xs mt-1">www.lensbd.org/{title.toLowerCase().replace(/\s+/g, "-")}</p>
                   <p className="text-slate-600 text-sm mt-1 line-clamp-2">{metaDescription || content?.slice(0, 160) || "No description set."}</p>
                 </div>
               </div>
@@ -66,7 +66,7 @@ export default function PreviewModal({ open, onClose, onPublish, title, content,
                     <span className="text-white/80 text-xs">OG Image</span>
                   </div>
                   <div className="p-4">
-                    <p className="text-xs text-slate-400 uppercase">lens.org.bd</p>
+                    <p className="text-xs text-slate-400 uppercase">www.lensbd.org</p>
                     <p className="text-sm font-semibold text-slate-900 mt-1">{metaTitle || title}</p>
                     <p className="text-xs text-slate-500 mt-1 line-clamp-2">{metaDescription || content?.slice(0, 120) || "No description set."}</p>
                   </div>

@@ -32,7 +32,7 @@ export default function TermsPage() {
               <h2 className="text-xl font-bold text-slate-900 mt-8">6. Changes to Terms</h2>
               <p>We reserve the right to modify these terms at any time. Changes will be effective immediately upon posting on this page.</p>
               <h2 className="text-xl font-bold text-slate-900 mt-8">7. Contact</h2>
-              <p>For questions about these terms, contact us at <a href="mailto:info@lens.org.bd" className="text-teal-600 hover:underline">info@lens.org.bd</a>.</p>
+              <p>For questions about these terms, contact us at <a href="mailto:info@lensbd.org" className="text-teal-600 hover:underline">info@lensbd.org</a>.</p>
             </div>
           </div>
         </section>

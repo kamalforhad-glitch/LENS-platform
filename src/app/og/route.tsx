@@ -109,7 +109,7 @@ export async function GET(request: Request) {
           }}
         >
           <span style={{ fontSize: "14px", color: "#64748b" }}>
-            lens.org.bd
+            www.lensbd.org
           </span>
           <div
             style={{

@@ -69,7 +69,7 @@ export default function EventsContent() {
           startDate={event.date}
           endDate={event.date}
           location={event.location}
-          url={`${process.env.NEXT_PUBLIC_SITE_URL || "https://lens.org.bd"}/events/${event.slug}`}
+          url={`${process.env.NEXT_PUBLIC_SITE_URL || "https://www.lensbd.org"}/events/${event.slug}`}
         />
       ))}
 

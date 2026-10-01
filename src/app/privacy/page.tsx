@@ -30,9 +30,9 @@ export default function PrivacyPage() {
               <h2 className="text-xl font-bold text-slate-900 mt-8">5. Third-Party Services</h2>
               <p>We may use third-party services that collect information used to identify you. These services have their own privacy policies addressing how they use such information.</p>
               <h2 className="text-xl font-bold text-slate-900 mt-8">6. Your Rights</h2>
-              <p>You have the right to access, correct, or delete your personal information. To exercise these rights, please contact us at <a href="mailto:info@lens.org.bd" className="text-teal-600 hover:underline">info@lens.org.bd</a>.</p>
+              <p>You have the right to access, correct, or delete your personal information. To exercise these rights, please contact us at <a href="mailto:info@lensbd.org" className="text-teal-600 hover:underline">info@lensbd.org</a>.</p>
               <h2 className="text-xl font-bold text-slate-900 mt-8">7. Contact</h2>
-              <p>If you have questions about this privacy policy, please contact us at <a href="mailto:info@lens.org.bd" className="text-teal-600 hover:underline">info@lens.org.bd</a>.</p>
+              <p>If you have questions about this privacy policy, please contact us at <a href="mailto:info@lensbd.org" className="text-teal-600 hover:underline">info@lensbd.org</a>.</p>
             </div>
           </div>
         </section>

@@ -1,4 +1,23 @@
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://lens.org.bd";
+// Canonical production host. Normalize apex -> www and never fall back to
+// the legacy lens.org.bd host (same convention as layout/sitemap/robots).
+const CANONICAL_BASE_URL = "https://www.lensbd.org";
+
+function resolveBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL;
+  if (raw) {
+    try {
+      const host = new URL(raw).hostname;
+      if (host === "lensbd.org" || host === "www.lensbd.org") {
+        return CANONICAL_BASE_URL;
+      }
+    } catch {
+      // Unusable value — fall through to the canonical host.
+    }
+  }
+  return CANONICAL_BASE_URL;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 // ============================================================
 // Enhanced Organization Schema
@@ -29,13 +48,13 @@ export function OrganizationSchema() {
       {
         "@type": "ContactPoint",
         contactType: "General Inquiries",
-        email: "info@lens.org.bd",
+        email: "info@lensbd.org",
         availableLanguage: ["English", "Bengali"],
       },
       {
         "@type": "ContactPoint",
         contactType: "Media Inquiries",
-        email: "media@lens.org.bd",
+        email: "media@lensbd.org",
         availableLanguage: ["English", "Bengali"],
       },
     ],

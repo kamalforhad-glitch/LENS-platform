@@ -30,7 +30,7 @@ export interface CrossRefSearchResult {
 function getHeaders(): HeadersInit {
   const headers: HeadersInit = {
     Accept: "application/json",
-    "User-Agent": "LENS-Website/1.0 (mailto:research@lens.org.bd)",
+    "User-Agent": "LENS-Website/1.0 (mailto:research@lensbd.org)",
   };
   const email = process.env.CROSSREF_POLITE_EMAIL;
   if (email) {

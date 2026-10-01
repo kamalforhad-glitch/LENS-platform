@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-400/50 focus:bg-white/10 transition-all"
-              placeholder="admin@lens.org.bd"
+              placeholder="admin@lensbd.org"
               required
             />
           </div>
@@ -84,7 +84,7 @@ export default function AdminLoginPage() {
           </button>
 
           <p className="text-center text-[11px] text-slate-500">
-            Default: admin@lens.org.bd / admin123
+            Authorized administrators only. Contact your system administrator for access.
           </p>
         </form>
       </div>

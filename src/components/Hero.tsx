@@ -100,6 +100,13 @@ function HeroContent() {
         { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.8, ease: "back.out(1.7)", delay: 0.3 }
       );
 
+      // Brand entity line (LENS — Lighthouse for Evolving Narrative Systems)
+      gsap.fromTo(
+        ".hero-brand",
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "power2.out", delay: 0.45 }
+      );
+
       // Word-by-word kinetic headline
       const words = wordsRef.current.filter(Boolean);
       gsap.fromTo(
@@ -246,6 +253,10 @@ function HeroContent() {
                 {t("hero.badge")}
               </span>
             </div>
+
+            <p className="hero-brand text-xs font-semibold tracking-[0.25em] uppercase text-teal-200/70 mb-6 opacity-0">
+              LENS — Lighthouse for Evolving Narrative Systems
+            </p>
 
             <h1
               className={`font-bold text-white leading-[1.15] mb-8 ${

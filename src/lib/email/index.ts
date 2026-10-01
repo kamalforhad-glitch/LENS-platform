@@ -2,8 +2,8 @@ import { Resend } from "resend";
 import { db } from "@/lib/db";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM_EMAIL = process.env.EMAIL_FROM || "LENS <noreply@lens.org.bd>";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@lens.org.bd";
+const FROM_EMAIL = process.env.EMAIL_FROM || "LENS <noreply@lensbd.org>";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@lensbd.org";
 
 export interface EmailOptions {
   to: string | string[];
@@ -93,7 +93,7 @@ function baseTemplate(content: string): string {
     </div>
     <div class="footer">
       <p>&copy; ${new Date().getFullYear()} LENS Bangladesh. All rights reserved.</p>
-      <p><a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://lens.org.bd"}">Visit Website</a> | <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://lens.org.bd"}/privacy">Privacy Policy</a></p>
+      <p><a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://www.lensbd.org"}">Visit Website</a> | <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://www.lensbd.org"}/privacy">Privacy Policy</a></p>
     </div>
   </div>
 </body>
@@ -177,7 +177,7 @@ export async function sendContactNotification(data: {
 
 export async function sendNewsletterConfirmation(email: string) {
   const token = crypto.randomUUID();
-  const confirmUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://lens.org.bd"}/api/newsletter?token=${token}`;
+  const confirmUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.lensbd.org"}/api/newsletter?token=${token}`;
 
   // Store token
   await db.newsletterSubscriber.update({
