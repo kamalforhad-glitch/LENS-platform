@@ -1,7 +1,18 @@
 import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://lens.org.bd";
+  const raw = process.env.NEXT_PUBLIC_SITE_URL;
+  let baseUrl = "https://www.lensbd.org";
+  if (raw) {
+    try {
+      const host = new URL(raw).hostname;
+      if (host === "lensbd.org" || host === "www.lensbd.org") {
+        baseUrl = "https://www.lensbd.org";
+      }
+    } catch {
+      // Keep canonical fallback.
+    }
+  }
 
   return {
     rules: [

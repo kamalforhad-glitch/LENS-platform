@@ -1,4 +1,21 @@
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://lens.org.bd";
+const CANONICAL_HOST = "www.lensbd.org";
+
+function resolveBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL;
+  if (raw) {
+    try {
+      const host = new URL(raw).hostname;
+      if (host === "lensbd.org" || host === CANONICAL_HOST) {
+        return `https://${CANONICAL_HOST}`;
+      }
+    } catch {
+      // Unusable value — fall through to canonical.
+    }
+  }
+  return `https://${CANONICAL_HOST}`;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 interface SitemapEntry {
   url: string;
@@ -7,7 +24,7 @@ interface SitemapEntry {
   priority: number;
 }
 
-export default function sitemap(): SitemapEntry[] {
+export default async function sitemap(): Promise<SitemapEntry[]> {
   const lastModified = new Date();
 
   const pages: SitemapEntry[] = [
@@ -27,13 +44,26 @@ export default function sitemap(): SitemapEntry[] {
     { url: `${BASE_URL}/terms`, lastModified, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  // Add research articles dynamically
-  const researchSlugs = [
+  // Research slugs are DB-driven when DATABASE_URL is available (build-safe
+  // fallback to the last known static slugs so `next build` never fails
+  // without a database).
+  let researchSlugs = [
     "narratives-in-the-digital-age",
     "media-index-bangladesh-2025",
     "youth-narratives-civic-engagement",
     "media-literacy-resilient-democracy",
   ];
+  try {
+    const { db } = await import("@/lib/db");
+    const rows = await db.researchArticle.findMany({
+      where: { status: "published" },
+      select: { slug: true },
+      take: 500,
+    });
+    if (rows.length > 0) researchSlugs = rows.map((r) => r.slug);
+  } catch {
+    // Build/static fallback — keep hardcoded slugs.
+  }
 
   researchSlugs.forEach((slug) => {
     pages.push({
