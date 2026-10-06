@@ -66,14 +66,19 @@ export async function createEvent(data: {
   const existing = await db.event.findUnique({ where: { slug } });
   if (existing) slug = `${slug}-${id.slice(0, 8)}`;
 
+  const startDate = new Date(data.start_date);
+  const endDate = new Date(data.end_date);
+  if (Number.isNaN(startDate.getTime())) throw new Error("Invalid start_date");
+  if (Number.isNaN(endDate.getTime())) throw new Error("Invalid end_date");
+
   await db.event.create({
     data: {
       id,
       slug,
       name: data.name,
       description: data.description,
-      startDate: new Date(data.start_date),
-      endDate: new Date(data.end_date),
+      startDate,
+      endDate,
       time: data.time || "",
       location: data.location,
       locationUrl: data.location_url || null,
@@ -112,8 +117,16 @@ export async function updateEvent(
 
   if (data.name !== undefined) updateData.name = data.name;
   if (data.description !== undefined) updateData.description = data.description;
-  if (data.start_date !== undefined) updateData.startDate = new Date(data.start_date);
-  if (data.end_date !== undefined) updateData.endDate = new Date(data.end_date);
+  if (data.start_date !== undefined) {
+    const d = new Date(data.start_date);
+    if (Number.isNaN(d.getTime())) throw new Error("Invalid start_date");
+    updateData.startDate = d;
+  }
+  if (data.end_date !== undefined) {
+    const d = new Date(data.end_date);
+    if (Number.isNaN(d.getTime())) throw new Error("Invalid end_date");
+    updateData.endDate = d;
+  }
   if (data.time !== undefined) updateData.time = data.time;
   if (data.location !== undefined) updateData.location = data.location;
   if (data.location_url !== undefined) updateData.locationUrl = data.location_url;

@@ -9,6 +9,8 @@ export async function getReviewQueue(
   limit: number = 20,
   filters: { status?: string; search?: string } = {}
 ): Promise<PaginatedResult<AdminReviewAssignment>> {
+  requireAuth(await getCurrentUser(), "viewer");
+
   const where: Record<string, unknown> = {};
 
   if (filters.status && filters.status !== "all") {
@@ -48,6 +50,8 @@ export async function getReviewQueue(
 }
 
 export async function getReviewAssignment(id: string): Promise<AdminReviewAssignment | null> {
+  requireAuth(await getCurrentUser(), "viewer");
+
   const item = await db.reviewAssignment.findUnique({
     where: { id },
     include: {
@@ -60,6 +64,8 @@ export async function getReviewAssignment(id: string): Promise<AdminReviewAssign
 }
 
 export async function getArticleReviews(articleId: string) {
+  requireAuth(await getCurrentUser(), "viewer");
+
   return db.reviewAssignment.findMany({
     where: { articleId },
     include: {
@@ -79,20 +85,23 @@ export async function assignReviewer(
   const user = await getCurrentUser();
   requireAuth(user, "admin");
 
-  const assignment = await db.reviewAssignment.create({
-    data: {
-      articleId,
-      reviewerId,
-      deadline: deadline ? new Date(deadline) : null,
-    },
-  });
+  return db.$transaction(async (tx) => {
+    const parsedDeadline = deadline ? new Date(deadline) : null;
+    const assignment = await tx.reviewAssignment.create({
+      data: {
+        articleId,
+        reviewerId,
+        deadline: parsedDeadline && !Number.isNaN(parsedDeadline.getTime()) ? parsedDeadline : null,
+      },
+    });
 
-  await db.researchArticle.update({
-    where: { id: articleId },
-    data: { reviewStatus: "pending" },
-  });
+    await tx.researchArticle.update({
+      where: { id: articleId },
+      data: { reviewStatus: "pending" },
+    });
 
-  return assignment;
+    return assignment;
+  });
 }
 
 export async function updateReviewStatus(
@@ -106,31 +115,34 @@ export async function updateReviewStatus(
   const updateData: Record<string, unknown> = { status };
   if (notes !== undefined) updateData.notes = notes;
 
-  const assignment = await db.reviewAssignment.update({
-    where: { id: assignmentId },
-    data: updateData,
+  return db.$transaction(async (tx) => {
+    const assignment = await tx.reviewAssignment.update({
+      where: { id: assignmentId },
+      data: updateData,
+    });
+
+    // Re-read inside the transaction and evaluate the UPDATED statuses
+    // (previous code mixed stale DB rows with the in-flight status).
+    const articleAssignments = await tx.reviewAssignment.findMany({
+      where: { articleId: assignment.articleId },
+    });
+
+    const allCompleted = articleAssignments.every((a) => a.status === "completed");
+    const anyInProgress = articleAssignments.some((a) => a.status === "in_progress");
+    const anyDeclined = articleAssignments.some((a) => a.status === "declined");
+
+    let articleReviewStatus = "pending";
+    if (allCompleted && articleAssignments.length > 0) articleReviewStatus = "under_review";
+    else if (anyInProgress) articleReviewStatus = "under_review";
+    else if (anyDeclined) articleReviewStatus = "revision_requested";
+
+    await tx.researchArticle.update({
+      where: { id: assignment.articleId },
+      data: { reviewStatus: articleReviewStatus },
+    });
+
+    return assignment;
   });
-
-  // Update article review status based on assignment statuses
-  const articleAssignments = await db.reviewAssignment.findMany({
-    where: { articleId: assignment.articleId },
-  });
-
-  const allCompleted = articleAssignments.every((a) => a.status === "completed" || a.id === assignmentId && status === "completed");
-  const anyInProgress = articleAssignments.some((a) => a.status === "in_progress") || status === "in_progress";
-  const anyDeclined = articleAssignments.some((a) => a.status === "declined") || status === "declined";
-
-  let articleReviewStatus = "pending";
-  if (allCompleted) articleReviewStatus = "under_review";
-  else if (anyInProgress) articleReviewStatus = "under_review";
-  else if (anyDeclined) articleReviewStatus = "revision_requested";
-
-  await db.researchArticle.update({
-    where: { id: assignment.articleId },
-    data: { reviewStatus: articleReviewStatus },
-  });
-
-  return assignment;
 }
 
 export async function addReviewComment(
@@ -174,6 +186,8 @@ export async function deleteReviewComment(commentId: string) {
 }
 
 export async function getReviewStats() {
+  requireAuth(await getCurrentUser(), "viewer");
+
   const [total, pending, inProgress, completed, declined] = await Promise.all([
     db.reviewAssignment.count(),
     db.reviewAssignment.count({ where: { status: "pending" } }),

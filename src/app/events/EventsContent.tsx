@@ -1,40 +1,23 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import { EventSchema } from "@/components/SchemaOrg";
+import ContentListState from "@/components/ContentListState";
+import type { EventCard } from "@/lib/public-content";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const events = [
-  {
-    name: "Young Educators' Leadership Summit 2025",
-    date: "July 24, 2025",
-    time: "8:00 AM - 6:00 PM",
-    location: "NAEM, Dhaka",
-    description: "A summit bringing together young educators to discuss media literacy and civic engagement.",
-    slug: "young-educators-summit-2025",
-  },
-  {
-    name: "Media Literacy Workshop Series",
-    date: "August 15, 2025",
-    time: "10:00 AM - 4:00 PM",
-    location: "Online (Zoom)",
-    description: "Interactive workshop on digital media literacy for journalists and civil society.",
-    slug: "media-literacy-workshop-2025",
-  },
-  {
-    name: "BPFI 2025 Launch Event",
-    date: "September 10, 2025",
-    time: "6:00 PM - 8:00 PM",
-    location: "Dhaka Press Club",
-    description: "Launch of the Bangladesh Press Freedom Index 2025 report.",
-    slug: "bpfi-2025-launch",
-  },
-];
+type Props = {
+  events: EventCard[];
+  error?: boolean;
+};
 
-export default function EventsContent() {
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+export default function EventsContent({ events, error = false }: Props) {
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,17 +40,17 @@ export default function EventsContent() {
     }, sectionRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [events.length]);
 
   return (
     <div ref={sectionRef}>
       {events.map((event) => (
         <EventSchema
-          key={event.name}
+          key={event.slug}
           name={event.name}
           description={event.description}
-          startDate={event.date}
-          endDate={event.date}
+          startDate={event.startDate.toISOString()}
+          endDate={event.startDate.toISOString()}
           location={event.location}
           url={`${process.env.NEXT_PUBLIC_SITE_URL || "https://www.lensbd.org"}/events/${event.slug}`}
         />
@@ -92,40 +75,47 @@ export default function EventsContent() {
 
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="events-timeline relative pl-8">
-            <div className="event-timeline-line absolute left-3 top-0 bottom-0 w-px bg-gradient-to-b from-teal-400/30 via-teal-400/10 to-transparent origin-top" />
+          {events.length === 0 ? (
+            <ContentListState
+              variant={error ? "error" : "empty"}
+              emptyMessage="No events have been announced yet."
+            />
+          ) : (
+            <div className="events-timeline relative pl-8">
+              <div className="event-timeline-line absolute left-3 top-0 bottom-0 w-px bg-gradient-to-b from-teal-400/30 via-teal-400/10 to-transparent origin-top" />
 
-            <div className="space-y-8">
-              {events.map((event) => (
-                <div key={event.name} className="relative">
-                  <div className="absolute -left-5 top-6 w-2.5 h-2.5 rounded-full bg-teal-400 border-2 border-white shadow-sm z-10" />
-                  <a
-                    href={`/events/${event.slug}`}
-                    className="event-card block flex gap-6 p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300 opacity-0"
-                  >
-                    <div className="shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex flex-col items-center justify-center text-white shadow-lg shadow-teal-500/20">
-                      <span className="text-xs font-medium leading-none">
-                        {event.date.split(" ")[1]?.replace(",", "")}
-                      </span>
-                      <span className="text-[10px] font-medium leading-none mt-0.5">
-                        {event.date.split(" ")[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-slate-900 mb-1">
-                        {event.name}
-                      </h2>
-                      <p className="text-sm text-slate-500 mb-2">{event.description}</p>
-                      <div className="flex items-center gap-4 text-xs text-slate-400">
-                        <span>{event.location}</span>
-                        <span>{event.time}</span>
+              <div className="space-y-8">
+                {events.map((event) => (
+                  <div key={event.slug} className="relative">
+                    <div className="absolute -left-5 top-6 w-2.5 h-2.5 rounded-full bg-teal-400 border-2 border-white shadow-sm z-10" />
+                    <Link
+                      href={`/events/${event.slug}`}
+                      className="event-card block flex gap-6 p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300 opacity-0"
+                    >
+                      <div className="shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex flex-col items-center justify-center text-white shadow-lg shadow-teal-500/20">
+                        <span className="text-xs font-medium leading-none">
+                          {event.startDate.getDate()}
+                        </span>
+                        <span className="text-[10px] font-medium leading-none mt-0.5">
+                          {MONTHS[event.startDate.getMonth()]}
+                        </span>
                       </div>
-                    </div>
-                  </a>
-                </div>
-              ))}
+                      <div>
+                        <h2 className="text-lg font-bold text-slate-900 mb-1">
+                          {event.name}
+                        </h2>
+                        <p className="text-sm text-slate-500 mb-2">{event.description}</p>
+                        <div className="flex items-center gap-4 text-xs text-slate-400">
+                          <span>{event.location}</span>
+                          <span>{event.time}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
     </div>

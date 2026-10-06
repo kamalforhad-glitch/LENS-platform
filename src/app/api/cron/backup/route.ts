@@ -6,11 +6,15 @@ import { createBackup } from "@/lib/backup";
 // Add to vercel.json: { "crons": [{ "path": "/api/cron/backup", "schedule": "0 2 * * *" }] }
 
 export async function GET(request: Request) {
-  // Verify cron secret for security
+  // Verify cron secret for security — fail closed if not configured.
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    console.error("[Cron Backup] CRON_SECRET is not configured — refusing to run");
+    return NextResponse.json({ error: "Backup service not configured" }, { status: 503 });
+  }
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

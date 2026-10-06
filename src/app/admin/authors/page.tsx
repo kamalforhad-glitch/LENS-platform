@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { getAuthorProfiles, deleteAuthorProfile } from "@/lib/actions/authors";
 import type { AdminAuthorProfile, PaginatedResult } from "@/lib/admin-types";
 
@@ -111,7 +112,7 @@ export default function AdminAuthorsPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {author.image ? (
-                          <img src={author.image} alt={author.name} className="w-8 h-8 rounded-full object-cover" />
+                          <Image src={author.image} alt={author.name} width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400 text-xs font-bold">{author.name.charAt(0)}</div>
                         )}

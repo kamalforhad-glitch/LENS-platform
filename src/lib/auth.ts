@@ -3,17 +3,7 @@ import { cookies } from "next/headers";
 import { v4 as uuid } from "uuid";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
-const JWT_SECRET = (() => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret && process.env.NODE_ENV === "production" && typeof window === "undefined") {
-    // Only throw at runtime, not during build
-    if (process.env.NEXT_PHASE !== "phase-production-build") {
-      throw new Error("JWT_SECRET environment variable is required in production");
-    }
-  }
-  return secret || "lens-dev-secret-change-in-production-2025";
-})();
+import { getJwtSecret } from "./env";
 const SESSION_DURATION_HOURS = 24;
 
 export interface AuthUser {
@@ -44,12 +34,12 @@ export function verifyPassword(password: string, hash: string): boolean {
 // JWT utilities
 // ============================================================
 export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: `${SESSION_DURATION_HOURS}h` });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: `${SESSION_DURATION_HOURS}h` });
 }
 
 export function verifyToken(token: string): JwtPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+    return jwt.verify(token, getJwtSecret()) as JwtPayload;
   } catch {
     return null;
   }
@@ -173,4 +163,8 @@ export function requireAuth(user: AuthUser | null, minRole: "admin" | "editor" |
 
 export function requireAdmin(user: AuthUser | null): AuthUser {
   return requireAuth(user, "admin");
+}
+
+export function requireEditor(user: AuthUser | null): AuthUser {
+  return requireAuth(user, "editor");
 }

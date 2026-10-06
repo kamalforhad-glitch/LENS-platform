@@ -131,39 +131,43 @@ export async function linkAuthorToArticle(
   const user = await getCurrentUser();
   requireAuth(user, "editor");
 
-  const link = await db.authorArticle.upsert({
-    where: {
-      authorProfileId_articleId: { authorProfileId, articleId },
-    },
-    update: { authorOrder, isCorresponding },
-    create: { authorProfileId, articleId, authorOrder, isCorresponding },
-  });
+  return db.$transaction(async (tx) => {
+    const link = await tx.authorArticle.upsert({
+      where: {
+        authorProfileId_articleId: { authorProfileId, articleId },
+      },
+      update: { authorOrder, isCorresponding },
+      create: { authorProfileId, articleId, authorOrder, isCorresponding },
+    });
 
-  // Update article count
-  const count = await db.authorArticle.count({ where: { authorProfileId } });
-  await db.authorProfile.update({
-    where: { id: authorProfileId },
-    data: { articleCount: count },
-  });
+    // Recount inside the transaction so concurrent link/unlink can't leave a stale count.
+    const count = await tx.authorArticle.count({ where: { authorProfileId } });
+    await tx.authorProfile.update({
+      where: { id: authorProfileId },
+      data: { articleCount: count },
+    });
 
-  return link;
+    return link;
+  });
 }
 
 export async function unlinkAuthorFromArticle(authorProfileId: string, articleId: string) {
   const user = await getCurrentUser();
   requireAuth(user, "editor");
 
-  await db.authorArticle.delete({
-    where: {
-      authorProfileId_articleId: { authorProfileId, articleId },
-    },
-  });
+  return db.$transaction(async (tx) => {
+    await tx.authorArticle.delete({
+      where: {
+        authorProfileId_articleId: { authorProfileId, articleId },
+      },
+    });
 
-  const count = await db.authorArticle.count({ where: { authorProfileId } });
-  await db.authorProfile.update({
-    where: { id: authorProfileId },
-    data: { articleCount: count },
-  });
+    const count = await tx.authorArticle.count({ where: { authorProfileId } });
+    await tx.authorProfile.update({
+      where: { id: authorProfileId },
+      data: { articleCount: count },
+    });
 
-  return { success: true };
+    return { success: true };
+  });
 }

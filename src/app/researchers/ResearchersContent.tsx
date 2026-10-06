@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Researcher {
   id: string;
@@ -82,7 +83,7 @@ export default function ResearchersPage() {
                   <div className="flex items-start gap-4 mb-4">
                     <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-lg font-bold shrink-0">
                       {r.image ? (
-                        <img src={r.image} alt={r.name} className="w-14 h-14 rounded-full object-cover" />
+                        <Image src={r.image} alt={r.name} width={56} height={56} className="w-14 h-14 rounded-full object-cover" />
                       ) : (
                         r.name.charAt(0)
                       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
+import { isScrollActive } from "@/lib/scroll-activity";
 
 function seededRandom(seed: number) {
   const x = Math.sin(seed * 12.9898 + seed * 78.233) * 43758.5453;
@@ -29,35 +30,12 @@ export default function MediaIntelligenceMap() {
   const animRef = useRef<number>(0);
   const prefersReduced = useRef(false);
   const isVisible = useRef(false);
+  // Static per-size layout (nodes, connections, grid path). All inputs are
+  // pure functions of (seed, w, h), so caching per resize produces pixel-
+  // identical output without per-frame array rebuilds and seededRandom calls.
+  const layoutRef = useRef<{ nodes: Node[]; connections: Connection[]; grid: Path2D } | null>(null);
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const w = canvas.width;
-    const h = canvas.height;
-    const t = performance.now() * 0.001;
-
-    ctx.clearRect(0, 0, w, h);
-
-    ctx.strokeStyle = "rgba(8, 145, 178, 0.06)";
-    ctx.lineWidth = 0.5;
-    const gridSize = 24;
-    for (let x = 0; x < w; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-    }
-    for (let y = 0; y < h; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
-
+  const buildLayout = useCallback((w: number, h: number) => {
     const nodeCount = 12;
     const nodes: Node[] = [];
     for (let i = 0; i < nodeCount; i++) {
@@ -87,6 +65,47 @@ export default function MediaIntelligenceMap() {
         }
       }
     }
+
+    const grid = new Path2D();
+    const gridSize = 24;
+    for (let x = 0; x < w; x += gridSize) {
+      grid.moveTo(x, 0);
+      grid.lineTo(x, h);
+    }
+    for (let y = 0; y < h; y += gridSize) {
+      grid.moveTo(0, y);
+      grid.lineTo(w, y);
+    }
+
+    layoutRef.current = { nodes, connections, grid };
+  }, []);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const layout = layoutRef.current;
+    if (!layout) return;
+
+    // Scroll-aware pause: skip animation work while actively scrolling, but
+    // keep the RAF loop alive so rendering resumes instantly on settle.
+    // The reduced-motion single-draw path (isVisible false) always renders.
+    if (isScrollActive() && isVisible.current) {
+      animRef.current = requestAnimationFrame(draw);
+      return;
+    }
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const t = performance.now() * 0.001;
+    const { nodes, connections } = layout;
+
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.strokeStyle = "rgba(8, 145, 178, 0.06)";
+    ctx.lineWidth = 0.5;
+    ctx.stroke(layout.grid);
 
     connections.forEach((conn) => {
       const a = nodes[conn.from];
@@ -167,6 +186,7 @@ export default function MediaIntelligenceMap() {
       if (!parent) return;
       canvas.width = parent.clientWidth;
       canvas.height = parent.clientHeight;
+      buildLayout(canvas.width, canvas.height);
     };
 
     resize();
@@ -196,7 +216,7 @@ export default function MediaIntelligenceMap() {
       cancelAnimationFrame(animRef.current);
       observer.disconnect();
     };
-  }, [draw]);
+  }, [draw, buildLayout]);
 
   return (
     <div ref={containerRef} className="relative w-full h-full">

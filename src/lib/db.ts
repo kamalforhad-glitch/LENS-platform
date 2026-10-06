@@ -10,16 +10,25 @@ export const db =
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+// Reuse the client across serverless invocations in every environment.
+// Creating a new PrismaClient per request exhausts the Supabase pooler
+// (transaction mode, limited connections). globalThis survives module
+// reloads on Vercel/Lambda-style runtimes.
+globalForPrisma.prisma = db;
 
 // ============================================================
 // Generic helpers
 // ============================================================
 export function slugify(text: string): string {
-  return text
+  const slug = text
     .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
+    // Keep Unicode letters/numbers (incl. Bengali U+0980–U+09FF), spaces, hyphens.
+    .replace(/[^\p{L}\p{N}\s-]/gu, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
     .slice(0, 120);
+  // Fallback for titles that transliterate to empty (e.g. symbols-only).
+  if (!slug) return `item-${crypto.randomUUID().slice(0, 8)}`;
+  return slug;
 }

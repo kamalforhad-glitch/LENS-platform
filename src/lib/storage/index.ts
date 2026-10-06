@@ -21,13 +21,14 @@ function getConfig(): StorageConfig {
 }
 
 // File type validation
+// NOTE: SVG is intentionally rejected (inline <script>/event handlers execute
+// when served same-origin). Allowed: jpg/jpeg, png, gif, webp, avif + pdf/doc.
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
   "image/gif",
   "image/webp",
   "image/avif",
-  "image/svg+xml",
 ];
 
 const ALLOWED_DOCUMENT_TYPES = [

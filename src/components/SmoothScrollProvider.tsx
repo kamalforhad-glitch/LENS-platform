@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { usePathname } from "next/navigation";
+import { markScrollActive } from "@/lib/scroll-activity";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -23,6 +24,8 @@ export default function SmoothScrollProvider({
 }) {
   const lenisRef = useRef<LenisInstance | null>(null);
   const tickerCallbackRef = useRef<((time: number) => void) | null>(null);
+  const clickHandlerRef = useRef<((e: Event) => void) | null>(null);
+  const loadHandlerRef = useRef<(() => void) | null>(null);
   const pathname = usePathname();
 
   const handleAnchorClick = useCallback((e: Event) => {
@@ -49,11 +52,21 @@ export default function SmoothScrollProvider({
         duration: 0.8,
         easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: true,
+        // Touch stays native (syncTouch defaults to false in Lenis v1) so
+        // mobile scrolling never depends on the RAF loop; explicit to guard
+        // future defaults.
+        syncTouch: false,
       }) as LenisInstance;
 
       lenisRef.current = lenis;
 
+      // Skip trigger recalculation on mobile URL-bar resizes (no layout
+      // change of consequence; avoids scroll-linked reflow storms on mobile).
+      ScrollTrigger.config({ ignoreMobileResize: true });
+
       lenis.on("scroll", () => {
+        // Shared scroll-activity signal (canvases pause while scrolling).
+        markScrollActive();
         ScrollTrigger.update();
       });
 
@@ -81,10 +94,19 @@ export default function SmoothScrollProvider({
       };
       window.addEventListener("beforeunload", handleBeforeUnload);
 
-      document.addEventListener("click", (e) => {
+      const handleDocumentClick = (e: Event) => {
         const anchor = (e.target as HTMLElement).closest("a[href^='#']");
         if (anchor) handleAnchorClick(e);
-      });
+      };
+      clickHandlerRef.current = handleDocumentClick;
+      document.addEventListener("click", handleDocumentClick);
+
+      // Landing sections mount dynamically (ssr:false) after Lenis starts,
+      // shifting layout — refresh trigger positions once content settles and
+      // again on full page load so scrubbed parallax tracks real positions.
+      requestAnimationFrame(() => ScrollTrigger.refresh());
+      loadHandlerRef.current = () => ScrollTrigger.refresh();
+      window.addEventListener("load", loadHandlerRef.current);
 
       return () => {
         window.removeEventListener("beforeunload", handleBeforeUnload);
@@ -98,6 +120,14 @@ export default function SmoothScrollProvider({
       if (tickerCallbackRef.current) {
         gsap.ticker.remove(tickerCallbackRef.current);
         tickerCallbackRef.current = null;
+      }
+      if (clickHandlerRef.current) {
+        document.removeEventListener("click", clickHandlerRef.current);
+        clickHandlerRef.current = null;
+      }
+      if (loadHandlerRef.current) {
+        window.removeEventListener("load", loadHandlerRef.current);
+        loadHandlerRef.current = null;
       }
       lenisRef.current?.destroy();
       lenisRef.current = null;

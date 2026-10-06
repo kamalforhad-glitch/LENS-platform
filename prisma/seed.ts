@@ -12,7 +12,15 @@ async function main() {
   });
 
   if (!existingAdmin) {
-    const hash = bcrypt.hashSync("admin123", 12);
+    const seedPassword = process.env.ADMIN_SEED_PASSWORD;
+    if (!seedPassword) {
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("ADMIN_SEED_PASSWORD environment variable is required to seed production");
+      }
+      console.log("ADMIN_SEED_PASSWORD not set — skipping default admin creation (no default credentials).");
+      return;
+    }
+    const hash = bcrypt.hashSync(seedPassword, 12);
     await prisma.user.create({
       data: {
         email: "admin@lens.org.bd",

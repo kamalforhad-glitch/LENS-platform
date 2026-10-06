@@ -1,0 +1,32 @@
+# Scheduled database backup trigger.
+#
+# Why not Vercel Cron: vercel.json crons support path+schedule only and cannot
+# attach the `Authorization: Bearer <CRON_SECRET>` header that
+# /api/cron/backup requires (fail-closed). This workflow sends the header.
+#
+# OPS REQUIRED — repository secrets (never hardcode):
+#   BACKUP_APP_URL : production base URL, e.g. https://lens.org.bd (no path)
+#   CRON_SECRET    : same value as the app's CRON_SECRET env var
+name: Scheduled backup
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  trigger-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger backup endpoint
+        env:
+          BACKUP_APP_URL: ${{ secrets.BACKUP_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          http_code=$(curl -s -o /tmp/backup.json -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$BACKUP_APP_URL/api/cron/backup")
+          cat /tmp/backup.json
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "Backup trigger failed with HTTP $http_code"
+            exit 1
+          fi

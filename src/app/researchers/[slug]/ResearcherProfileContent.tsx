@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { use } from "react";
 
 interface Researcher {
@@ -87,7 +88,7 @@ export default function ResearcherProfilePage({ params }: { params: Promise<{ sl
         <div className="flex items-start gap-6 mb-10">
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-3xl font-bold shrink-0">
             {researcher.image ? (
-              <img src={researcher.image} alt={researcher.name} className="w-24 h-24 rounded-full object-cover" />
+              <Image src={researcher.image} alt={researcher.name} width={96} height={96} className="w-24 h-24 rounded-full object-cover" />
             ) : (
               researcher.name.charAt(0)
             )}

@@ -13,6 +13,8 @@ export async function getResearchArticles(
   limit: number = 20,
   filters: { status?: string; category?: string; search?: string; reviewStatus?: string } = {}
 ): Promise<PaginatedResult<AdminResearchArticle>> {
+  requireAuth(await getCurrentUser(), "viewer");
+
   const where: Record<string, unknown> = {};
 
   if (filters.status && filters.status !== "all") {
@@ -48,6 +50,8 @@ export async function getResearchArticles(
 }
 
 export async function getResearchArticle(idOrSlug: string): Promise<AdminResearchArticle | null> {
+  requireAuth(await getCurrentUser(), "viewer");
+
   const item = await db.researchArticle.findFirst({
     where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
     include: {
@@ -183,6 +187,9 @@ export async function deleteResearchArticle(id: string) {
 }
 
 export async function publishResearchArticle(id: string) {
+  const user = await getCurrentUser();
+  requireAuth(user, "editor");
+
   const article = await db.researchArticle.findUnique({ where: { id } });
   if (!article) throw new Error("Article not found");
 
@@ -224,36 +231,38 @@ export async function saveVersion(
 
   const nextVersion = article.version + 1;
 
-  // Save version snapshot
-  await db.researchVersion.create({
-    data: {
-      articleId,
-      version: article.version,
-      title: article.title,
-      description: article.description,
-      content: article.content,
-      tags: article.tags,
-      changelog: data.changelog || "",
-      createdBy: user!.id,
-    },
-  });
-
-  // Update article with new version number and content
-  await db.researchArticle.update({
-    where: { id: articleId },
-    data: {
-      title: data.title,
-      description: data.description,
-      content: data.content,
-      tags: JSON.stringify(data.tags || []),
-      version: nextVersion,
-    },
-  });
+  // Atomic: snapshot + article update succeed or fail together.
+  await db.$transaction([
+    db.researchVersion.create({
+      data: {
+        articleId,
+        version: article.version,
+        title: article.title,
+        description: article.description,
+        content: article.content,
+        tags: article.tags,
+        changelog: data.changelog || "",
+        createdBy: user!.id,
+      },
+    }),
+    db.researchArticle.update({
+      where: { id: articleId },
+      data: {
+        title: data.title,
+        description: data.description,
+        content: data.content,
+        tags: JSON.stringify(data.tags || []),
+        version: nextVersion,
+      },
+    }),
+  ]);
 
   return { version: nextVersion };
 }
 
 export async function getVersions(articleId: string) {
+  requireAuth(await getCurrentUser(), "viewer");
+
   return db.researchVersion.findMany({
     where: { articleId },
     include: {
@@ -273,31 +282,31 @@ export async function restoreVersion(articleId: string, versionId: string) {
   const article = await db.researchArticle.findUnique({ where: { id: articleId } });
   if (!article) throw new Error("Article not found");
 
-  // Save current as version before restoring
-  await db.researchVersion.create({
-    data: {
-      articleId,
-      version: article.version,
-      title: article.title,
-      description: article.description,
-      content: article.content,
-      tags: article.tags,
-      changelog: `Auto-saved before restoring to version ${version.version}`,
-      createdBy: user!.id,
-    },
-  });
-
-  // Restore
-  await db.researchArticle.update({
-    where: { id: articleId },
-    data: {
-      title: version.title,
-      description: version.description,
-      content: version.content,
-      tags: version.tags,
-      version: article.version + 1,
-    },
-  });
+  // Atomic: auto-save snapshot + restore succeed or fail together.
+  await db.$transaction([
+    db.researchVersion.create({
+      data: {
+        articleId,
+        version: article.version,
+        title: article.title,
+        description: article.description,
+        content: article.content,
+        tags: article.tags,
+        changelog: `Auto-saved before restoring to version ${version.version}`,
+        createdBy: user!.id,
+      },
+    }),
+    db.researchArticle.update({
+      where: { id: articleId },
+      data: {
+        title: version.title,
+        description: version.description,
+        content: version.content,
+        tags: version.tags,
+        version: article.version + 1,
+      },
+    }),
+  ]);
 
   return { success: true };
 }
@@ -307,6 +316,8 @@ export async function restoreVersion(articleId: string, versionId: string) {
 // ============================================================
 
 export async function getCitations(articleId: string) {
+  requireAuth(await getCurrentUser(), "viewer");
+
   return db.citationRecord.findMany({
     where: { articleId },
     orderBy: { createdAt: "desc" },
@@ -380,19 +391,24 @@ export async function deleteCitation(citationId: string) {
 }
 
 export async function trackDownload(contentType: string, contentId: string) {
-  await db.downloadLog.create({
-    data: { contentType, contentId },
-  });
-
+  // Atomic: log row + counter increment succeed or fail together.
   if (contentType === "research") {
-    await db.researchArticle.update({
-      where: { id: contentId },
-      data: { downloads: { increment: 1 } },
-    });
+    await db.$transaction([
+      db.downloadLog.create({ data: { contentType, contentId } }),
+      db.researchArticle.update({
+        where: { id: contentId },
+        data: { downloads: { increment: 1 } },
+      }),
+    ]);
   } else if (contentType === "publication") {
-    await db.publication.update({
-      where: { id: contentId },
-      data: { downloads: { increment: 1 } },
-    });
+    await db.$transaction([
+      db.downloadLog.create({ data: { contentType, contentId } }),
+      db.publication.update({
+        where: { id: contentId },
+        data: { downloads: { increment: 1 } },
+      }),
+    ]);
+  } else {
+    await db.downloadLog.create({ data: { contentType, contentId } });
   }
 }

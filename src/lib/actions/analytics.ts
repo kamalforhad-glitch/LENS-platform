@@ -1,3 +1,9 @@
+"use server";
+
+// Server-only analytics queries. The `"use server"` boundary is what keeps
+// Prisma out of the client bundle: admin pages import these as server
+// references, while /api/analytics/* route handlers call them directly
+// on the server (public, unauthenticated reads for the /impact page).
 import { db } from "@/lib/db";
 
 export interface AnalyticsOverview {

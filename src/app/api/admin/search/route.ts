@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    requireAuth(user);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unauthorized";
+    if (msg === "Forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const q = req.nextUrl.searchParams.get("q") || "";
   if (q.length < 2) return NextResponse.json({ results: [] });

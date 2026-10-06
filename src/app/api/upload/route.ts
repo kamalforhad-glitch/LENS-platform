@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requireEditor } from "@/lib/auth";
 import { logMediaUpload } from "@/lib/actions/dashboard";
 import {
   validateFileType,
@@ -15,6 +15,13 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    try {
+      requireEditor(user);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Unauthorized";
+      if (msg === "Forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -27,7 +34,7 @@ export async function POST(request: Request) {
     // Validate file type
     if (!validateFileType(file.type)) {
       return NextResponse.json(
-        { error: "File type not allowed. Allowed: images (JPEG, PNG, GIF, WebP, AVIF, SVG), documents (PDF, DOC, DOCX)" },
+        { error: "File type not allowed. Allowed: images (JPEG, PNG, GIF, WebP, AVIF), documents (PDF, DOC, DOCX)" },
         { status: 400 }
       );
     }

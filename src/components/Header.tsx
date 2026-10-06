@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import gsap from "gsap";
@@ -13,6 +15,14 @@ export default function Header() {
   const navRef = useRef<HTMLElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
+  const pathname = usePathname();
+
+  // The homepage paints a dark hero behind the transparent header, so it can
+  // fade in its background on scroll. Every other route renders a light page
+  // starting under `pt-24`, where a transparent header would put white text on
+  // white — so it is solid immediately.
+  const isHome = pathname === "/";
+  const solid = scrolled || !isHome;
 
   const navLinks = [
     { label: t("nav.home"), href: "/" },
@@ -52,8 +62,12 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    if (mobileMenuRef.current) {
-      if (mobileOpen) {
+    // Body scroll lock: applied unconditionally while the menu is open so the
+    // lock can never leak (previously it depended on the menu ref existing).
+    // The menu auto-closes at the lg breakpoint — otherwise rotating/resizing
+    // to desktop hides the menu (lg:hidden) while the lock persists forever.
+    if (mobileOpen) {
+      if (mobileMenuRef.current) {
         gsap.fromTo(
           mobileMenuRef.current,
           { opacity: 0, y: -10 },
@@ -65,18 +79,27 @@ export default function Header() {
           { opacity: 0, x: -20 },
           { opacity: 1, x: 0, duration: 0.3, stagger: 0.04, delay: 0.1, ease: "power2.out" }
         );
-        document.body.style.overflow = "hidden";
-      } else {
-        document.body.style.overflow = "";
       }
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = (e: MediaQueryListEvent) => {
+      if (e.matches) setMobileOpen(false);
+    };
+    mq.addEventListener("change", closeOnDesktop);
+    return () => {
+      mq.removeEventListener("change", closeOnDesktop);
+      document.body.style.overflow = "";
+    };
   }, [mobileOpen]);
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
+        solid
           ? "bg-navy-950/80 backdrop-blur-xl shadow-lg shadow-navy-950/20 border-b border-white/5"
           : "bg-transparent"
       }`}
@@ -84,7 +107,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-3 shrink-0 group">
+          <Link href="/" className="flex items-center gap-3 shrink-0 group">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-teal-500/30 transition-shadow duration-300">
               <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path d="M12 2L2 19h20L12 2z" />
@@ -95,11 +118,11 @@ export default function Header() {
               <span className="text-xl font-bold tracking-tight text-white">
                 LENS
               </span>
-              <span className={`block text-[10px] leading-tight -mt-0.5 transition-colors duration-500 ${scrolled ? "text-slate-400" : "text-white/60"}`}>
+              <span className={`block text-[10px] leading-tight -mt-0.5 transition-colors duration-500 ${solid ? "text-slate-400" : "text-white/60"}`}>
                 {t("site.subtitle")}
               </span>
             </div>
-          </a>
+          </Link>
 
           {/* Desktop Nav */}
           <nav ref={navRef} className="hidden lg:flex items-center gap-1">

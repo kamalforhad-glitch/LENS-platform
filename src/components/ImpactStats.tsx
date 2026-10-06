@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -16,30 +16,37 @@ const statConfig = [
 ];
 
 function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
-  const [count, setCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
+  const numRef = useRef<HTMLSpanElement>(null);
   const hasAnimated = useRef(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
+    const render = (n: number) => {
+      if (numRef.current) numRef.current.textContent = n.toLocaleString();
+    };
+    render(0);
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && !hasAnimated.current) {
           hasAnimated.current = true;
           if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            setCount(value);
+            render(value);
             return;
           }
           const duration = 2200;
           const startTime = Date.now();
 
+          // Direct DOM text update (same easing/duration/output) instead of
+          // setState per frame — avoids ~130 re-renders per counter.
           const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
             const eased = 1 - Math.pow(1 - progress, 4);
-            setCount(Math.floor(eased * value));
+            render(Math.floor(eased * value));
             if (progress < 1) requestAnimationFrame(animate);
           };
           requestAnimationFrame(animate);
@@ -54,7 +61,7 @@ function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
 
   return (
     <div ref={ref} className="text-4xl lg:text-5xl font-bold text-white mb-2 tabular-nums">
-      {count.toLocaleString()}
+      <span ref={numRef}>0</span>
       {suffix}
     </div>
   );

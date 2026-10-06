@@ -384,3 +384,204 @@ a:focus-visible {
     animation: none;
   }
 }
+
+/* ============================================================
+   Press Freedom Index live radar (homepage section).
+   Transform/opacity only (compositor-friendly). Runs continuously
+   while mounted, pauses off-screen, brightens in active mode.
+   Honors prefers-reduced-motion: static radar, no beam motion.
+   ============================================================ */
+.pfi-radar {
+  --radar: 320px;
+  position: relative;
+  width: var(--radar);
+  height: var(--radar);
+  margin-inline: auto;
+  border-radius: 9999px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background:
+    radial-gradient(circle, rgba(8, 145, 178, 0.1) 0%, rgba(8, 145, 178, 0.03) 55%, transparent 72%);
+  opacity: 0.75;
+  transition: box-shadow 0.6s ease, border-color 0.6s ease, opacity 0.6s ease;
+}
+
+.pfi-radar::before,
+.pfi-radar::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.pfi-radar::before {
+  inset: 9%;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+}
+
+.pfi-radar::after {
+  inset: 24%;
+  border: 1px solid rgba(34, 211, 238, 0.12);
+}
+
+.pfi-radar.is-active {
+  opacity: 1;
+  border-color: rgba(34, 211, 238, 0.55);
+  box-shadow:
+    0 0 60px rgba(34, 211, 238, 0.22),
+    0 0 140px rgba(8, 145, 178, 0.18),
+    inset 0 0 40px rgba(34, 211, 238, 0.1);
+}
+
+.pfi-orbit {
+  position: absolute;
+  inset: 16%;
+  border-radius: 9999px;
+  border: 1px dashed rgba(34, 211, 238, 0.22);
+  animation: scanner-spin 48s linear infinite;
+}
+
+.pfi-rotor {
+  position: absolute;
+  inset: 4%;
+  border-radius: 9999px;
+  opacity: 0.55;
+  animation: scanner-spin 3.4s linear infinite;
+  transition: opacity 0.6s ease;
+}
+
+.pfi-radar.is-active .pfi-rotor {
+  opacity: 1;
+  animation-duration: 2s;
+}
+
+.pfi-beam {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46%;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.8));
+}
+
+.pfi-radar.is-active .pfi-beam {
+  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.95));
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.5);
+}
+
+.pfi-beam-tip {
+  position: absolute;
+  left: calc(96% - 4px);
+  top: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #67e8f9;
+  box-shadow: 0 0 10px rgba(103, 232, 249, 0.9);
+}
+
+.pfi-node {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  margin-top: -2.5px;
+  border-radius: 9999px;
+  background: #22d3ee;
+  box-shadow: 0 0 6px rgba(34, 211, 238, 0.8);
+  animation: pfi-node-pulse 3.4s ease-in-out infinite;
+}
+
+.pfi-node.is-gold {
+  background: #d4a843;
+  box-shadow: 0 0 6px rgba(212, 168, 67, 0.8);
+}
+
+.pfi-core {
+  position: absolute;
+  left: calc(50% - 5px);
+  top: calc(50% - 5px);
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #0891b2;
+  transition: box-shadow 0.6s ease, background 0.6s ease;
+}
+
+.pfi-radar.is-active .pfi-core {
+  background: #22d3ee;
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.8);
+}
+
+.pfi-ripple {
+  position: absolute;
+  inset: 2%;
+  border-radius: 9999px;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  animation: scanner-ripple 4.8s ease-out infinite;
+}
+
+.pfi-radar.is-paused .pfi-rotor,
+.pfi-radar.is-paused .pfi-node,
+.pfi-radar.is-paused .pfi-ripple,
+.pfi-radar.is-paused .pfi-orbit {
+  animation-play-state: paused;
+}
+
+@keyframes scanner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pfi-node-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes scanner-ripple {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .pfi-radar {
+    --radar: 260px;
+  }
+}
+
+@media (max-width: 640px) {
+  .pfi-radar {
+    --radar: 200px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pfi-rotor,
+  .pfi-ripple,
+  .pfi-node,
+  .pfi-orbit {
+    animation: none !important;
+  }
+
+  .pfi-beam,
+  .pfi-beam-tip {
+    opacity: 0 !important;
+  }
+}

@@ -1,10 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requireAuth, requireEditor } from "@/lib/auth";
 import type { DashboardStats, PaginatedResult, AdminMediaFile } from "@/lib/admin-types";
 
 export async function getDashboardStats(): Promise<DashboardStats> {
+  requireAuth(await getCurrentUser(), "viewer");
+
   const [
     research,
     publishedResearch,
@@ -51,6 +53,8 @@ export async function getMediaFiles(
   limit: number = 20,
   search?: string
 ): Promise<PaginatedResult<AdminMediaFile>> {
+  requireAuth(await getCurrentUser(), "viewer");
+
   const where: Record<string, unknown> = {};
 
   if (search) {
@@ -82,7 +86,7 @@ export async function logMediaUpload(
   url: string,
   alt?: string
 ) {
-  const user = await getCurrentUser();
+  const editor = requireEditor(await getCurrentUser());
 
   const file = await db.mediaFile.create({
     data: {
@@ -92,7 +96,7 @@ export async function logMediaUpload(
       size,
       url,
       alt: alt || "",
-      uploadedBy: user?.id || null,
+      uploadedBy: editor.id,
     },
   });
 
@@ -100,13 +104,14 @@ export async function logMediaUpload(
 }
 
 export async function deleteMediaFile(id: string) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Unauthorized");
+  requireAuth(await getCurrentUser(), "editor");
   await db.mediaFile.delete({ where: { id } });
   return { success: true };
 }
 
 export async function getRecentActivity() {
+  requireAuth(await getCurrentUser(), "viewer");
+
   const [research, publications, events] = await Promise.all([
     db.researchArticle.findMany({
       select: { id: true, title: true, status: true, dateCreated: true, dateModified: true },

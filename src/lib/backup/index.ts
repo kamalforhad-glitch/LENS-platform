@@ -1,11 +1,20 @@
 import { db } from "@/lib/db";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
-import { writeFile, readdir, stat, unlink, readFile } from "fs/promises";
-import { join } from "path";
+import { writeFile, readdir, stat, unlink, readFile, mkdir } from "fs/promises";
+import { join, basename } from "path";
 import { sendBackupReport } from "@/lib/email";
+import { requireDatabaseUrl } from "@/lib/env";
+import {
+  createR2Client,
+  downloadFromR2,
+  getR2Config,
+  r2ObjectKey,
+  r2PublicUrl,
+  uploadToR2,
+} from "@/lib/backup/r2";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 const BACKUP_DIR = join(process.cwd(), "backups");
 const MAX_BACKUPS = 30; // 30 days retention
@@ -18,6 +27,10 @@ export interface BackupResult {
   status: "completed" | "failed";
   duration: string;
   error?: string;
+  /** Where the artifact durably lives: local disk or Cloudflare R2. */
+  storage: "local" | "r2";
+  /** R2 public URL when storage === "r2" and a public URL is configured. */
+  remoteUrl?: string;
 }
 
 export async function createBackup(type: "manual" | "scheduled" = "manual"): Promise<BackupResult> {
@@ -32,24 +45,55 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
   });
 
   try {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error("DATABASE_URL not configured");
-    }
+    const databaseUrl = requireDatabaseUrl();
 
-    // Use pg_dump for PostgreSQL
-    const dumpCmd = `pg_dump "${databaseUrl}" --no-owner --no-acl --format=custom --file="${join(BACKUP_DIR, filename)}"`;
+    // Ensure backup directory exists before dumping (pg_dump won't create it).
+    await mkdir(BACKUP_DIR, { recursive: true });
 
-    await execAsync(dumpCmd);
-
-    const filePath = join(BACKUP_DIR, filename);
+    // Plain SQL format matches the .sql extension and the cleanup filter.
+    // execFile (no shell) prevents DATABASE_URL shell injection.
+    const filePath = join(BACKUP_DIR, basename(filename));
+    await execFileAsync("pg_dump", [
+      databaseUrl,
+      "--no-owner",
+      "--no-acl",
+      "--format=plain",
+      `--file=${filePath}`,
+    ]);
     const fileStat = await stat(filePath);
+
+    // Cloudflare R2 persistence (null = R2 unconfigured → explicit local mode).
+    // getR2Config() throws on partial configuration — caught below as failure.
+    const r2 = getR2Config();
+    let storage: "local" | "r2" = "local";
+    let remoteKey: string | null = null;
+    let remoteUrl: string | null = null;
+
+    if (r2) {
+      const key = r2ObjectKey(filename);
+      const body = await readFile(filePath);
+      // Throws R2UploadError on failure → backup is marked failed, never
+      // reported as a successful persistent backup. No silent local fallback.
+      await uploadToR2(createR2Client(r2), r2.bucket, key, body);
+      remoteKey = key;
+      remoteUrl = r2PublicUrl(r2, key);
+      storage = "r2";
+
+      // Safe local cleanup: artifact now durable in R2. A cleanup failure
+      // must not fail the backup — retention sweep removes stragglers later.
+      await unlink(filePath).catch((e) => {
+        console.warn(`[Backup] R2 upload ok but local cleanup failed for ${filename}`, e);
+      });
+    }
 
     await db.backupRecord.update({
       where: { id },
       data: {
         status: "completed",
         size: fileStat.size,
+        storage,
+        remoteKey,
+        remoteUrl,
       },
     });
 
@@ -67,7 +111,7 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
       duration,
     });
 
-    return { id, filename, size: fileStat.size, status: "completed", duration };
+    return { id, filename, size: fileStat.size, status: "completed", duration, storage, remoteUrl: remoteUrl ?? undefined };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
 
@@ -85,7 +129,9 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
       duration,
     });
 
-    return { id, filename, size: 0, status: "failed", duration, error: errorMsg };
+    // Failed backups are never reported as persistent: storage stays "local"
+    // (a partial local file may remain for diagnosis; nothing is in R2).
+    return { id, filename, size: 0, status: "failed", duration, error: errorMsg, storage: "local" };
   }
 }
 
@@ -94,20 +140,38 @@ export async function restoreBackup(backupId: string): Promise<{ success: boolea
   if (!record) return { success: false, error: "Backup record not found" };
   if (record.status !== "completed") return { success: false, error: "Backup is not completed" };
 
-  const filePath = join(BACKUP_DIR, record.filename);
+  // basename() prevents directory traversal if the DB record was tampered with.
+  let filePath = join(BACKUP_DIR, basename(record.filename));
+  let tempPath: string | null = null;
 
   try {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error("DATABASE_URL not configured");
+    // R2-persisted artifacts have no local file (cleaned up after upload):
+    // fetch to a temp file first. Local/legacy rows restore from disk.
+    if (record.storage === "r2") {
+      const r2 = getR2Config();
+      if (!r2) throw new Error("Backup is stored in Cloudflare R2 but R2 is not configured");
+      const key = record.remoteKey || r2ObjectKey(record.filename);
+      tempPath = join(BACKUP_DIR, `restore-${record.id}.sql`);
+      await mkdir(BACKUP_DIR, { recursive: true });
+      const data = await downloadFromR2(createR2Client(r2), r2.bucket, key);
+      await writeFile(tempPath, data);
+      filePath = tempPath;
     }
 
-    // For custom format dumps, use pg_restore
-    const restoreCmd = `pg_restore --no-owner --no-acl --dbname="${databaseUrl}" "${filePath}"`;
+    const databaseUrl = requireDatabaseUrl();
 
-    await execAsync(restoreCmd);
+    // Plain-format dumps restore with psql (no shell — args array only).
+    await execFileAsync("psql", [
+      databaseUrl,
+      "--no-owner",
+      "--quiet",
+      "--file",
+      filePath,
+    ]);
+    if (tempPath) await unlink(tempPath).catch(() => {});
     return { success: true };
   } catch (error) {
+    if (tempPath) await unlink(tempPath).catch(() => {});
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
     return { success: false, error: errorMsg };
   }
@@ -175,11 +239,25 @@ export async function downloadBackup(backupId: string): Promise<{ data?: Buffer;
   if (!record) return { error: "Backup not found" };
   if (record.status !== "completed") return { error: "Backup not completed" };
 
-  const filePath = join(BACKUP_DIR, record.filename);
+  const filePath = join(BACKUP_DIR, basename(record.filename));
   try {
     const data = await readFile(filePath);
-    return { data, filename: record.filename };
+    return { data, filename: basename(record.filename) };
   } catch {
-    return { error: "Backup file not found on disk" };
+    // Fall through to R2 for r2-persisted artifacts (local file cleaned up).
   }
+
+  if (record.storage === "r2") {
+    try {
+      const r2 = getR2Config();
+      if (!r2) return { error: "Backup is stored in Cloudflare R2 but R2 is not configured" };
+      const key = record.remoteKey || r2ObjectKey(record.filename);
+      const data = await downloadFromR2(createR2Client(r2), r2.bucket, key);
+      return { data, filename: basename(record.filename) };
+    } catch {
+      return { error: "Backup file not found in Cloudflare R2" };
+    }
+  }
+
+  return { error: "Backup file not found on disk" };
 }

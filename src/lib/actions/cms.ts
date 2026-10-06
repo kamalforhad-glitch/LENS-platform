@@ -1,6 +1,6 @@
 "use server";
 
-import { db, slugify } from "@/lib/db";
+import { db } from "@/lib/db";
 import { getCurrentUser, requireAuth } from "@/lib/auth";
 
 async function checkAuth() {
@@ -10,15 +10,18 @@ async function checkAuth() {
 
 // Pages CRUD
 export async function getPages(filters?: { status?: string }) {
+  requireAuth(await getCurrentUser(), "viewer");
   const where = filters?.status ? { status: filters.status } : {};
   return db.page.findMany({ where, orderBy: { sortOrder: "asc" }, include: { sections: { orderBy: { sortOrder: "asc" } } } });
 }
 
 export async function getPage(id: string) {
+  requireAuth(await getCurrentUser(), "viewer");
   return db.page.findUnique({ where: { id }, include: { sections: { orderBy: { sortOrder: "asc" } } } });
 }
 
 export async function getPageBySlug(slug: string) {
+  requireAuth(await getCurrentUser(), "viewer");
   return db.page.findUnique({ where: { slug }, include: { sections: { where: { visible: true }, orderBy: { sortOrder: "asc" } } } });
 }
 
@@ -69,11 +72,13 @@ export async function reorderSections(pageId: string, sectionIds: string[]) {
 
 // Site Settings
 export async function getSiteSettings(group?: string) {
+  requireAuth(await getCurrentUser(), "viewer");
   const where = group ? { group } : {};
   return db.siteSetting.findMany({ where, orderBy: { sortOrder: "asc" } });
 }
 
 export async function getSiteSetting(key: string) {
+  requireAuth(await getCurrentUser(), "viewer");
   return db.siteSetting.findUnique({ where: { key } });
 }
 
@@ -85,6 +90,7 @@ export async function upsertSiteSetting(key: string, data: { value: string; valu
 
 // Menu Items
 export async function getMenuItems(location: string) {
+  requireAuth(await getCurrentUser(), "viewer");
   return db.menuItem.findMany({ where: { location, visible: true }, orderBy: { sortOrder: "asc" } });
 }
 

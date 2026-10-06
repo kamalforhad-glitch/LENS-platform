@@ -1,21 +1,26 @@
 import type { Metadata } from "next";
 import ResearchContent from "./ResearchContent";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import SiteHeader from "@/components/site/SiteHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+import { getPublicResearch } from "@/lib/public-content";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Research & Insights",
   description: "Evidence-based research on media literacy, press freedom, narrative analysis, policy advocacy and cybersecurity in Bangladesh.",
 };
 
-export default function ResearchPage() {
+export default async function ResearchPage() {
+  const { items: research, error } = await getPublicResearch();
+
   return (
     <>
-      <Header />
+      <SiteHeader />
       <main className="flex-1 pt-24">
-        <ResearchContent />
+        <ResearchContent research={research} error={error} />
       </main>
-      <Footer />
+      <SiteFooter />
     </>
   );
 }

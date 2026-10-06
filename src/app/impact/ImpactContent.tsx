@@ -24,13 +24,28 @@ interface ImpactData {
 export default function ImpactPage() {
   const [data, setData] = useState<ImpactData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setError(false);
     Promise.all([
-      fetch("/api/analytics/overview").then((r) => r.json()),
-      fetch("/api/analytics/monthly").then((r) => r.json()),
-      fetch("/api/analytics/categories").then((r) => r.json()),
-      fetch("/api/analytics/top-articles").then((r) => r.json()),
+      fetch("/api/analytics/overview").then((r) => {
+        if (!r.ok) throw new Error(`overview ${r.status}`);
+        return r.json();
+      }),
+      fetch("/api/analytics/monthly").then((r) => {
+        if (!r.ok) throw new Error(`monthly ${r.status}`);
+        return r.json();
+      }),
+      fetch("/api/analytics/categories").then((r) => {
+        if (!r.ok) throw new Error(`categories ${r.status}`);
+        return r.json();
+      }),
+      fetch("/api/analytics/top-articles").then((r) => {
+        if (!r.ok) throw new Error(`top-articles ${r.status}`);
+        return r.json();
+      }),
     ]).then(([overview, monthly, categories, topArticles]) => {
       setData({
         overview: overview || { totalArticles: 0, totalDownloads: 0, totalCitations: 0, totalAuthors: 0, totalSearches: 0 },
@@ -39,7 +54,15 @@ export default function ImpactPage() {
         topArticles: topArticles?.data || [],
       });
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => {
+      setLoading(false);
+      setError(true);
+    });
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-fetch idiom used by 20+ admin/library pages; load() only sets state from fetch results
+    load();
   }, []);
 
   if (loading) {
@@ -50,7 +73,23 @@ export default function ImpactPage() {
     );
   }
 
-  if (!data) return null;
+  if (!data || error) {
+    return (
+      <div className="min-h-screen bg-navy-950 flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <p className="text-white font-semibold mb-2">Impact data is unavailable</p>
+          <p className="text-sm text-slate-400 mb-4">We couldn&apos;t load the latest metrics. Please try again.</p>
+          <button
+            type="button"
+            onClick={load}
+            className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-navy-950 via-[#061224] to-navy-950">

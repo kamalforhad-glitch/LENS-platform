@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import type { SearchResult, AutocompleteResult, RelatedContent, AdminResearchArticle } from "@/lib/admin-types";
 
 export interface LibraryFilters {
@@ -48,49 +49,59 @@ export async function searchLibrary(filters: LibraryFilters = {}) {
   if (useFullText) {
     const searchTerm = filters.search!.trim();
     // PostgreSQL full text search with ranking
+    // tsQuery is the only free-text input; all other filters are parameterized
+    // with whitelisted sorts to prevent SQL injection.
     const tsQuery = searchTerm
       .split(/\s+/)
       .filter(Boolean)
+      .map((w) => w.replace(/[^A-Za-z0-9\u0980-\u09FF_-]/g, "").slice(0, 64))
+      .filter(Boolean)
       .map((w) => `${w}:*`)
-      .join(" & ");
+      .join(" & ")
+      .slice(0, 500);
 
-    const categoryFilter = filters.category && filters.category !== "all"
-      ? `AND r.category = '${filters.category}'`
-      : "";
-    const yearFilter = filters.year && filters.year !== "all"
-      ? `AND EXTRACT(YEAR FROM r.date_published) = ${parseInt(filters.year)}`
-      : "";
-    const topicFilter = filters.topic && filters.topic !== "all"
-      ? `AND r.tags ILIKE '%${filters.topic}%'`
-      : "";
-    const authorFilter = filters.author && filters.author !== "all"
-      ? `AND r.author ILIKE '%${filters.author}%'`
-      : "";
-    const dateFromFilter = filters.from
-      ? `AND r.date_published >= '${filters.from}'`
-      : "";
-    const dateToFilter = filters.to
-      ? `AND r.date_published <= '${filters.to}'`
-      : "";
+    if (!tsQuery) {
+      return {
+        articles: [],
+        filters: { categories: [], years: [], topics: [], authors: [] },
+        total: 0,
+      };
+    }
 
+    // Whitelisted filter values (reject anything unexpected)
+    const category = filters.category && filters.category !== "all" ? filters.category.slice(0, 100) : null;
+    const yearParsed = filters.year && filters.year !== "all" ? parseInt(filters.year, 10) : NaN;
+    const year = Number.isFinite(yearParsed) && yearParsed >= 1900 && yearParsed <= 2100 ? yearParsed : null;
+    const topic = filters.topic && filters.topic !== "all" ? filters.topic.slice(0, 100) : null;
+    const author = filters.author && filters.author !== "all" ? filters.author.slice(0, 150) : null;
+    const fromDate = filters.from && !Number.isNaN(Date.parse(filters.from)) ? new Date(filters.from) : null;
+    const toDate = filters.to && !Number.isNaN(Date.parse(filters.to)) ? new Date(filters.to) : null;
+
+    // ORDER BY cannot be parameterized — strict whitelist only.
     let orderBy = "ts_rank(to_tsvector('english', r.title || ' ' || r.description || ' ' || r.content || ' ' || r.tags), to_tsquery('english', $1)) DESC";
     if (filters.sort === "popular") orderBy = "r.downloads DESC";
     else if (filters.sort === "newest") orderBy = "r.date_published DESC NULLS LAST";
     else if (filters.sort === "oldest") orderBy = "r.date_published ASC NULLS LAST";
     else if (filters.sort === "title") orderBy = "r.title ASC";
 
-    const result = await db.$queryRawUnsafe<AdminResearchArticle[]>(
-      `SELECT r.*,
-        ts_rank(to_tsvector('english', r.title || ' ' || r.description || ' ' || r.content || ' ' || r.tags), to_tsquery('english', $1)) as rank,
-        ts_headline('english', r.description, to_tsquery('english', $1), 'StartSel=<mark>, StopSel=</mark>, MaxWords=50, MinWords=20') as headline
+    const orderByFragment = orderBy;
+
+    const result = await db.$queryRaw<AdminResearchArticle[]>`
+      SELECT r.*,
+        ts_rank(to_tsvector('english', r.title || ' ' || r.description || ' ' || r.content || ' ' || r.tags), to_tsquery('english', ${tsQuery})) as rank,
+        ts_headline('english', r.description, to_tsquery('english', ${tsQuery}), 'StartSel=<mark>, StopSel=</mark>, MaxWords=50, MinWords=20') as headline
        FROM research_articles r
        WHERE r.status = 'published'
-         AND to_tsvector('english', r.title || ' ' || r.description || ' ' || r.content || ' ' || r.tags) @@ to_tsquery('english', $1)
-         ${categoryFilter} ${yearFilter} ${topicFilter} ${authorFilter} ${dateFromFilter} ${dateToFilter}
-       ORDER BY ${orderBy}
-       LIMIT 50`,
-      tsQuery
-    );
+         AND to_tsvector('english', r.title || ' ' || r.description || ' ' || r.content || ' ' || r.tags) @@ to_tsquery('english', ${tsQuery})
+         AND (${category}::text IS NULL OR r.category = ${category})
+         AND (${year}::int IS NULL OR EXTRACT(YEAR FROM r.date_published) = ${year})
+         AND (${topic}::text IS NULL OR r.tags ILIKE '%' || ${topic} || '%')
+         AND (${author}::text IS NULL OR r.author ILIKE '%' || ${author} || '%')
+         AND (${fromDate}::timestamptz IS NULL OR r.date_published >= ${fromDate})
+         AND (${toDate}::timestamptz IS NULL OR r.date_published <= ${toDate})
+       ORDER BY ${Prisma.raw(orderByFragment)}
+       LIMIT 50
+    `;
 
     // Track search query
     await db.searchQuery.create({

@@ -74,7 +74,7 @@ export async function createTeamMember(data: {
       image: data.image || null,
       email: data.email || null,
       social: JSON.stringify(data.social || {}),
-      sortOrder: data.sort_order || 0,
+      sortOrder: data.sort_order ?? 0,
       createdBy: user!.id,
     },
   });

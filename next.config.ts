@@ -59,6 +59,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "cdn.lens.org.bd",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.lensbd.org",
+      },
     ],
   },
 
@@ -85,6 +89,27 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/home",
+        destination: "/",
+        permanent: true,
+      },
+      // Phase B IA moves (verified replacements live before enabling):
+      // canonical location of partnerships content is /about/partnerships.
+      {
+        source: "/partnerships",
+        destination: "/about/partnerships",
+        permanent: true,
+      },
+      // /courses is the new public IA name for the training catalog.
+      // Exact-path only: /programs/[slug] detail URLs are preserved.
+      {
+        source: "/programs",
+        destination: "/courses",
+        permanent: true,
+      },
+      // Public AI Assistant UI removed: send old links home instead of 404.
+      // Backend (/api/ai/*), admin AI, and AI library code are untouched.
+      {
+        source: "/assistant",
         destination: "/",
         permanent: true,
       },

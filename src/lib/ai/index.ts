@@ -219,25 +219,28 @@ export async function searchEmbeddings(query: string, topK: number = 5): Promise
 }
 
 async function fallbackSearch(queryEmbedding: number[], topK: number): Promise<SearchResult[]> {
-  const allEmbeddings = await db.documentEmbedding.findMany({
-    where: { indexed: true },
-    select: {
-      id: true,
-      documentType: true,
-      documentId: true,
-      chunkText: true,
-      embedding: true,
-      metadata: true,
-    },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
+  // NOTE: embedding is Unsupported("vector(1536)") — must be read via raw SQL as text.
+  const allEmbeddings = await db.$queryRaw<Array<{
+    id: string;
+    document_type: string;
+    document_id: string;
+    chunk_text: string;
+    embedding: string;
+    metadata: string;
+  }>>`
+    SELECT "id", "document_type", "document_id", "chunk_text", "embedding"::text AS "embedding", "metadata"
+    FROM "document_embeddings"
+    WHERE "indexed" = true
+    ORDER BY "created_at" DESC
+    LIMIT 200
+  `;
 
   const scored = allEmbeddings
     .map((e) => {
       let embedding: number[];
       try {
-        embedding = JSON.parse(e.embedding);
+        const raw = e.embedding.trim();
+        embedding = raw.startsWith("[") ? (JSON.parse(raw) as number[]) : [];
       } catch {
         embedding = [];
       }
@@ -248,9 +251,9 @@ async function fallbackSearch(queryEmbedding: number[], topK: number): Promise<S
       } catch {}
       return {
         id: e.id,
-        documentType: e.documentType,
-        documentId: e.documentId,
-        chunkText: e.chunkText,
+        documentType: e.document_type,
+        documentId: e.document_id,
+        chunkText: e.chunk_text,
         metadata,
         similarity,
       };

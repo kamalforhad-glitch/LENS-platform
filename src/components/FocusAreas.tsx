@@ -14,6 +14,7 @@ import {
   Lock,
   ArrowRight,
 } from "lucide-react";
+import { requestIndexScan } from "./IndexingScanner";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -116,12 +117,36 @@ function FocusCard({ area, t }: { area: typeof focusAreaKeys[0]; t: (key: string
     isExpanded.current = false;
   }, []);
 
+  // The Press Freedom Index card doubles as the trigger for the
+  // homepage indexing scanner (no route is attached to this card, so
+  // activation + smooth scroll is the entire interaction). Keyboard
+  // support is added here so the trigger is not pointer-only.
+  const isScanTrigger = area.key === "press_freedom";
+
+  const handleActivateScan = useCallback(() => {
+    requestIndexScan();
+  }, []);
+
+  const handleTriggerKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        requestIndexScan();
+      }
+    },
+    []
+  );
+
   return (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={isScanTrigger ? handleActivateScan : undefined}
+      onKeyDown={isScanTrigger ? handleTriggerKeyDown : undefined}
+      role={isScanTrigger ? "button" : undefined}
+      tabIndex={isScanTrigger ? 0 : undefined}
       className="group relative min-h-full rounded-2xl border border-slate-100 bg-white hover:border-slate-200 transition-colors duration-300 cursor-pointer overflow-hidden"
       style={{ transformStyle: "preserve-3d" }}
     >

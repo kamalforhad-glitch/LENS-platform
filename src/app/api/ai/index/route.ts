@@ -2,11 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { indexAllDocuments, indexDocument } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/ai";
+import { getCurrentUser, requireAuth, requireEditor } from "@/lib/auth";
+
+function authErrorResponse(error: unknown) {
+  const msg = error instanceof Error ? error.message : "Unauthorized";
+  if (msg === "Forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for") || "unknown";
   if (!checkRateLimit(`ai-index:${ip}`, 5, 60000)) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
+
+  // Re-indexing triggers paid OpenAI embedding calls — editors and above only.
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    requireEditor(user);
+  } catch (error) {
+    return authErrorResponse(error);
   }
 
   try {
@@ -64,6 +80,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  // Embedding counts are internal operational data.
+  try {
+    requireAuth(await getCurrentUser(), "viewer");
+  } catch (error) {
+    return authErrorResponse(error);
+  }
+
   try {
     const totalEmbeddings = await db.documentEmbedding.count();
     const indexedCount = await db.documentEmbedding.count({ where: { indexed: true } });
@@ -81,7 +104,7 @@ export async function GET() {
         count: d._count.id,
       })),
     });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch index status" }, { status: 500 });
+    } catch {
+      return NextResponse.json({ error: "Failed to fetch index status" }, { status: 500 });
   }
 }

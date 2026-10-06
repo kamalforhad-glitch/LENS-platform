@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { MapPin, Clock, ArrowRight, Mail } from "lucide-react";
 import MagneticButton from "./MagneticButton";
+import { isValidEmail } from "@/lib/validation";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -96,7 +97,52 @@ function EventCard({ event, t }: { event: typeof eventsData[0]; t: (key: string)
 export default function EventsNewsletter() {
   const sectionRef = useRef<HTMLElement>(null);
   const [emailFocused, setEmailFocused] = useState(false);
+  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [statusMessage, setStatusMessage] = useState("");
   const { t } = useTranslation();
+
+  async function handleSubscribe(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    // Guard against duplicate submissions.
+    if (submitState === "submitting") return;
+
+    const form = event.currentTarget;
+    const email = String(new FormData(form).get("email") ?? "").trim();
+
+    if (!isValidEmail(email)) {
+      setSubmitState("error");
+      setStatusMessage("Please enter a valid email address.");
+      return;
+    }
+
+    setSubmitState("submitting");
+    setStatusMessage("");
+
+    try {
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data: { success?: boolean; message?: string; error?: string } = await response
+        .json()
+        .catch(() => ({}));
+
+      if (!response.ok) {
+        setSubmitState("error");
+        setStatusMessage(data.error || "Something went wrong. Please try again.");
+        return;
+      }
+
+      setSubmitState("success");
+      setStatusMessage(data.message || "Thank you for subscribing! Check your inbox for confirmation.");
+      form.reset();
+    } catch {
+      setSubmitState("error");
+      setStatusMessage("Network error. Please check your connection and try again.");
+    }
+  }
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -273,22 +319,46 @@ export default function EventsNewsletter() {
                   </div>
                 </div>
 
-                <div className="flex gap-0">
+                <form className="flex gap-0" onSubmit={handleSubscribe} noValidate>
                   <input
                     type="email"
+                    name="email"
+                    required
+                    autoComplete="email"
+                    aria-label={t("newsletter.email_placeholder")}
                     placeholder={t("newsletter.email_placeholder")}
                     onFocus={() => setEmailFocused(true)}
                     onBlur={() => setEmailFocused(false)}
-                    className={`flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-l-full text-white placeholder:text-slate-400 text-sm focus:outline-none transition-all duration-300 ${
+                    className={`flex-1 min-w-0 px-4 py-3 bg-white/5 border border-white/10 rounded-l-full text-white placeholder:text-slate-400 text-sm focus:outline-none transition-all duration-300 ${
                       emailFocused
                         ? "border-teal-400/50 bg-white/10 shadow-lg shadow-teal-500/10"
                         : ""
                     }`}
                   />
-                  <button className="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-r-full transition-all shadow-lg shadow-teal-500/20 hover:shadow-teal-400/30">
+                  <button
+                    type="submit"
+                    disabled={submitState === "submitting"}
+                    className="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-r-full transition-all shadow-lg shadow-teal-500/20 hover:shadow-teal-400/30 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
                     {t("newsletter.subscribe")}
                   </button>
-                </div>
+                </form>
+
+                {submitState === "submitting" && (
+                  <p role="status" className="text-xs text-slate-400 mt-3">
+                    Subscribing…
+                  </p>
+                )}
+                {submitState === "error" && (
+                  <p role="alert" className="text-xs text-red-300 mt-3">
+                    {statusMessage}
+                  </p>
+                )}
+                {submitState === "success" && (
+                  <p role="status" className="text-xs text-teal-300 mt-3">
+                    {statusMessage}
+                  </p>
+                )}
 
                 <p className="text-[10px] text-slate-500 mt-3">
                   {t("newsletter.disclaimer")}

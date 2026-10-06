@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { isValidEmail } from "@/lib/validation";
 
 gsap.registerPlugin(ScrollTrigger);
 
+type SubmitState = "idle" | "submitting" | "success" | "error";
+
 export default function ContactContent() {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const [submitState, setSubmitState] = useState<SubmitState>("idle");
+  const [statusMessage, setStatusMessage] = useState("");
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -23,6 +28,68 @@ export default function ContactContent() {
 
     return () => ctx.revert();
   }, []);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    // Guard against duplicate submissions (double-click / Enter spam).
+    if (submitState === "submitting") return;
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const payload = {
+      name: String(formData.get("name") ?? "").trim(),
+      email: String(formData.get("email") ?? "").trim(),
+      subject: String(formData.get("subject") ?? "").trim(),
+      message: String(formData.get("message") ?? "").trim(),
+    };
+
+    // Mirror the server rules so feedback is announced in the live region
+    // instead of relying only on native browser tooltips.
+    const clientError =
+      payload.name.length < 2
+        ? "Name must be at least 2 characters."
+        : !isValidEmail(payload.email)
+          ? "Please enter a valid email address."
+          : payload.subject.length < 3
+            ? "Subject must be at least 3 characters."
+            : payload.message.length < 10
+              ? "Message must be at least 10 characters."
+              : null;
+
+    if (clientError) {
+      setSubmitState("error");
+      setStatusMessage(clientError);
+      return;
+    }
+
+    setSubmitState("submitting");
+    setStatusMessage("");
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data: { success?: boolean; message?: string; error?: string } = await response
+        .json()
+        .catch(() => ({}));
+
+      if (!response.ok) {
+        setSubmitState("error");
+        setStatusMessage(data.error || "Something went wrong. Please try again.");
+        return;
+      }
+
+      setSubmitState("success");
+      setStatusMessage(data.message || "Thank you for your message. We will get back to you soon.");
+      form.reset();
+    } catch {
+      setSubmitState("error");
+      setStatusMessage("Network error. Please check your connection and try again.");
+    }
+  }
 
   return (
     <div ref={sectionRef}>
@@ -76,7 +143,7 @@ export default function ContactContent() {
               <h2 className="text-2xl font-bold text-slate-900 mb-6">
                 Send a Message
               </h2>
-              <form className="space-y-4" action="#" method="POST">
+              <form className="space-y-4" onSubmit={handleSubmit} noValidate>
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">
                     Full Name
@@ -129,11 +196,22 @@ export default function ContactContent() {
                     placeholder="Your message..."
                   />
                 </div>
+                {submitState === "error" && (
+                  <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    {statusMessage}
+                  </p>
+                )}
+                {submitState === "success" && (
+                  <p role="status" className="text-sm text-teal-700 bg-teal-50 border border-teal-200 rounded-xl px-4 py-3">
+                    {statusMessage}
+                  </p>
+                )}
                 <button
                   type="submit"
-                  className="w-full px-6 py-3 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-teal-500/20"
+                  disabled={submitState === "submitting"}
+                  className="w-full px-6 py-3 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-teal-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Send Message
+                  {submitState === "submitting" ? "Sending…" : "Send Message"}
                 </button>
               </form>
             </div>

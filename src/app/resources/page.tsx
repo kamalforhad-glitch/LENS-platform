@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import Link from "next/link";
+import SiteHeader from "@/components/site/SiteHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+import ContentListState from "@/components/ContentListState";
+import { getPublicResources } from "@/lib/public-content";
+import { RESOURCE_TAXONOMY_VIEWS } from "@/lib/resource-taxonomy";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Resources",
@@ -8,37 +14,19 @@ export const metadata: Metadata = {
     "LENS resources - research tools, datasets, media literacy guides, and educational materials for journalists, researchers, and civil society.",
 };
 
-const resources = [
-  {
-    category: "Research Tools",
-    items: [
-      { title: "Media Monitoring Methodology Guide", description: "Step-by-step guide to our media monitoring approach and methodology." },
-      { title: "Narrative Analysis Framework", description: "Framework for analyzing narratives across media platforms." },
-      { title: "Data Visualization Templates", description: "Templates for presenting research findings effectively." },
-    ],
-  },
-  {
-    category: "Educational Materials",
-    items: [
-      { title: "Media Literacy Curriculum", description: "Complete curriculum for teaching media literacy in schools and universities." },
-      { title: "Digital Safety Handbook", description: "Practical guide for online safety and digital security." },
-      { title: "Fact-Checking Guide", description: "Methodology for verifying information and identifying misinformation." },
-    ],
-  },
-  {
-    category: "Datasets",
-    items: [
-      { title: "Bangladesh Media Index Dataset", description: "Annual media landscape data and indicators." },
-      { title: "Press Freedom Statistics", description: "Historical data on press freedom in Bangladesh." },
-      { title: "Youth Media Consumption Survey", description: "National survey data on youth media habits." },
-    ],
-  },
-];
+export default async function ResourcesPage() {
+  const { items: resources, error } = await getPublicResources();
 
-export default function ResourcesPage() {
+  const categories = new Map<string, typeof resources>();
+  for (const resource of resources) {
+    const key = resource.category || "Other";
+    if (!categories.has(key)) categories.set(key, []);
+    categories.get(key)!.push(resource);
+  }
+
   return (
     <>
-      <Header />
+      <SiteHeader />
       <main className="flex-1 pt-24">
         <section className="py-20 bg-navy-950">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -57,32 +45,54 @@ export default function ResourcesPage() {
 
         <section className="py-20 bg-white">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="space-y-12">
-              {resources.map((category) => (
-                <div key={category.category}>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-6">{category.category}</h2>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {category.items.map((item) => (
-                      <article
-                        key={item.title}
-                        className="group p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300 cursor-pointer"
-                      >
-                        <h3 className="text-base font-bold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">
-                          {item.title}
-                        </h3>
-                        <p className="text-sm text-slate-500 leading-relaxed">
-                          {item.description}
-                        </p>
-                      </article>
-                    ))}
-                  </div>
-                </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
+              {RESOURCE_TAXONOMY_VIEWS.map((view) => (
+                <Link
+                  key={view.slug}
+                  href={view.href}
+                  className="group p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-teal-500/40 hover:shadow-md transition-all duration-300"
+                >
+                  <h2 className="text-base font-bold text-slate-900 mb-1 group-hover:text-teal-600 transition-colors">
+                    {view.name}
+                  </h2>
+                  <p className="text-xs text-slate-500 leading-relaxed">{view.description}</p>
+                </Link>
               ))}
             </div>
+            {resources.length === 0 ? (
+              <ContentListState
+                variant={error ? "error" : "empty"}
+                emptyMessage="No resources have been published yet."
+              />
+            ) : (
+              <div className="space-y-12">
+                {Array.from(categories.entries()).map(([category, items]) => (
+                  <div key={category}>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6">{category}</h2>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {items.map((item) => (
+                        <Link
+                          key={item.slug}
+                          href={`/resources/${item.slug}`}
+                          className="group block p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300"
+                        >
+                          <h3 className="text-base font-bold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">
+                            {item.title}
+                          </h3>
+                          <p className="text-sm text-slate-500 leading-relaxed">
+                            {item.description}
+                          </p>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </main>
-      <Footer />
+      <SiteFooter />
     </>
   );
 }

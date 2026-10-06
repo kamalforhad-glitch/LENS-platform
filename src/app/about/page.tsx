@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import AboutContent from "./AboutContent";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import SiteHeader from "@/components/site/SiteHeader";
+import SiteFooter from "@/components/site/SiteFooter";
 
 export const metadata: Metadata = {
   title: "About LENS — Our Mission, Values & Team",
@@ -11,11 +11,11 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <>
-      <Header />
+      <SiteHeader />
       <main className="flex-1 pt-24">
         <AboutContent />
       </main>
-      <Footer />
+      <SiteFooter />
     </>
   );
 }

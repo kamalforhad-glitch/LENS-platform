@@ -87,7 +87,12 @@ export function proxy(request: NextRequest) {
     const isAllowedCrawler = ALLOWED_CRAWLERS.some((pattern) =>
       pattern.test(userAgent)
     );
+    const isLocalDev =
+      process.env.NODE_ENV === "development" &&
+      (request.headers.get("host")?.startsWith("localhost") ||
+        request.headers.get("host")?.startsWith("127.0.0.1"));
     if (
+      !isLocalDev &&
       !isAllowedCrawler &&
       BLOCKED_BOTS.some((pattern) => pattern.test(userAgent))
     ) {

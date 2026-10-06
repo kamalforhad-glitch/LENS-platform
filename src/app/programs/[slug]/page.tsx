@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import { db } from "@/lib/db";
+import SiteHeader from "@/components/site/SiteHeader";
+import SiteFooter from "@/components/site/SiteFooter";
+import { getPublicProgram } from "@/lib/public-content";
 
 async function getProgram(slug: string) {
-  return db.program.findUnique({ where: { slug } });
+  return getPublicProgram(slug);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -27,7 +27,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
 
   return (
     <>
-      <Header />
+      <SiteHeader />
       <main className="flex-1 pt-24">
         <section className="relative py-20 bg-navy-950 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,rgba(8,145,178,0.08)_0%,transparent_50%)]" />
@@ -61,7 +61,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
           </div>
         </section>
       </main>
-      <Footer />
+      <SiteFooter />
     </>
   );
 }

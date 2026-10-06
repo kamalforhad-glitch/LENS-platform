@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useMemo, useEffect, useState } from "react";
+import { useRef, useMemo, useEffect, useState, useCallback } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { isScrollActive, subscribeScrollActivity } from "@/lib/scroll-activity";
 
 function seededRandom(seed: number) {
   const x = Math.sin(seed * 12.9898 + seed * 78.233) * 43758.5453;
@@ -222,37 +223,43 @@ function DataStreams({ isMobile }: { isMobile: boolean }) {
   const ref = useRef<THREE.Points>(null);
   const count = isMobile ? 50 : 120;
 
-  const { geometry, velocities } = useMemo(() => {
+  // Per-particle orbital bases (read-only after memo). The frame tick lives in
+  // a ref, so the animation advances with zero atan2/sqrt/reads and zero
+  // mutation of memoized values — identical motion at a fraction of the cost.
+  const { geometry, bases } = useMemo(() => {
     const geo = new THREE.BufferGeometry();
     const positions = new Float32Array(count * 3);
-    const vels: number[] = [];
+    const parts: { r: number; baseAngle: number; baseY: number; v: number }[] = [];
     for (let i = 0; i < count; i++) {
-      const angle = seededRandom(i * 3 + 100) * Math.PI * 2;
-      const r = 2.5 + (seededRandom(i * 3 + 101) - 0.5) * 0.6;
-      const y = (seededRandom(i * 3 + 102) - 0.5) * 5;
-      positions[i * 3] = Math.cos(angle) * r;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = Math.sin(angle) * r;
-      vels.push(0.003 + seededRandom(i * 3 + 103) * 0.006);
+      const p = {
+        baseAngle: seededRandom(i * 3 + 100) * Math.PI * 2,
+        r: 2.5 + (seededRandom(i * 3 + 101) - 0.5) * 0.6,
+        baseY: (seededRandom(i * 3 + 102) - 0.5) * 5,
+        v: 0.003 + seededRandom(i * 3 + 103) * 0.006,
+      };
+      parts.push(p);
+      positions[i * 3] = Math.cos(p.baseAngle) * p.r;
+      positions[i * 3 + 1] = p.baseY;
+      positions[i * 3 + 2] = Math.sin(p.baseAngle) * p.r;
     }
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    return { geometry: geo, velocities: vels };
+    return { geometry: geo, bases: parts };
   }, [count]);
+  const tickRef = useRef(0);
 
   useFrame(() => {
     if (!ref.current) return;
+    tickRef.current += 1;
+    const k = tickRef.current;
     const pos = ref.current.geometry.attributes.position as THREE.BufferAttribute;
+    const arr = pos.array as Float32Array;
     for (let i = 0; i < count; i++) {
-      let y = pos.getY(i);
-      y += velocities[i];
-      if (y > 3.5) y = -3.5;
-      pos.setY(i, y);
-      const x = pos.getX(i);
-      const z = pos.getZ(i);
-      const angle = Math.atan2(z, x) + 0.0015;
-      const r = Math.sqrt(x * x + z * z);
-      pos.setX(i, Math.cos(angle) * r);
-      pos.setZ(i, Math.sin(angle) * r);
+      const p = bases[i];
+      const angle = p.baseAngle + k * 0.0015;
+      const y = -3.5 + ((((p.baseY + 3.5 + k * p.v) % 7) + 7) % 7);
+      arr[i * 3] = Math.cos(angle) * p.r;
+      arr[i * 3 + 1] = y;
+      arr[i * 3 + 2] = Math.sin(angle) * p.r;
     }
     pos.needsUpdate = true;
   });
@@ -339,6 +346,18 @@ export default function GlobeNetwork() {
   const [mounted, setMounted] = useState(false);
   const [frameloop, setFrameloop] = useState<"always" | "never">("always");
   const containerRef = useRef<HTMLDivElement>(null);
+  const visibleRef = useRef(true);
+
+  // Render only when visible AND settled. Pausing during active scroll drops
+  // the most expensive per-frame unit (WebGL raster) while scrolling; the
+  // bitmap persists and the frozen clock resumes jump-free. Never destroys
+  // the scene — frameloop toggle only.
+  const updateFrameloop = useCallback(() => {
+    setFrameloop((prev) => {
+      const next = visibleRef.current && !isScrollActive() ? "always" : "never";
+      return prev === next ? prev : next;
+    });
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -353,17 +372,21 @@ export default function GlobeNetwork() {
     // Only pause/resume — never prevent initial render
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setFrameloop(entry.isIntersecting ? "always" : "never");
+        visibleRef.current = entry.isIntersecting;
+        updateFrameloop();
       },
       { threshold: 0 }
     );
     if (containerRef.current) observer.observe(containerRef.current);
 
+    const unsubscribe = subscribeScrollActivity(updateFrameloop);
+
     return () => {
       window.removeEventListener("mousemove", onMove);
       observer.disconnect();
+      unsubscribe();
     };
-  }, []);
+  }, [updateFrameloop]);
 
   if (!mounted) return null;
 
@@ -371,6 +394,10 @@ export default function GlobeNetwork() {
     <div ref={containerRef} className="absolute inset-0 z-0">
       <Canvas
         camera={{ position: [0, 0, 6], fov: 50 }}
+        // Scroll-driven re-measure caused a full renderer resize per scroll
+        // tick (configure → setSize → gl.setSize). Container size never
+        // changes on scroll — observe resizes only.
+        resize={{ scroll: false }}
         dpr={isMobile ? [1, 1] : [1, 1.5]}
         gl={{
           antialias: !isMobile,

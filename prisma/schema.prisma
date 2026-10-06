@@ -197,7 +197,7 @@ model MediaFile {
   dateCreated  DateTime @default(now()) @map("date_created")
 
   uploader  User?          @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
-  downloads DownloadLog[]
+  downloads DownloadLog[] @relation("MediaDownloads")
 
   @@index([mimeType])
   @@index([dateCreated])
@@ -206,15 +206,20 @@ model MediaFile {
 
 model DownloadLog {
   id          String   @id @default(uuid())
+  // Polymorphic content reference (research | publication | media | etc.)
+  // NOT a foreign key — contentId may point to research_articles, publications, or media_files.
   contentType String   @map("content_type")
   contentId   String   @map("content_id")
+  // Optional direct link when the download is a managed media file.
+  mediaFileId String?  @map("media_file_id")
   ipHash      String?  @map("ip_hash")
   userAgent   String?  @map("user_agent")
   dateCreated DateTime @default(now()) @map("date_created")
 
-  mediaFile MediaFile? @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  mediaFile MediaFile? @relation("MediaDownloads", fields: [mediaFileId], references: [id], onDelete: Cascade)
 
   @@index([contentType, contentId])
+  @@index([mediaFileId])
   @@index([dateCreated])
   @@map("download_logs")
 }
@@ -286,6 +291,12 @@ model BackupRecord {
   status    String   @default("pending")
   type      String   @default("manual")
   error     String?
+  // Backup artifact persistence (Phase 10, Cloudflare R2).
+  // storage: "local" | "r2". remoteKey/remoteUrl set only when storage = "r2".
+  // R2 secrets are NEVER stored here — only key + public URL.
+  storage   String   @default("local")
+  remoteKey String?  @map("remote_key")
+  remoteUrl String?  @map("remote_url")
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([status])
@@ -476,7 +487,9 @@ model DocumentEmbedding {
   documentId   String   @map("document_id")
   chunkIndex   Int      @default(0) @map("chunk_index")
   chunkText    String   @map("chunk_text")
-  embedding    String   // JSON array of floats (stored as text for pgvector compatibility)
+  // pgvector embedding (1536 dims for text-embedding-3-small).
+  // Managed via raw SQL ($executeRaw/$queryRaw) — Prisma ORM cannot read/write Unsupported fields.
+  embedding    Unsupported("vector(1536)")
   metadata     String   @default("{}") // JSON: title, author, category, date, etc.
   tokenCount   Int      @default(0) @map("token_count")
   indexed      Boolean  @default(false)

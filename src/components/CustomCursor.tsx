@@ -32,12 +32,25 @@ export default function CustomCursor() {
       gsap.to(ring, { opacity: 0, duration: 0.15 });
     };
 
+    // quickTo reuses a single tween per property (no per-mousemove allocation),
+    // keeping identical visuals while removing constant tween churn that
+    // competes with the scroll RAF loop on the main thread.
+    const dotX = gsap.quickTo(dot, "x", { duration: 0.08, ease: "power2.out" });
+    const dotY = gsap.quickTo(dot, "y", { duration: 0.08, ease: "power2.out" });
+    const ringX = gsap.quickTo(ring, "x", { duration: 0.25, ease: "power2.out" });
+    const ringY = gsap.quickTo(ring, "y", { duration: 0.25, ease: "power2.out" });
+    const labelX = labelEl ? gsap.quickTo(labelEl, "x", { duration: 0.35, ease: "power2.out" }) : null;
+    const labelY = labelEl ? gsap.quickTo(labelEl, "y", { duration: 0.35, ease: "power2.out" }) : null;
+
     const move = (e: MouseEvent) => {
       showCursor();
-      gsap.to(dot, { x: e.clientX, y: e.clientY, duration: 0.08, ease: "power2.out" });
-      gsap.to(ring, { x: e.clientX, y: e.clientY, duration: 0.25, ease: "power2.out" });
-      if (labelEl) {
-        gsap.to(labelEl, { x: e.clientX, y: e.clientY, duration: 0.35, ease: "power2.out" });
+      dotX(e.clientX);
+      dotY(e.clientY);
+      ringX(e.clientX);
+      ringY(e.clientY);
+      if (labelX && labelY) {
+        labelX(e.clientX);
+        labelY(e.clientY);
       }
     };
 
