@@ -9,7 +9,7 @@ import dynamic from "next/dynamic";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const GlobeNetwork = dynamic(() => import("./GlobeNetwork"), { ssr: false, loading: () => <div className="w-[850px] h-[850px]" /> });
+const GlobeNetwork = dynamic(() => import("./GlobeNetwork"), { ssr: false, loading: () => <div className="w-full h-full" /> });
 const MediaIntelligenceMap = dynamic(() => import("./MediaIntelligenceMap"), { ssr: false });
 
 // ============================================================
@@ -159,7 +159,7 @@ function HeroContent() {
       // Scroll-driven parallax
       if (sectionRef.current) {
         gsap.to(".hero-content", {
-          y: -120,
+          y: -100,
           opacity: 0,
           ease: "none",
           scrollTrigger: {
@@ -167,18 +167,6 @@ function HeroContent() {
             start: "top top",
             end: "60% top",
             scrub: 1.5,
-          },
-        });
-
-        gsap.to(".globe-container", {
-          scale: 1.5,
-          opacity: 0,
-          ease: "none",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top top",
-            end: "bottom top",
-            scrub: 2,
           },
         });
 
@@ -215,7 +203,7 @@ function HeroContent() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[100vh] flex items-center overflow-clip"
+      className="relative min-h-[100vh] flex items-center overflow-x-clip"
       aria-label="Hero"
     >
       {/* Deep layered background */}
@@ -225,14 +213,7 @@ function HeroContent() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_30%,rgba(212,168,67,0.05)_0%,transparent_35%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_80%,rgba(8,145,178,0.03)_0%,transparent_30%)]" />
 
-      {/* 3D Globe — large cinematic, behind tagline, z-0 layer */}
-      <div className="globe-container absolute right-[3%] top-1/2 -translate-y-1/2 w-[850px] h-[850px] pointer-events-none opacity-80 hidden lg:block" style={{ zIndex: 0 }}>
-        <Suspense fallback={null}>
-          <GlobeNetwork />
-        </Suspense>
-      </div>
-
-      {/* Media Intelligence Map - left side */}
+      {/* Media Intelligence Map - subtle left ambient overlay */}
       <div className="absolute left-0 top-0 w-[10%] h-full pointer-events-none opacity-20 hidden lg:block">
         <Suspense fallback={null}>
           <MediaIntelligenceMap />
@@ -240,29 +221,30 @@ function HeroContent() {
       </div>
 
       {/* Gradient fade-outs */}
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#030810] to-transparent" />
-      <div className="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-[#030810]/70 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#030810] to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-[#030810]/70 to-transparent pointer-events-none" />
 
-      {/* Content */}
-      <div className="hero-content relative max-w-[1440px] mx-auto px-6 sm:px-8 lg:px-12 pt-28 pb-20 w-full" style={{ zIndex: 5 }}>
-        <div className="grid lg:grid-cols-[45%_1fr] gap-8 items-center">
-          <div className="min-w-0">
-            <div className="hero-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 mb-8 opacity-0">
+      {/* Responsive Content Grid */}
+      <div className="hero-content relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 pt-20 pb-10 sm:pt-24 sm:pb-16 lg:py-20 w-full" style={{ zIndex: 5 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-8 xl:gap-12 items-center">
+          {/* LEFT COLUMN: Editorial Information */}
+          <div className="lg:col-span-7 xl:col-span-6 min-w-0 z-10 flex flex-col justify-center">
+            <div className="hero-badge inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 mb-4 sm:mb-6 lg:mb-8 opacity-0 w-fit">
               <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
               <span className="text-teal-300 text-xs font-medium tracking-wide uppercase">
                 {t("hero.badge")}
               </span>
             </div>
 
-            <p className="hero-brand text-xs font-semibold tracking-[0.25em] uppercase text-teal-200/70 mb-6 opacity-0">
+            <p className="hero-brand text-[11px] sm:text-xs font-semibold tracking-[0.22em] uppercase text-teal-200/70 mb-3 sm:mb-4 lg:mb-6 opacity-0">
               LENS — Lighthouse for Evolving Narrative Systems
             </p>
 
             <h1
-              className={`font-bold text-white leading-[1.15] mb-8 ${
+              className={`font-bold text-white leading-[1.15] mb-5 sm:mb-6 lg:mb-8 ${
                 isBn
-                  ? "text-3xl sm:text-4xl lg:text-[clamp(2.2rem,4vw,3.2rem)] leading-[1.25]"
-                  : "text-4xl sm:text-5xl lg:text-[3.5rem] leading-[1.1]"
+                  ? "text-3xl sm:text-4xl lg:text-[clamp(2.2rem,3.8vw,3.2rem)] leading-[1.25]"
+                  : "text-2xl sm:text-4xl md:text-5xl lg:text-[clamp(2.5rem,4vw,3.5rem)] leading-[1.1]"
               }`}
               style={{ perspective: "600px" }}
             >
@@ -285,16 +267,16 @@ function HeroContent() {
               })}
             </h1>
 
-            <p className={`hero-desc text-slate-300/80 max-w-xl mb-10 leading-relaxed opacity-0 ${
-              isBn ? "text-base" : "text-lg"
+            <p className={`hero-desc text-slate-300/80 max-w-xl mb-6 sm:mb-8 lg:mb-10 leading-relaxed opacity-0 ${
+              isBn ? "text-sm sm:text-base" : "text-sm sm:text-base md:text-lg"
             }`}>
               {t("hero.description")}
             </p>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-3 sm:gap-4">
               <MagneticButton
                 href="/research"
-                className="hero-cta px-7 py-3.5 bg-teal-500 hover:bg-teal-400 text-white font-semibold rounded-full transition-all shadow-lg shadow-teal-500/25 hover:shadow-teal-400/40 opacity-0"
+                className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 bg-teal-500 hover:bg-teal-400 text-white text-sm sm:text-base font-semibold rounded-full transition-all shadow-lg shadow-teal-500/25 hover:shadow-teal-400/40 opacity-0"
                 data-cursor="Explore"
               >
                 {t("hero.cta_research")}
@@ -304,36 +286,45 @@ function HeroContent() {
               </MagneticButton>
               <MagneticButton
                 href="/programs"
-                className="hero-cta px-7 py-3.5 border border-white/20 text-white font-semibold rounded-full hover:border-teal-400 hover:text-teal-300 transition-all opacity-0"
+                className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 border border-white/20 text-white text-sm sm:text-base font-semibold rounded-full hover:border-teal-400 hover:text-teal-300 transition-all opacity-0"
               >
                 {t("hero.cta_network")}
               </MagneticButton>
             </div>
           </div>
 
-          {/* Right tagline - floating over globe with glass backdrop */}
-          <div className="hidden lg:flex justify-center items-center relative" style={{ zIndex: 10 }}>
-            <div className="relative ml-8 px-8 py-6 rounded-2xl bg-navy-950/40 backdrop-blur-md border border-white/5 shadow-2xl shadow-teal-500/5">
-              <div className="hero-tagline-line absolute -left-4 top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-teal-400/50 to-transparent origin-top" />
-              <div>
-                <p className={`hero-tagline-text font-bold text-white/90 leading-snug opacity-0 ${
-                  isBn ? "text-2xl" : "text-3xl"
-                }`}>
-                  {t("hero.tagline_better")}
-                </p>
-                <p className={`hero-tagline-text font-bold text-teal-400 leading-snug mt-2 opacity-0 ${
-                  isBn ? "text-2xl" : "text-3xl"
-                }`}>
-                  {t("hero.tagline_stronger")}
-                </p>
+          {/* RIGHT COLUMN: Realistic Cinematic Rotating 3D Earth Globe */}
+          <div className="lg:col-span-5 xl:col-span-6 min-w-0 relative flex flex-col items-center justify-center mt-4 lg:mt-0">
+            <div className="globe-container relative w-full aspect-square max-w-[240px] xs:max-w-[270px] sm:max-w-[340px] md:max-w-[420px] lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[650px] mx-auto flex items-center justify-center pointer-events-auto">
+              <Suspense fallback={<div className="w-full h-full" />}>
+                <GlobeNetwork />
+              </Suspense>
+
+              {/* Tagline Card — glass backdrop, floating elegantly in lower right on larger viewports */}
+              <div className="hidden xl:block absolute -bottom-2 -right-4 pointer-events-none" style={{ zIndex: 10 }}>
+                <div className="relative px-6 py-4 rounded-xl bg-navy-950/75 backdrop-blur-md border border-white/10 shadow-2xl shadow-teal-500/10 pointer-events-auto">
+                  <div className="hero-tagline-line absolute -left-3 top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-teal-400/50 to-transparent origin-top" />
+                  <div>
+                    <p className={`hero-tagline-text font-bold text-white/90 leading-snug opacity-0 ${
+                      isBn ? "text-xl" : "text-2xl"
+                    }`}>
+                      {t("hero.tagline_better")}
+                    </p>
+                    <p className={`hero-tagline-text font-bold text-teal-400 leading-snug mt-1 opacity-0 ${
+                      isBn ? "text-xl" : "text-2xl"
+                    }`}>
+                      {t("hero.tagline_stronger")}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="scroll-indicator absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-0">
+      {/* Scroll indicator — desktop only */}
+      <div className="scroll-indicator absolute bottom-8 left-1/2 -translate-x-1/2 hidden lg:flex flex-col items-center gap-2 opacity-0">
         <span className="text-slate-400 text-[10px] tracking-[0.3em] uppercase font-medium">
           {t("hero.scroll")}
         </span>

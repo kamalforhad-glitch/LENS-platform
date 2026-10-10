@@ -1,0 +1,223 @@
+{
+  "consoleErrors": [],
+  "consoleWarnings": [
+    "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."
+  ],
+  "exceptions": [],
+  "viewportTests": [
+    {
+      "id": "desktop-1440x900",
+      "width": 1440,
+      "height": 900,
+      "metrics": {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "hasHorizontalOverflow": false,
+        "scrollWidth": 1434,
+        "clientWidth": 1434,
+        "leftColRect": {
+          "left": 48,
+          "right": 693,
+          "top": 196,
+          "bottom": 704,
+          "width": 645,
+          "height": 509
+        },
+        "globeRect": {
+          "left": 784,
+          "right": 1344,
+          "top": 170,
+          "bottom": 730,
+          "width": 560,
+          "height": 560
+        },
+        "canvasRect": {
+          "width": 560,
+          "height": 560
+        },
+        "hasOverlap": false,
+        "overlapWidth": 0,
+        "overlapHeight": 508.921875,
+        "buttonsOverlapGlobe": false,
+        "webglStatus": "active",
+        "globeVisible": true
+      },
+      "savedPath": "D:\\downloads\\civic-youth-bangladesh\\lens\\lens_website\\qa-screenshots\\desktop-1440x900.png"
+    },
+    {
+      "id": "laptop-1024x768",
+      "width": 1024,
+      "height": 768,
+      "metrics": {
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "hasHorizontalOverflow": false,
+        "scrollWidth": 1018,
+        "clientWidth": 1018,
+        "leftColRect": {
+          "left": 48,
+          "right": 573,
+          "top": 155,
+          "bottom": 613,
+          "width": 525,
+          "height": 457
+        },
+        "globeRect": {
+          "left": 605,
+          "right": 970,
+          "top": 154,
+          "bottom": 614,
+          "width": 366,
+          "height": 460
+        },
+        "canvasRect": {
+          "width": 366,
+          "height": 460
+        },
+        "hasOverlap": false,
+        "overlapWidth": 0,
+        "overlapHeight": 457.03125,
+        "buttonsOverlapGlobe": false,
+        "webglStatus": "active",
+        "globeVisible": true
+      },
+      "savedPath": "D:\\downloads\\civic-youth-bangladesh\\lens\\lens_website\\qa-screenshots\\laptop-1024x768.png"
+    },
+    {
+      "id": "tablet-768x1024",
+      "width": 768,
+      "height": 1024,
+      "metrics": {
+        "viewport": {
+          "width": 768,
+          "height": 1024
+        },
+        "hasHorizontalOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "leftColRect": {
+          "left": 24,
+          "right": 744,
+          "top": 97,
+          "bottom": 491,
+          "width": 720,
+          "height": 394
+        },
+        "globeRect": {
+          "left": 174,
+          "right": 594,
+          "top": 539,
+          "bottom": 959,
+          "width": 420,
+          "height": 420
+        },
+        "canvasRect": {
+          "width": 420,
+          "height": 420
+        },
+        "hasOverlap": false,
+        "overlapWidth": 420,
+        "overlapHeight": 0,
+        "buttonsOverlapGlobe": false,
+        "webglStatus": "active",
+        "globeVisible": true
+      },
+      "savedPath": "D:\\downloads\\civic-youth-bangladesh\\lens\\lens_website\\qa-screenshots\\tablet-768x1024.png"
+    },
+    {
+      "id": "mobile-390x844",
+      "width": 390,
+      "height": 844,
+      "metrics": {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "hasHorizontalOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "leftColRect": {
+          "left": 16,
+          "right": 374,
+          "top": 114,
+          "bottom": 490,
+          "width": 358,
+          "height": 375
+        },
+        "globeRect": {
+          "left": 75,
+          "right": 315,
+          "top": 530,
+          "bottom": 770,
+          "width": 240,
+          "height": 240
+        },
+        "canvasRect": {
+          "width": 240,
+          "height": 240
+        },
+        "hasOverlap": false,
+        "overlapWidth": 240,
+        "overlapHeight": 0,
+        "buttonsOverlapGlobe": false,
+        "webglStatus": "active",
+        "globeVisible": true
+      },
+      "savedPath": "D:\\downloads\\civic-youth-bangladesh\\lens\\lens_website\\qa-screenshots\\mobile-390x844.png"
+    },
+    {
+      "id": "small-mobile-320x700",
+      "width": 320,
+      "height": 700,
+      "metrics": {
+        "viewport": {
+          "width": 320,
+          "height": 700
+        },
+        "hasHorizontalOverflow": false,
+        "scrollWidth": 320,
+        "clientWidth": 320,
+        "leftColRect": {
+          "left": 16,
+          "right": 304,
+          "top": 80,
+          "bottom": 506,
+          "width": 288,
+          "height": 426
+        },
+        "globeRect": {
+          "left": 40,
+          "right": 280,
+          "top": 546,
+          "bottom": 786,
+          "width": 240,
+          "height": 240
+        },
+        "canvasRect": {
+          "width": 240,
+          "height": 240
+        },
+        "hasOverlap": false,
+        "overlapWidth": 240,
+        "overlapHeight": 0,
+        "buttonsOverlapGlobe": false,
+        "webglStatus": "active",
+        "globeVisible": true
+      },
+      "savedPath": "D:\\downloads\\civic-youth-bangladesh\\lens\\lens_website\\qa-screenshots\\small-mobile-320x700.png"
+    }
+  ],
+  "rotationVerified": true,
+  "rotationDifferenceBytes": 1293357,
+  "screenshots": [
+    "D:\\downloads\\civic-youth-bangladesh\\lens\\lens_website\\qa-screenshots\\desktop-1440x900.png",
+    "D:\\downloads\\civic-youth-bangladesh\\lens\\lens_website\\qa-screenshots\\laptop-1024x768.png",
+    "D:\\downloads\\civic-youth-bangladesh\\lens\\lens_website\\qa-screenshots\\tablet-768x1024.png",
+    "D:\\downloads\\civic-youth-bangladesh\\lens\\lens_website\\qa-screenshots\\mobile-390x844.png",
+    "D:\\downloads\\civic-youth-bangladesh\\lens\\lens_website\\qa-screenshots\\small-mobile-320x700.png"
+  ]
+}
