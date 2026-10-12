@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import gsap from "gsap";
@@ -107,18 +108,17 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 shrink-0 group">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-teal-500/30 transition-shadow duration-300">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M12 2L2 19h20L12 2z" />
-                <circle cx="12" cy="12" r="2" fill="currentColor" />
-              </svg>
-            </div>
-            <div className="hidden sm:block">
-              <span className="text-xl font-bold tracking-tight text-white">
-                LENS
-              </span>
-              <span className={`block text-[10px] leading-tight -mt-0.5 transition-colors duration-500 ${solid ? "text-slate-400" : "text-white/60"}`}>
+          <Link href="/" className="flex items-center gap-3 shrink-0 group py-1" aria-label="LENS — home">
+            <div className="flex flex-col justify-center">
+              <Image
+                src="/images/logo/lens-logo.png"
+                alt=""
+                width={126}
+                height={32}
+                className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"
+                priority
+              />
+              <span className={`hidden sm:block text-[9px] lg:text-[10px] leading-tight mt-0.5 transition-colors duration-500 font-normal ${solid ? "text-slate-400" : "text-white/60"}`}>
                 {t("site.subtitle")}
               </span>
             </div>

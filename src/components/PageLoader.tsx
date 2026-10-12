@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import gsap from "gsap";
 
 export default function PageLoader() {
@@ -56,33 +57,29 @@ export default function PageLoader() {
       {/* Radial glow */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(8,145,178,0.08)_0%,transparent_50%)]" />
 
-      {/* Lighthouse beam */}
-      <div className="relative mb-10">
+      {/* Lighthouse beam & Brand Mark */}
+      <div className="relative mb-6 flex items-center justify-center">
         <div
           ref={beamRef}
-          className="absolute -inset-16 opacity-20"
+          className="absolute -inset-16 opacity-25 pointer-events-none"
           style={{
             background: "conic-gradient(from 0deg, transparent 0deg, rgba(212,168,67,0.4) 15deg, transparent 40deg, transparent 360deg)",
             borderRadius: "50%",
           }}
         />
-        <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/30">
-          <svg
-            viewBox="0 0 24 24"
-            className="w-10 h-10 text-white"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path d="M12 2L2 19h20L12 2z" />
-            <circle cx="12" cy="12" r="2" fill="currentColor" />
-          </svg>
+        <div className="relative z-10 px-6 py-4 rounded-2xl bg-white/[0.03] border border-white/5 backdrop-blur-md shadow-2xl shadow-teal-500/10">
+          <Image
+            src="/images/logo/lens-logo.png"
+            alt="LENS"
+            width={200}
+            height={51}
+            className="h-12 sm:h-14 w-auto object-contain"
+            priority
+          />
         </div>
       </div>
 
-      {/* Brand */}
-      <h1 className="text-3xl font-bold text-white tracking-[0.2em] mb-2">LENS</h1>
-      <p className="text-[10px] text-slate-400 tracking-[0.4em] uppercase mb-10">
+      <p className="text-[10px] text-slate-400 tracking-[0.4em] uppercase mb-10 text-center">
         Lighthouse for Evolving Narrative Systems
       </p>
 

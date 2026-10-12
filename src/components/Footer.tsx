@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -106,17 +108,17 @@ export default function Footer() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-white/10">
           {/* Brand */}
           <div className="footer-col sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M12 2L2 19h20L12 2z" />
-                  <circle cx="12" cy="12" r="2" fill="currentColor" />
-                </svg>
-              </div>
-              <div>
-                <span className="text-lg font-bold text-white">LENS</span>
-                <span className="block text-[10px] text-slate-400 leading-tight">{t("site.subtitle")}</span>
-              </div>
+            <div className="flex flex-col items-start gap-1 mb-4">
+              <Link href="/" className="inline-block group py-1" aria-label="LENS — home">
+                <Image
+                  src="/images/logo/lens-logo.png"
+                  alt=""
+                  width={126}
+                  height={32}
+                  className="h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"
+                />
+              </Link>
+              <span className="block text-[10px] text-slate-400 leading-tight">{t("site.subtitle")}</span>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed max-w-xs">{t("footer.about_text")}</p>
           </div>

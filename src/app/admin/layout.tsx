@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { logout } from "@/lib/actions/auth";
 
 const navItems = [
@@ -64,16 +65,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-navy-950 transform transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-auto ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center gap-3 px-6 h-16 border-b border-white/10">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M12 2L2 19h20L12 2z" />
-              <circle cx="12" cy="12" r="2" fill="currentColor" />
-            </svg>
-          </div>
-          <div>
-            <span className="text-sm font-bold text-white">LENS</span>
-            <span className="block text-[9px] text-slate-400">Admin Dashboard</span>
-          </div>
+          <Link href="/" className="flex flex-col justify-center group py-1" aria-label="LENS — home">
+            <Image
+              src="/images/logo/lens-logo.png"
+              alt=""
+              width={100}
+              height={26}
+              className="h-6 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"
+            />
+            <span className="block text-[9px] text-slate-400 mt-0.5">Admin Dashboard</span>
+          </Link>
         </div>
 
         <nav className="px-3 py-4 space-y-1">
