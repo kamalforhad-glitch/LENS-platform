@@ -268,6 +268,17 @@ Deliberately absent: cron duplication, separate public static hosting, service-w
 
 ## 10. Final verification checklist (post-deploy)
 
+> **Probe-visible bot wall (by design, unchanged since before `c4bd9e1`):** curl's
+> default User-Agent (`curl/…`) matches the `BLOCKED_BOTS` list and receives
+> `403 Forbidden` (9-byte `text/plain` body, literal from `src/proxy.ts`) on any
+> **HTML** route. This is `src/proxy.ts` bot detection (lines ~20–101), not a
+> deployment or auth failure — API routes are exempt. Probe HTML routes with a
+> browser-like `-A "Mozilla/5.0 … Safari/537.36"` UA; use `/api/health` for
+> curl-based monitoring. The early-returned 403 carries platform-default
+> `Cache-Control: public, max-age=0, must-revalidate` — the proxy's caching
+> section is simply not reached on that path. A proxy 403 emits no runtime log
+> (it short-circuits); 403-request visibility comes from Vercel request logs.
+
 | # | Check | Method | Pass criteria |
 |---|---|---|---|
 | 1 | Deployment build succeeded | Vercel deployment page | Ready, source commit = expected |
@@ -278,7 +289,7 @@ Deliberately absent: cron duplication, separate public static hosting, service-w
 | 6 | Media upload (if S3 configured) | admin → media → upload | object at `CDN_URL` |
 | 7 | Public API | `GET /api/researchers` | 200, no secrets in body |
 | 8 | SEO routes | `/robots.txt`, `/sitemap.xml`, `/rss.xml` | 200 |
-| 9 | Cache sentinel | `curl -D - /admin/login` | `Cache-Control: no-store, must-revalidate` |
+| 9 | Cache sentinel | `curl -D - -A "Mozilla/5.0 … Safari/537.36" /admin/login` (browser-like UA) | HTTP 200 and `Cache-Control: no-store, must-revalidate` |
 | 10 | CORS/session | admin session cookie has `HttpOnly; Secure; SameSite=Lax` | browser devtools |
 | 11 | Sentry (if configured) | view a tagged error | event appears (or skip if not configured) |
 | 12 | Backup workflow | `workflow_dispatch` run | verification step logs object size>0 |
