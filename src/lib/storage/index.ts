@@ -47,6 +47,120 @@ export function validateFileType(mimeType: string): boolean {
   return ALLOWED_TYPES.includes(mimeType);
 }
 
+// ============================================================
+// Content sniffing — never trust the browser-declared MIME type.
+// A file's declared Content-Type can lie (e.g. an HTML file named
+// "image.png"). Verify the first bytes against known magic numbers.
+// SVG remains forbidden everywhere as a script-execution vector.
+// ============================================================
+
+const MAGIC_SIGNATURES: Array<{ mime: string; test: (b: Buffer) => boolean }> = [
+  { mime: "image/jpeg", test: (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  { mime: "image/png", test: (b) => b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 && b[4] === 0x0d && b[5] === 0x0a && b[6] === 0x1a && b[7] === 0x0a },
+  { mime: "image/gif", test: (b) => b.length >= 6 && b.toString("ascii", 0, 6).startsWith("GIF8") },
+  { mime: "image/webp", test: (b) => b.length >= 12 && b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP" },
+  { mime: "image/avif", test: (b) => b.length >= 12 && b.toString("ascii", 4, 8) === "ftyp" && (b.toString("ascii", 8, 12).startsWith("avif") || b.toString("ascii", 8, 12).startsWith("avis")) },
+  { mime: "application/pdf", test: (b) => b.length >= 5 && b.toString("ascii", 0, 5) === "%PDF-" },
+  { mime: "application/msword", test: (b) => b.length >= 8 && b[0] === 0xd0 && b[1] === 0xcf && b[2] === 0x11 && b[3] === 0xe0 },
+  { mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", test: (b) => b.length >= 4 && b.toString("hex", 0, 4) === "504b" }, // zip/office-open-xml
+];
+
+/** Detect the true file type from magic bytes, or null when unknown. */
+export function sniffMimeType(buffer: Buffer): string | null {
+  for (const sig of MAGIC_SIGNATURES) {
+    try {
+      if (sig.test(buffer)) return sig.mime;
+    } catch {
+      // keep scanning
+    }
+  }
+  return null;
+}
+
+/**
+ * Validate that the declared type is allowed AND consistent with the file's
+ * actual bytes. Returns the effective (sniffed) type or an error.
+ */
+export function verifyUploadContent(
+  declaredType: string,
+  buffer: Buffer
+): { ok: boolean; effectiveType?: string; error?: string } {
+  if (!validateFileType(declaredType)) {
+    return { ok: false, error: "File type not allowed" };
+  }
+  const sniffed = sniffMimeType(buffer);
+  if (!sniffed) {
+    return { ok: false, error: "Unrecognized file content — upload rejected" };
+  }
+  // Same family check: declared images must sniff as any image, declared
+  // documents must sniff as pdf/zip-office (MS Word legacy and open-xml both
+  // pass their own sniff). Content is never stored when families disagree.
+  const declaredImage = ALLOWED_IMAGE_TYPES.includes(declaredType);
+  const sniffedImage = ALLOWED_IMAGE_TYPES.includes(sniffed);
+  const declaredDoc = ALLOWED_DOCUMENT_TYPES.includes(declaredType);
+  const sniffedDoc = ALLOWED_DOCUMENT_TYPES.includes(sniffed);
+  if (declaredImage && !sniffedImage) {
+    return { ok: false, error: `Declared ${declaredType} but file content is ${sniffed}` };
+  }
+  if (declaredDoc && !sniffedDoc) {
+    return { ok: false, error: `Declared ${declaredType} but file content is ${sniffed}` };
+  }
+  return { ok: true, effectiveType: declaredType };
+}
+
+/**
+ * Best-effort intrinsic image dimensions (PNG/JPEG/GIF/WebP).
+ * Never fails: unknown formats return undefined dimensions.
+ */
+export async function sniffImageDimensions(
+  buffer: Buffer,
+  mime: string
+): Promise<{ width?: number; height?: number }> {
+  try {
+    const readU16BE = (b: Buffer, o: number) => (b[o] << 8) | b[o + 1];
+    const readU32LE = (b: Buffer, o: number) => b.readUInt32LE(o);
+
+    if (mime === "image/png" && buffer.length >= 24 && buffer[12] === 0x49 && buffer[13] === 0x48 && buffer[14] === 0x44 && buffer[15] === 0x52) {
+      return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+    }
+    if (mime === "image/gif" && buffer.length >= 10) {
+      return { width: readU16BE(buffer, 6), height: readU16BE(buffer, 8) };
+    }
+    if (mime === "image/jpeg") {
+      // Walk APP0/SOF segments to find the frame header (0xFFC0/0xFFC2).
+      let offset = 2;
+      while (offset + 9 < buffer.length) {
+        if (buffer[offset] !== 0xff) { offset++; continue; }
+        const marker = buffer[offset + 1];
+        if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+          return { height: readU16BE(buffer, offset + 5), width: readU16BE(buffer, offset + 7) };
+        }
+        const segLen = readU16BE(buffer, offset + 2);
+        if (segLen <= 0) break;
+        offset += 2 + segLen;
+      }
+      return {};
+    }
+    if (mime === "image/webp" && buffer.length >= 30) {
+      const chunk = buffer.toString("ascii", 12, 16);
+      if (chunk === "VP8X" && buffer.length >= 30) {
+        return { width: 1 + readU32LE(buffer, 24) & 0xffffff, height: 1 + readU32LE(buffer, 27) & 0xffffff };
+      }
+      if (chunk === "VP8 " && buffer.length >= 30 && buffer[23] === 0x9d && buffer[24] === 0x01 && buffer[25] === 0x2a) {
+        return { width: readU16BE(buffer, 26) & 0x3fff, height: readU16BE(buffer, 28) & 0x3fff };
+      }
+      if (chunk === "VP8L" && buffer.length >= 25) {
+        const b = buffer[21] | (buffer[22] << 8) | (buffer[23] << 16);
+        return { width: (b & 0x3fff) + 1, height: ((b >> 14) & 0x3fff) + 1 };
+      }
+      return {};
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
 export function validateFileSize(mimeType: string, size: number): { valid: boolean; error?: string } {
   if (ALLOWED_IMAGE_TYPES.includes(mimeType)) {
     if (size > MAX_IMAGE_SIZE) {
@@ -82,7 +196,7 @@ export function getPublicUrl(key: string): string {
   if (config.endpoint) {
     return `${config.endpoint}/${config.bucket}/${key}`;
   }
-  return `/api/media/${key}`;
+  return `/${key}`;
 }
 
 export async function deleteFromStorage(key: string): Promise<void> {

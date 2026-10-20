@@ -26,10 +26,11 @@ async function main() {
         email: "admin@lens.org.bd",
         name: "LENS Admin",
         passwordHash: hash,
-        role: "admin",
+        role: "super_admin",
+        createdBy: "seed",
       },
     });
-    console.log("Default admin user created: admin@lens.org.bd");
+    console.log("Default admin user created: admin@lens.org.bd (super_admin)");
   } else {
     console.log("Admin user already exists, skipping seed.");
   }

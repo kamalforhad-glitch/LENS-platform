@@ -52,7 +52,7 @@ function resolveBaseUrl(): string {
   return `https://${CANONICAL_HOST}`;
 }
 
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   metadataBase: new URL(resolveBaseUrl()),
   title: {
     default: DEFAULT_TITLE,
@@ -88,6 +88,45 @@ export const metadata: Metadata = {
     images: [OG_IMAGE_PATH],
   },
 };
+
+// ============================================================
+// CMS-driven metadata: the Site Settings editor (/admin/settings →
+// "Global SEO") overrides the defaults above per-request. Settings
+// access is already fault-tolerant (returns defaults when the DB is
+// unavailable), so this can never break rendering.
+// ============================================================
+export async function generateMetadata(): Promise<Metadata> {
+  const { getPublicSiteSettings } = await import("@/lib/actions/cms");
+  const settings = await getPublicSiteSettings();
+  const metaTitle = settings.seo_meta_title?.value?.trim();
+  const metaDescription = settings.seo_meta_description?.value?.trim();
+  const ogImage = settings.seo_og_image?.value?.trim();
+
+  if (!metaTitle && !metaDescription && !ogImage) return BASE_METADATA;
+
+  const title = metaTitle || DEFAULT_TITLE;
+  const description = metaDescription || DEFAULT_DESCRIPTION;
+  // Only propagate validated/normalized image paths.
+  const image = ogImage || OG_IMAGE_PATH;
+
+  return {
+    metadataBase: BASE_METADATA.metadataBase,
+    title: BASE_METADATA.title,
+    description,
+    openGraph: {
+      ...(BASE_METADATA.openGraph as NonNullable<Metadata["openGraph"]>),
+      title,
+      description,
+      images: [{ url: image, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      ...(BASE_METADATA.twitter as NonNullable<Metadata["twitter"]>),
+      title,
+      description,
+      images: [image],
+    },
+  };
+}
 
 export default function RootLayout({
   children,

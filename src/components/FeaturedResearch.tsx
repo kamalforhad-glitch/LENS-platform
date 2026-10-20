@@ -101,12 +101,40 @@ function PublicationCard({ pub, t, locale }: { pub: PubItem; t: (key: string) =>
   );
 }
 
-export default function FeaturedResearch() {
+export interface CmsSectionData {
+  id?: string;
+  type?: string;
+  title?: string;
+  titleBn?: string;
+  description?: string;
+  descriptionBn?: string;
+  sortOrder?: number;
+  visible?: boolean;
+  settings?: string | Record<string, unknown>;
+  content?: string | Record<string, unknown>;
+  contentBn?: string | Record<string, unknown>;
+}
+
+function parseJsonSafe(val: unknown): Record<string, any> {
+  if (!val) return {};
+  if (typeof val === "object") return val as Record<string, any>;
+  try { return JSON.parse(val as string); } catch { return {}; }
+}
+
+export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData }) {
   const sectionRef = useRef<HTMLElement>(null);
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
+  const isBn = locale === "bn";
 
-  const publications: PubItem[] = [
+  const cEn = parseJsonSafe(cmsData?.content);
+  const cBn = parseJsonSafe(cmsData?.contentBn);
+
+  const sectionLabel = (isBn ? (cBn.badge || cEn.badge) : cEn.badge) || t("research.section_label");
+  const sectionTitle = (isBn ? (cBn.title || cmsData?.titleBn || cEn.title) : (cEn.title || cmsData?.title)) || t("research.section_title");
+  const sectionDesc = (isBn ? (cBn.description || cmsData?.descriptionBn || cEn.description) : (cEn.description || cmsData?.description)) || t("research.section_description");
+
+  const defaultPublications: PubItem[] = [
     {
       typeKey: "type_policy_brief",
       titleEn: "Media Literacy for a Resilient Democracy",
@@ -142,12 +170,29 @@ export default function FeaturedResearch() {
     },
   ];
 
-  const featuredTitle = locale === "bn" ? "ডিজিটাল যুগের বর্ণনা" : "Narratives in the Digital Age";
-  const featuredDesc = locale === "bn"
+  const publications: PubItem[] = Array.isArray(cEn.publications) && cEn.publications.length > 0
+    ? cEn.publications.map((p: any, idx: number) => {
+        const pBn = Array.isArray(cBn.publications) && cBn.publications[idx] ? cBn.publications[idx] : {};
+        return {
+          typeKey: p.typeKey || "type_report",
+          titleEn: p.titleEn || p.title || "",
+          titleBn: pBn.titleBn || pBn.title || p.titleBn || p.title || "",
+          descEn: p.descEn || p.description || "",
+          descBn: pBn.descBn || pBn.description || p.descBn || p.description || "",
+          date: p.date || "2025",
+          readMinutes: p.readMinutes || 10,
+          color: p.color || "text-teal-600",
+          accent: p.accent || "#0891b2",
+        };
+      })
+    : defaultPublications;
+
+  const featuredTitle = (isBn ? (cBn.featured_title || cEn.featured_title) : cEn.featured_title) || (locale === "bn" ? "ডিজিটাল যুগের বর্ণনা" : "Narratives in the Digital Age");
+  const featuredDesc = (isBn ? (cBn.featured_desc || cEn.featured_desc) : cEn.featured_desc) || (locale === "bn"
     ? "বাংলাদেশের তথ্য বাস্তবতায় প্রবণতা, ঝুঁকি এবং সুযোগ ম্যাপিং।"
-    : "Mapping trends, risks and opportunities in Bangladesh's information ecosystem.";
-  const featuredTag1 = locale === "bn" ? "গবেষণা রিপোর্ট" : "Research Report";
-  const featuredTag2 = locale === "bn" ? "মিডিয়া ও সমাজ" : "Media & Society";
+    : "Mapping trends, risks and opportunities in Bangladesh's information ecosystem.");
+  const featuredTag1 = (isBn ? (cBn.featured_tag1 || cEn.featured_tag1) : cEn.featured_tag1) || (locale === "bn" ? "গবেষণা রিপোর্ট" : "Research Report");
+  const featuredTag2 = (isBn ? (cBn.featured_tag2 || cEn.featured_tag2) : cEn.featured_tag2) || (locale === "bn" ? "মিডিয়া ও সমাজ" : "Media & Society");
 
   useEffect(() => {
     const ctx = gsap.context(() => {

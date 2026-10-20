@@ -85,11 +85,47 @@ function KineticText({
 // ============================================================
 // Hero Component
 // ============================================================
-function HeroContent() {
+export interface CmsSectionData {
+  id?: string;
+  type?: string;
+  title?: string;
+  titleBn?: string;
+  description?: string;
+  descriptionBn?: string;
+  sortOrder?: number;
+  visible?: boolean;
+  settings?: string | Record<string, unknown>;
+  content?: string | Record<string, unknown>;
+  contentBn?: string | Record<string, unknown>;
+}
+
+function parseJsonSafe(val: unknown): Record<string, any> {
+  if (!val) return {};
+  if (typeof val === "object") return val as Record<string, any>;
+  try { return JSON.parse(val as string); } catch { return {}; }
+}
+
+function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
   const sectionRef = useRef<HTMLElement>(null);
   const wordsRef = useRef<(HTMLSpanElement | null)[]>([]);
   const { t, i18n } = useTranslation();
   const isBn = i18n.language === "bn";
+
+  const cEn = parseJsonSafe(cmsData?.content);
+  const cBn = parseJsonSafe(cmsData?.contentBn);
+
+  const badgeText = (isBn ? (cBn.badge || cEn.badge) : cEn.badge) || t("hero.badge");
+  const brandText = (isBn ? (cBn.brand || cEn.brand) : cEn.brand) || "LENS — Lighthouse for Evolving Narrative Systems";
+  const descText = (isBn ? (cBn.description || cEn.description) : cEn.description) || t("hero.description");
+  const ctaResearchText = (isBn ? (cBn.cta_research || cEn.cta_research) : cEn.cta_research) || t("hero.cta_research");
+  const ctaNetworkText = (isBn ? (cBn.cta_network || cEn.cta_network) : cEn.cta_network) || t("hero.cta_network");
+  const taglineBetterText = (isBn ? (cBn.tagline_better || cEn.tagline_better) : cEn.tagline_better) || t("hero.tagline_better");
+  const taglineStrongerText = (isBn ? (cBn.tagline_stronger || cEn.tagline_stronger) : cEn.tagline_stronger) || t("hero.tagline_stronger");
+
+  const cmsHeadline = isBn ? (cBn.headline || cEn.headline) : (cEn.headline || cBn.headline);
+  const headlineWords: string[] = cmsHeadline
+    ? cmsHeadline.trim().split(/\s+/)
+    : ((t("hero.headline_words", { returnObjects: true }) as string[]) || []);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -198,8 +234,6 @@ function HeroContent() {
     return () => ctx.revert();
   }, [isBn]);
 
-  const headlineWords = t("hero.headline_words", { returnObjects: true }) as string[];
-
   return (
     <section
       ref={sectionRef}
@@ -232,12 +266,12 @@ function HeroContent() {
             <div className="hero-badge inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 mb-4 sm:mb-6 lg:mb-8 opacity-0 w-fit">
               <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
               <span className="text-teal-300 text-xs font-medium tracking-wide uppercase">
-                {t("hero.badge")}
+                {badgeText}
               </span>
             </div>
 
             <p className="hero-brand text-[11px] sm:text-xs font-semibold tracking-[0.22em] uppercase text-teal-200/70 mb-3 sm:mb-4 lg:mb-6 opacity-0">
-              LENS — Lighthouse for Evolving Narrative Systems
+              {brandText}
             </p>
 
             <h1
@@ -270,7 +304,7 @@ function HeroContent() {
             <p className={`hero-desc text-slate-300/80 max-w-xl mb-6 sm:mb-8 lg:mb-10 leading-relaxed opacity-0 ${
               isBn ? "text-sm sm:text-base" : "text-sm sm:text-base md:text-lg"
             }`}>
-              {t("hero.description")}
+              {descText}
             </p>
 
             <div className="flex flex-wrap gap-3 sm:gap-4">
@@ -279,7 +313,7 @@ function HeroContent() {
                 className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 bg-teal-500 hover:bg-teal-400 text-white text-sm sm:text-base font-semibold rounded-full transition-all shadow-lg shadow-teal-500/25 hover:shadow-teal-400/40 opacity-0"
                 data-cursor="Explore"
               >
-                {t("hero.cta_research")}
+                {ctaResearchText}
                 <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
@@ -288,7 +322,7 @@ function HeroContent() {
                 href="/programs"
                 className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 border border-white/20 text-white text-sm sm:text-base font-semibold rounded-full hover:border-teal-400 hover:text-teal-300 transition-all opacity-0"
               >
-                {t("hero.cta_network")}
+                {ctaNetworkText}
               </MagneticButton>
             </div>
           </div>
@@ -308,12 +342,12 @@ function HeroContent() {
                     <p className={`hero-tagline-text font-bold text-white/90 leading-snug opacity-0 ${
                       isBn ? "text-xl" : "text-2xl"
                     }`}>
-                      {t("hero.tagline_better")}
+                      {taglineBetterText}
                     </p>
                     <p className={`hero-tagline-text font-bold text-teal-400 leading-snug mt-1 opacity-0 ${
                       isBn ? "text-xl" : "text-2xl"
                     }`}>
-                      {t("hero.tagline_stronger")}
+                      {taglineStrongerText}
                     </p>
                   </div>
                 </div>
@@ -336,6 +370,6 @@ function HeroContent() {
   );
 }
 
-export default function Hero() {
-  return <HeroContent />;
+export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
+  return <HeroContent cmsData={cmsData} />;
 }

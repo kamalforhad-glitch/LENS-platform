@@ -67,7 +67,39 @@ function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
   );
 }
 
-function StatItem({ stat, index, t }: { stat: typeof statConfig[0]; index: number; t: (key: string) => string }) {
+export interface CmsSectionData {
+  id?: string;
+  type?: string;
+  title?: string;
+  titleBn?: string;
+  description?: string;
+  descriptionBn?: string;
+  sortOrder?: number;
+  visible?: boolean;
+  settings?: string | Record<string, unknown>;
+  content?: string | Record<string, unknown>;
+  contentBn?: string | Record<string, unknown>;
+}
+
+function parseJsonSafe(val: unknown): Record<string, any> {
+  if (!val) return {};
+  if (typeof val === "object") return val as Record<string, any>;
+  try { return JSON.parse(val as string); } catch { return {}; }
+}
+
+function StatItem({
+  stat,
+  index,
+  t,
+  overrideLabel,
+  overrideValue,
+}: {
+  stat: typeof statConfig[0];
+  index: number;
+  t: (key: string) => string;
+  overrideLabel?: string;
+  overrideValue?: number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const iconRef = useRef<HTMLDivElement>(null);
 
@@ -115,17 +147,25 @@ function StatItem({ stat, index, t }: { stat: typeof statConfig[0]; index: numbe
         </svg>
       </div>
 
-      <AnimatedCounter value={stat.value} suffix={stat.suffix} />
+      <AnimatedCounter value={overrideValue !== undefined ? overrideValue : stat.value} suffix={stat.suffix} />
       <div className="text-sm text-slate-300/60 whitespace-pre-line leading-snug">
-        {t(`impact.${stat.key}`)}
+        {overrideLabel || t(`impact.${stat.key}`)}
       </div>
     </div>
   );
 }
 
-export default function ImpactStats() {
+export default function ImpactStats({ cmsData }: { cmsData?: CmsSectionData }) {
   const sectionRef = useRef<HTMLElement>(null);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isBn = i18n.language === "bn";
+
+  const cEn = parseJsonSafe(cmsData?.content);
+  const cBn = parseJsonSafe(cmsData?.contentBn);
+
+  const sectionLabel = (isBn ? (cBn.badge || cEn.badge) : cEn.badge) || t("impact.section_label");
+  const sectionTitle = (isBn ? (cBn.title || cmsData?.titleBn || cEn.title) : (cEn.title || cmsData?.title)) || t("impact.section_title");
+  const sectionDesc = (isBn ? (cBn.description || cmsData?.descriptionBn || cEn.description) : (cEn.description || cmsData?.description)) || t("impact.section_description");
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -279,20 +319,31 @@ export default function ImpactStats() {
         <div className="grid lg:grid-cols-[1fr_2fr] gap-12 items-center">
           <div>
             <span className="stats-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-3 block opacity-0">
-              {t("impact.section_label")}
+              {sectionLabel}
             </span>
             <h2 className="stats-title text-3xl lg:text-4xl font-bold text-white leading-tight mb-4 opacity-0">
-              {t("impact.section_title")}
+              {sectionTitle}
             </h2>
             <p className="stats-desc text-slate-300/70 leading-relaxed opacity-0">
-              {t("impact.section_description")}
+              {sectionDesc}
             </p>
           </div>
 
           <div className="stats-grid grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {statConfig.map((stat, i) => (
-              <StatItem key={stat.key} stat={stat} index={i} t={t} />
-            ))}
+            {statConfig.map((stat, i) => {
+              const ovVal = cEn[stat.key + "_value"] !== undefined ? Number(cEn[stat.key + "_value"]) : undefined;
+              const ovLbl = isBn ? (cBn[stat.key] || cBn[stat.key + "_label"]) : (cEn[stat.key] || cEn[stat.key + "_label"]);
+              return (
+                <StatItem
+                  key={stat.key}
+                  stat={stat}
+                  index={i}
+                  t={t}
+                  overrideValue={ovVal}
+                  overrideLabel={ovLbl}
+                />
+              );
+            })}
           </div>
         </div>
       </div>

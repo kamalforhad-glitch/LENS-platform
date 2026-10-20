@@ -4,6 +4,8 @@ import { logMediaUpload } from "@/lib/actions/dashboard";
 import {
   validateFileType,
   validateFileSize,
+  verifyUploadContent,
+  sniffImageDimensions,
   generateStorageKey,
   getPublicUrl,
   getSignedUploadUrl,
@@ -45,11 +47,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: sizeValidation.error }, { status: 400 });
     }
 
-    const key = generateStorageKey(file.name);
-    const publicUrl = getPublicUrl(key);
-
     // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Content sniffing — the declared type must match magic bytes exactly
+    // (an HTML/text file renamed to .jpg is rejected here, not stored).
+    const verified = verifyUploadContent(file.type, buffer);
+    if (!verified.ok) {
+      return NextResponse.json({ error: verified.error }, { status: 400 });
+    }
+    const effectiveType = verified.effectiveType ?? file.type;
+
+    // Intrinsic image dimensions (best effort; undefined for documents)
+    const dims = await sniffImageDimensions(buffer, effectiveType);
+
+    const key = generateStorageKey(file.name);
+    const publicUrl = getPublicUrl(key);
 
     // Upload to S3 if configured, otherwise save locally
     const s3Key = process.env.S3_ACCESS_KEY_ID ? key : null;
@@ -71,18 +84,20 @@ export async function POST(request: Request) {
           Bucket: process.env.S3_BUCKET || "lens-media",
           Key: key,
           Body: buffer,
-          ContentType: file.type,
+          ContentType: effectiveType,
         })
       );
     } else {
       // Local storage fallback
       const { writeFile, mkdir } = await import("fs/promises");
-      const { join } = await import("path");
+      const { join, dirname } = await import("path");
       const localDir = join(process.cwd(), "public", "uploads");
       await mkdir(localDir, { recursive: true });
-      // Write file to a sub-path based on key
+      // Write file to a sub-path based on key. NOTE: join() emits backslashes
+      // on Windows — use dirname() instead of lastIndexOf("/") to derive the
+      // parent directory (otherwise the directory comes out as "").
       const localPath = join(process.cwd(), "public", key);
-      const localDirPath = localPath.substring(0, localPath.lastIndexOf("/"));
+      const localDirPath = dirname(localPath);
       await mkdir(localDirPath, { recursive: true });
       await writeFile(localPath, buffer);
     }
@@ -91,10 +106,11 @@ export async function POST(request: Request) {
     const result = await logMediaUpload(
       key,
       file.name,
-      file.type,
+      effectiveType,
       file.size,
       publicUrl,
-      alt
+      alt,
+      { width: dims.width, height: dims.height }
     );
 
     return NextResponse.json({
@@ -104,14 +120,15 @@ export async function POST(request: Request) {
         url: publicUrl,
         filename: key,
         originalName: file.name,
-        mimeType: file.type,
+        mimeType: effectiveType,
         size: file.size,
       },
     });
   } catch (error) {
     console.error("[Upload API Error]", error);
+    const errorMessage = error instanceof Error ? error.message : "Upload failed";
     return NextResponse.json(
-      { error: "Upload failed" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

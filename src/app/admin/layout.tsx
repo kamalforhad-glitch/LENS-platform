@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { logout } from "@/lib/actions/auth";
+import { logout, checkAuth } from "@/lib/actions/auth";
 
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
+  { label: "Site Settings", href: "/admin/settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
+  { label: "Admin Accounts", href: "/admin/users", icon: "M12 4.354a4 4 0 110 8 4 4 0 010-8zM6 21v-1a4 4 0 014-4h4a4 4 0 014 4v1M15.5 4.5a3.5 3.5 0 110 7", superOnly: true },
   { label: "Pages", href: "/admin/pages", icon: "M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" },
   { label: "Research", href: "/admin/research", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
   { label: "Review Queue", href: "/admin/review", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
@@ -35,23 +37,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    if (pathname === "/admin/login") return;
+    if (pathname === "/admin/login" || pathname.startsWith("/admin/invite")) return;
 
-    fetch("/api/auth/check")
-      .then((r) => r.json())
+    checkAuth()
       .then((data) => {
         if (!data.authenticated) {
           router.push("/admin/login");
         } else {
           setUserName(data.user?.name || "Admin");
+          setUserRole(data.user?.role || null);
         }
       })
       .catch(() => router.push("/admin/login"));
   }, [pathname, router]);
 
-  if (pathname === "/admin/login") {
+  if (pathname === "/admin/login" || pathname.startsWith("/admin/invite")) {
     return <>{children}</>;
   }
 
@@ -77,8 +80,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         </div>
 
-        <nav className="px-3 py-4 space-y-1">
-          {navItems.map((item) => {
+        <nav className="px-3 py-4 space-y-1 overflow-y-auto">
+          {navItems.filter((item) => !(("superOnly" in item) && item.superOnly && userRole !== "super_admin")).map((item) => {
             const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
             return (
               <Link
@@ -107,7 +110,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{userName}</p>
-              <p className="text-[10px] text-slate-400">Administrator</p>
+              <p className="text-[10px] text-slate-400">{userRole ? userRole.replace("_", " ") : "Administrator"}</p>
             </div>
           </div>
           <button

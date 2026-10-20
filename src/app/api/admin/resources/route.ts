@@ -8,11 +8,16 @@ function authErrorResponse(error: unknown) {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     requireAuth(await getCurrentUser());
   } catch (error) {
     return authErrorResponse(error);
+  }
+  const id = req.nextUrl.searchParams.get("id");
+  if (id) {
+    const resource = await db.resource.findUnique({ where: { id } });
+    return NextResponse.json({ resource });
   }
   const resources = await db.resource.findMany({ orderBy: { dateCreated: "desc" } });
   return NextResponse.json({ resources });

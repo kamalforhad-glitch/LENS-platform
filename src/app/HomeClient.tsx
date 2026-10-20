@@ -28,7 +28,24 @@ function SectionSeparator() {
   );
 }
 
-export default function HomeClient({ header, footer }: { header: ReactNode; footer: ReactNode }) {
+export default function HomeClient({
+  header,
+  footer,
+  pageData,
+}: {
+  header: ReactNode;
+  footer: ReactNode;
+  pageData?: any;
+}) {
+  const sections = pageData?.sections || [];
+  const heroSection = sections.find((s: any) => s.type === "hero");
+  const focusSection = sections.find((s: any) => s.type === "focus");
+  const researchSection = sections.find((s: any) => s.type === "featured_research");
+  const impactSection = sections.find((s: any) => s.type === "impact");
+  const eventsSection = sections.find((s: any) => s.type === "events_newsletter");
+
+  const isVisible = (sec?: any) => (sec ? sec.visible !== false : true);
+
   return (
     <ErrorBoundary>
       <SmoothScrollProvider>
@@ -38,24 +55,40 @@ export default function HomeClient({ header, footer }: { header: ReactNode; foot
 
         {header}
         <main className="flex-1" id="main-content">
-          <Hero />
-          <SectionSeparator />
-          <section id="focus">
-            <FocusAreas />
-          </section>
+          {isVisible(heroSection) && <Hero cmsData={heroSection} />}
+          {isVisible(focusSection) && (
+            <>
+              <SectionSeparator />
+              <section id="focus">
+                <FocusAreas cmsData={focusSection} />
+              </section>
+            </>
+          )}
           {/* Press Freedom Index live-radar section (replaces the old separator gap). */}
           <IndexingScanner />
-          <section id="research">
-            <FeaturedResearch />
-          </section>
-          <SectionSeparator />
-          <section id="impact">
-            <ImpactStats />
-          </section>
-          <SectionSeparator />
-          <section id="events">
-            <EventsNewsletter />
-          </section>
+          {isVisible(researchSection) && (
+            <>
+              <section id="research">
+                <FeaturedResearch cmsData={researchSection} />
+              </section>
+            </>
+          )}
+          {isVisible(impactSection) && (
+            <>
+              <SectionSeparator />
+              <section id="impact">
+                <ImpactStats cmsData={impactSection} />
+              </section>
+            </>
+          )}
+          {isVisible(eventsSection) && (
+            <>
+              <SectionSeparator />
+              <section id="events">
+                <EventsNewsletter cmsData={eventsSection} />
+              </section>
+            </>
+          )}
         </main>
         {footer}
         <BackToTop />

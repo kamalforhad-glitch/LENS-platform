@@ -1,19 +1,8 @@
-const CANONICAL_HOST = "www.lensbd.org";
+import { resolveBaseUrl } from "@/lib/site-url";
 
-function resolveBaseUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL;
-  if (raw) {
-    try {
-      const host = new URL(raw).hostname;
-      if (host === "lensbd.org" || host === CANONICAL_HOST) {
-        return `https://${CANONICAL_HOST}`;
-      }
-    } catch {
-      // Unusable value — fall through to canonical.
-    }
-  }
-  return `https://${CANONICAL_HOST}`;
-}
+// Rendered per request so CMS actions (publish, create, delete) are reflected
+// immediately instead of being frozen into the build-time prerender.
+export const dynamic = "force-dynamic";
 
 const BASE_URL = resolveBaseUrl();
 
@@ -96,6 +85,50 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
       priority: 0.7,
     });
   });
+
+  // Blog posts (published only) — keeps search index aligned with the CMS.
+  try {
+    const { db } = await import("@/lib/db");
+    const posts = await db.blogPost.findMany({
+      where: { status: "published" },
+      select: { slug: true, dateModified: true },
+      take: 1000,
+    });
+    for (const post of posts) {
+      pages.push({
+        url: `${BASE_URL}/blog/${post.slug}`,
+        lastModified: post.dateModified,
+        changeFrequency: "monthly",
+        priority: 0.7,
+      });
+    }
+  } catch {
+    // Build/static fallback — blog posts are omitted rather than failing the build.
+  }
+
+  // CMS-managed pages (published only). The homepage has its own entry and
+  // reserved slugs belong to static routes — both are excluded defensively.
+  try {
+    const { db } = await import("@/lib/db");
+    const { RESERVED_SLUGS } = await import("@/lib/cms-validation");
+    const cmsPages = await db.page.findMany({
+      where: { status: "published" },
+      select: { slug: true, dateModified: true },
+      take: 1000,
+    });
+    for (const cms of cmsPages) {
+      const slug = cms.slug.toLowerCase();
+      if (slug === "home" || RESERVED_SLUGS.has(slug)) continue;
+      pages.push({
+        url: `${BASE_URL}/${cms.slug}`,
+        lastModified: cms.dateModified,
+        changeFrequency: "monthly",
+        priority: 0.8,
+      });
+    }
+  } catch {
+    // Build/static fallback — CMS pages are omitted rather than failing the build.
+  }
 
   return pages;
 }

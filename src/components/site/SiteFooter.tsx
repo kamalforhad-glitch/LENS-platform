@@ -4,8 +4,12 @@
 // in localStorage); there is no animation or interaction logic.
 import SiteFooterClient from "./SiteFooterClient";
 import { getFooterColumns } from "@/lib/site-menus";
+import { getPublicSiteSettings } from "@/lib/actions/cms";
 
 export default async function SiteFooter() {
-  const columns = await getFooterColumns();
-  return <SiteFooterClient columns={columns} />;
+  const [columns, settings] = await Promise.all([
+    getFooterColumns(),
+    getPublicSiteSettings(),
+  ]);
+  return <SiteFooterClient columns={columns} settings={settings} />;
 }

@@ -94,12 +94,41 @@ function EventCard({ event, t }: { event: typeof eventsData[0]; t: (key: string)
   );
 }
 
-export default function EventsNewsletter() {
+export interface CmsSectionData {
+  id?: string;
+  type?: string;
+  title?: string;
+  titleBn?: string;
+  description?: string;
+  descriptionBn?: string;
+  sortOrder?: number;
+  visible?: boolean;
+  settings?: string | Record<string, unknown>;
+  content?: string | Record<string, unknown>;
+  contentBn?: string | Record<string, unknown>;
+}
+
+function parseJsonSafe(val: unknown): Record<string, any> {
+  if (!val) return {};
+  if (typeof val === "object") return val as Record<string, any>;
+  try { return JSON.parse(val as string); } catch { return {}; }
+}
+
+export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData }) {
   const sectionRef = useRef<HTMLElement>(null);
   const [emailFocused, setEmailFocused] = useState(false);
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("");
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isBn = i18n.language === "bn";
+
+  const cEn = parseJsonSafe(cmsData?.content);
+  const cBn = parseJsonSafe(cmsData?.contentBn);
+
+  const sectionLabel = (isBn ? (cBn.badge || cEn.badge) : cEn.badge) || t("events.section_label");
+  const sectionTitle = (isBn ? (cBn.title || cmsData?.titleBn || cEn.title) : (cEn.title || cmsData?.title)) || t("events.section_title");
+  const newsletterTitle = (isBn ? (cBn.newsletter_title || cEn.newsletter_title) : cEn.newsletter_title) || t("newsletter.title");
+  const newsletterSubtitle = (isBn ? (cBn.newsletter_subtitle || cEn.newsletter_subtitle) : cEn.newsletter_subtitle) || t("newsletter.subtitle");
 
   async function handleSubscribe(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -251,10 +280,10 @@ export default function EventsNewsletter() {
           {/* Left: Events with timeline */}
           <div>
             <span className="events-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-600 mb-3 block opacity-0">
-              {t("events.section_label")}
+              {sectionLabel}
             </span>
             <h2 className="events-title text-3xl font-bold text-slate-900 mb-2 opacity-0">
-              {t("events.section_title")}
+              {sectionTitle}
             </h2>
             <a
               href="/events"
@@ -302,10 +331,10 @@ export default function EventsNewsletter() {
                   <Mail className="w-6 h-6 text-teal-400" />
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-2">
-                  {t("newsletter.title")}
+                  {newsletterTitle}
                 </h3>
                 <p className="text-slate-300/70 text-sm mb-6">
-                  {t("newsletter.subtitle")}
+                  {newsletterSubtitle}
                 </p>
 
                 <div className="flex gap-6 mb-6">

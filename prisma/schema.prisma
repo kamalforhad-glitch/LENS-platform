@@ -18,6 +18,10 @@ model User {
   name         String
   passwordHash String    @map("password_hash")
   role         String    @default("editor")
+  // Account-lifecycle fields (Admin Management module).
+  active       Boolean   @default(true)
+  createdBy    String?   @map("created_by")
+  lastLoginAt  DateTime? @map("last_login_at")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
@@ -29,6 +33,8 @@ model User {
   mediaFiles       MediaFile[]
   reviewAssignments ReviewAssignment[]
   researchVersions  ResearchVersion[]
+  resetTokens      PasswordResetToken[]
+  auditEntries     AuditLog[]
 
   @@index([role])
   @@map("users")
@@ -193,6 +199,11 @@ model MediaFile {
   size         Int
   url          String
   alt          String   @default("")
+  // Optional editorial metadata + intrinsic image dimensions.
+  title        String   @default("")
+  description  String   @default("")
+  width        Int?
+  height       Int?
   uploadedBy   String?  @map("uploaded_by")
   dateCreated  DateTime @default(now()) @map("date_created")
 
@@ -592,6 +603,7 @@ model Page {
   publishedAt   DateTime? @map("published_at")
   sortOrder     Int      @default(0) @map("sort_order")
   template      String   @default("default")
+  parentId      String?  @map("parent_id")
   metaTitle     String?  @map("meta_title")
   metaTitleBn   String?  @map("meta_title_bn")
   metaDescription String? @map("meta_description")
@@ -604,10 +616,29 @@ model Page {
   createdBy     String?  @map("created_by")
 
   sections PageSection[]
+  revisions PageRevision[]
+  parent   Page?  @relation("PageTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Page[] @relation("PageTree")
 
   @@index([status])
   @@index([slug])
+  @@index([parentId])
   @@map("pages")
+}
+
+model PageRevision {
+  id             String   @id @default(uuid())
+  pageId         String   @map("page_id")
+  label          String   @default("")
+  pageSnapshot   String   @default("{}") @map("page_snapshot")   // JSON of page fields
+  sectionsSnapshot String @default("[]") @map("sections_snapshot") // JSON array of sections
+  createdBy      String?  @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, createdAt])
+  @@map("page_revisions")
 }
 
 model PageSection {
@@ -814,4 +845,52 @@ model Career {
   @@index([slug])
   @@index([department])
   @@map("careers")
+}
+
+// ============================================================
+// Administrative Audit Log (Super Admin visibility)
+// ============================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?  @map("actor_id")
+  actorEmail String?  @map("actor_email")
+  actorRole  String?  @map("actor_role")
+  action     String   // login_success | login_failed | page_publish | account_role_change | ...
+  targetType String?  @map("target_type") // page | section | media | user | setting | menu | content | backup | revision
+  targetId   String?  @map("target_id")
+  meta       String   @default("{}") // JSON details (never contains secrets)
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@map("audit_logs")
+}
+
+// ============================================================
+// Admin Account Invitations & Password Reset Tokens
+// Tokens are stored SHA-256 hashed and single-use.
+// ============================================================
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  type      String    @default("reset") // reset | invite
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdBy String?   @map("created_by")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }

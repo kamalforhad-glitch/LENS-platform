@@ -29,7 +29,35 @@ const focusAreaKeys = [
   { key: "cybersecurity", icon: Lock, glowColor: "rgba(245, 158, 11, 0.12)", accentColor: "#f59e0b" },
 ];
 
-function FocusCard({ area, t }: { area: typeof focusAreaKeys[0]; t: (key: string) => string }) {
+export interface CmsSectionData {
+  id?: string;
+  type?: string;
+  title?: string;
+  titleBn?: string;
+  description?: string;
+  descriptionBn?: string;
+  sortOrder?: number;
+  visible?: boolean;
+  settings?: string | Record<string, unknown>;
+  content?: string | Record<string, unknown>;
+  contentBn?: string | Record<string, unknown>;
+}
+
+function parseJsonSafe(val: unknown): Record<string, any> {
+  if (!val) return {};
+  if (typeof val === "object") return val as Record<string, any>;
+  try { return JSON.parse(val as string); } catch { return {}; }
+}
+
+function FocusCard({
+  area,
+  t,
+  cardOverride,
+}: {
+  area: typeof focusAreaKeys[0];
+  t: (key: string) => string;
+  cardOverride?: { title?: string; desc?: string; detail?: string };
+}) {
   const cardRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLDivElement>(null);
@@ -171,10 +199,10 @@ function FocusCard({ area, t }: { area: typeof focusAreaKeys[0]; t: (key: string
 
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-slate-950 transition-colors">
-            {t(`focus.${area.key}.title`)}
+            {cardOverride?.title || t(`focus.${area.key}.title`)}
           </h3>
           <p className="text-sm text-slate-500 leading-relaxed mb-2">
-            {t(`focus.${area.key}.description`)}
+            {cardOverride?.desc || t(`focus.${area.key}.description`)}
           </p>
 
           <div
@@ -183,7 +211,7 @@ function FocusCard({ area, t }: { area: typeof focusAreaKeys[0]; t: (key: string
             style={{ height: 0, opacity: 0, marginTop: 0 }}
           >
             <p className="text-xs text-slate-400 leading-relaxed">
-              {t(`focus.${area.key}.detail`)}
+              {cardOverride?.detail || t(`focus.${area.key}.detail`)}
             </p>
           </div>
 
@@ -197,9 +225,24 @@ function FocusCard({ area, t }: { area: typeof focusAreaKeys[0]; t: (key: string
   );
 }
 
-export default function FocusAreas() {
+export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
   const sectionRef = useRef<HTMLElement>(null);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isBn = i18n.language === "bn";
+
+  const cEn = parseJsonSafe(cmsData?.content);
+  const cBn = parseJsonSafe(cmsData?.contentBn);
+
+  const sectionLabel = (isBn ? (cBn.label || cEn.label) : cEn.label) || t("focus.section_label");
+  const sectionTitle = (isBn ? (cBn.title || cmsData?.titleBn || cEn.title) : (cEn.title || cmsData?.title)) || t("focus.section_title");
+  const sectionDesc = (isBn ? (cBn.description || cmsData?.descriptionBn || cEn.description) : (cEn.description || cmsData?.description)) || t("focus.section_description");
+
+  const cardsMapEn: Record<string, any> = Array.isArray(cEn.cards)
+    ? Object.fromEntries(cEn.cards.map((c: any) => [c.key || c.id, c]))
+    : (cEn.cards || {});
+  const cardsMapBn: Record<string, any> = Array.isArray(cBn.cards)
+    ? Object.fromEntries(cBn.cards.map((c: any) => [c.key || c.id, c]))
+    : (cBn.cards || {});
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -299,13 +342,13 @@ export default function FocusAreas() {
         <div className="grid lg:grid-cols-[340px_1fr] gap-12 lg:gap-16">
           <div>
             <span className="focus-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-600 mb-3 block opacity-0">
-              {t("focus.section_label")}
+              {sectionLabel}
             </span>
             <h2 className="focus-title text-3xl lg:text-4xl font-bold text-slate-900 leading-tight mb-5 opacity-0">
-              {t("focus.section_title")}
+              {sectionTitle}
             </h2>
             <p className="focus-desc text-slate-500 leading-relaxed mb-6 opacity-0">
-              {t("focus.section_description")}
+              {sectionDesc}
             </p>
             <a
               href="/about"
@@ -319,11 +362,19 @@ export default function FocusAreas() {
           <div className="focus-grid grid sm:grid-cols-2 gap-5 relative">
             <div className="focus-grid-line absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-teal-400/10 to-transparent -translate-y-1/2 origin-left pointer-events-none hidden lg:block" />
 
-            {focusAreaKeys.map((area) => (
-              <div key={area.key} className="focus-card-wrap" style={{ perspective: "800px" }}>
-                <FocusCard area={area} t={t} />
-              </div>
-            ))}
+            {focusAreaKeys.map((area) => {
+              const cardData = isBn ? (cardsMapBn[area.key] || cardsMapEn[area.key]) : cardsMapEn[area.key];
+              const cardOverride = cardData ? {
+                title: cardData.title,
+                desc: cardData.desc || cardData.description,
+                detail: cardData.detail,
+              } : undefined;
+              return (
+                <div key={area.key} className="focus-card-wrap" style={{ perspective: "800px" }}>
+                  <FocusCard area={area} t={t} cardOverride={cardOverride} />
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -104,7 +104,9 @@ export function proxy(request: NextRequest) {
   // Admin Auth Protection
   // ============================================================
   if (pathname.startsWith("/admin")) {
-    const ADMIN_PUBLIC = ["/admin/login"];
+    // Invite acceptance is token-gated by design and must be reachable
+    // without an existing session.
+    const ADMIN_PUBLIC = ["/admin/login", "/admin/invite/accept"];
     if (!ADMIN_PUBLIC.some((route) => pathname.startsWith(route))) {
       const token = request.cookies.get("lens-session")?.value;
       if (!token) {
@@ -165,6 +167,7 @@ export function proxy(request: NextRequest) {
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' https://fonts.gstatic.com",
     "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://www.facebook.com https://graph.facebook.com https://*.ingest.sentry.io",
+    "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.google.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

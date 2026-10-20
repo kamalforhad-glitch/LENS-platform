@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireEditor } from "@/lib/auth";
+import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 import type { DashboardStats, PaginatedResult, AdminMediaFile } from "@/lib/admin-types";
 
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -19,6 +20,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     downloads,
     pendingReviews,
     totalAuthors,
+    cmsPages,
+    publishedCmsPages,
+    mediaFiles,
   ] = await Promise.all([
     db.researchArticle.count(),
     db.researchArticle.count({ where: { status: "published" } }),
@@ -27,10 +31,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     db.event.count(),
     db.event.count({ where: { startDate: { gte: new Date() }, status: "published" } }),
     db.teamMember.count(),
-    db.mediaFile.count(),
+    db.mediaItem.count(),
     db.downloadLog.count(),
     db.reviewAssignment.count({ where: { status: { in: ["pending", "in_progress"] } } }),
     db.authorProfile.count(),
+    db.page.count(),
+    db.page.count({ where: { status: "published" } }),
+    db.mediaFile.count(),
   ]);
 
   return {
@@ -45,7 +52,43 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalDownloads: downloads,
     pendingReviews,
     totalAuthors,
+    totalCmsPages: cmsPages,
+    publishedCmsPages,
+    totalMediaFiles: mediaFiles,
   };
+}
+
+/** Latest audit entries for the dashboard activity panel. */
+export async function getAuditFeed(limit: number = 12) {
+  requireAuth(await getCurrentUser(), "viewer");
+
+  const entries = await db.auditLog.findMany({
+    orderBy: { createdAt: "desc" },
+    take: Math.min(50, Math.max(1, limit)),
+    select: {
+      id: true,
+      action: true,
+      actorEmail: true,
+      actorRole: true,
+      targetType: true,
+      targetId: true,
+      meta: true,
+      createdAt: true,
+    },
+  });
+  return entries.map((e) => ({
+    ...e,
+    meta: typeof e.meta === "string" ? (safeParseMeta(e.meta)) : null,
+  }));
+
+  function safeParseMeta(raw: string): Record<string, unknown> | null {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+    } catch {
+      return null;
+    }
+  }
 }
 
 export async function getMediaFiles(
@@ -84,7 +127,8 @@ export async function logMediaUpload(
   mimeType: string,
   size: number,
   url: string,
-  alt?: string
+  alt?: string,
+  extra?: { width?: number; height?: number }
 ) {
   const editor = requireEditor(await getCurrentUser());
 
@@ -96,17 +140,32 @@ export async function logMediaUpload(
       size,
       url,
       alt: alt || "",
+      width: extra?.width,
+      height: extra?.height,
       uploadedBy: editor.id,
+    },
+  });
+
+  await logAudit({
+    action: AUDIT_ACTIONS.MEDIA_UPLOADED,
+    actor: editor,
+    targetType: "media_file",
+    targetId: file.id,
+    meta: {
+      filename: originalName,
+      mimeType,
+      size,
+      storage: process.env.S3_ACCESS_KEY_ID ? "s3" : "local",
     },
   });
 
   return { id: file.id, url: file.url };
 }
 
+/** Safe delete — delegates to the reference-checked library action. */
 export async function deleteMediaFile(id: string) {
-  requireAuth(await getCurrentUser(), "editor");
-  await db.mediaFile.delete({ where: { id } });
-  return { success: true };
+  const { deleteMediaFile: safeDelete } = await import("./media");
+  return safeDelete(id);
 }
 
 export async function getRecentActivity() {

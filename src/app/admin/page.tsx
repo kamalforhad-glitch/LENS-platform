@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getDashboardStats, getRecentActivity } from "@/lib/actions/dashboard";
+import { getDashboardStats, getRecentActivity, getAuditFeed } from "@/lib/actions/dashboard";
 import SkeletonCards from "@/components/admin/SkeletonCards";
 
 interface Stats {
@@ -15,6 +15,20 @@ interface Stats {
   totalTeam: number;
   totalMedia: number;
   totalDownloads: number;
+  totalCmsPages?: number;
+  publishedCmsPages?: number;
+  totalMediaFiles?: number;
+}
+
+interface AuditEntry {
+  id: string;
+  action: string;
+  actorEmail?: string | null;
+  actorRole?: string | null;
+  targetType?: string | null;
+  targetId?: string | null;
+  meta?: Record<string, unknown> | null;
+  createdAt: Date | string;
 }
 
 interface Activity {
@@ -111,8 +125,45 @@ function ContentBreakdown({ stats }: { stats: Stats }) {
   );
 }
 
-function QuickLinks() {
-  const links = [
+function AuditFeed({ entries }: { entries: AuditEntry[] | null }) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-bold text-slate-900">Admin Audit Trail</h3>
+        <Link href="/admin/users" className="text-xs text-teal-600 hover:underline">View all</Link>
+      </div>
+      {!entries ? (
+        <div className="space-y-2 py-2 animate-pulse">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-3 bg-slate-100 rounded w-full" />
+          ))}
+        </div>
+      ) : entries.length === 0 ? (
+        <p className="text-xs text-slate-400 py-2">No admin activity recorded yet.</p>
+      ) : (
+        <ul className="space-y-1.5 max-h-72 overflow-y-auto">
+          {entries.map((e) => (
+            <li key={e.id} className="flex items-center gap-2 text-xs text-slate-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0" />
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0" title={e.action}>
+                {e.action.slice(0, 18)}
+              </span>
+              <span className="truncate flex-1">
+                {e.actorEmail || "system"}
+                {e.targetType ? ` · ${e.targetType}` : ""}
+              </span>
+              <span className="text-[10px] text-slate-400 shrink-0">
+                {new Date(e.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function QuickLinks() {  const links = [
     { label: "Research", href: "/admin/research", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
     { label: "Publications", href: "/admin/publications", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253" },
     { label: "Programs", href: "/admin/programs", icon: "M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814" },
@@ -145,10 +196,12 @@ function QuickLinks() {
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activity, setActivity] = useState<Activity | null>(null);
+  const [audit, setAudit] = useState<AuditEntry[] | null>(null);
 
   useEffect(() => {
-    getDashboardStats().then(setStats);
-    getRecentActivity().then(setActivity);
+    getDashboardStats().then(setStats).catch(() => undefined);
+    getRecentActivity().then(setActivity).catch(() => undefined);
+    getAuditFeed(10).then((rows) => setAudit(rows as unknown as AuditEntry[])).catch(() => undefined);
   }, []);
 
   return (
@@ -171,8 +224,24 @@ export default function AdminDashboardPage() {
             trend={stats.upcomingEvents > 0 ? `${stats.upcomingEvents} soon` : undefined} />
           <StatCard label="Team" value={stats.totalTeam} sub="Active members" href="/admin/team" color="emerald"
             icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>} />
-          <StatCard label="Media Files" value={stats.totalMedia} sub="Uploaded files" href="/admin/media" color="purple"
-            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>} />
+          <StatCard label="Press Items" value={stats.totalMedia} sub="Press & statements" href="/admin/media-items" color="purple"
+            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5" /></svg>} />
+          <StatCard
+            label="CMS Pages"
+            value={stats.totalCmsPages ?? 0}
+            sub={`${stats.publishedCmsPages ?? 0} published`}
+            href="/admin/pages"
+            color="teal"
+            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>}
+          />
+          <StatCard
+            label="Media Library"
+            value={stats.totalMediaFiles ?? 0}
+            sub="Uploaded files"
+            href="/admin/media"
+            color="blue"
+            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>}
+          />
           <StatCard label="Downloads" value={stats.totalDownloads} sub="All content" href="/admin/analytics" color="gold"
             icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>} />
         </div>
@@ -220,6 +289,7 @@ export default function AdminDashboardPage() {
 
           <div className="space-y-4">
             <ContentBreakdown stats={stats} />
+            <AuditFeed entries={audit} />
           </div>
         </div>
       ) : activity && !stats ? (

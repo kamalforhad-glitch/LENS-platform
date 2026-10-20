@@ -112,6 +112,10 @@ export interface AdminMediaFile {
   size: number;
   url: string;
   alt: string;
+  title?: string;
+  description?: string;
+  width?: number | null;
+  height?: number | null;
   uploadedBy: string | null;
   dateCreated: Date;
 }
@@ -128,6 +132,9 @@ export interface DashboardStats {
   totalDownloads: number;
   pendingReviews: number;
   totalAuthors: number;
+  totalCmsPages: number;
+  publishedCmsPages: number;
+  totalMediaFiles: number;
 }
 
 export interface PaginatedResult<T> {

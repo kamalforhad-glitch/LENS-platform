@@ -46,18 +46,25 @@ function isEntryActive(pathname: string, entry: NavEntry): boolean {
   return entry.children?.some((child) => isEntryActive(pathname, child as NavEntry)) ?? false;
 }
 
-function SiteLogo({ subtitle, onNavigate }: { subtitle: string; onNavigate?: () => void }) {
+function SiteLogo({ subtitle, logoUrl, onNavigate }: { subtitle: string; logoUrl?: string; onNavigate?: () => void }) {
+  const src = logoUrl || "/images/logo/lens-logo.png";
+  const isRemote = /^https?:\/\//i.test(src);
   return (
     <Link href="/" onClick={onNavigate} className="flex items-center gap-3 shrink-0 group py-1" aria-label="LENS — home">
       <div className="flex flex-col justify-center">
-        <Image
-          src="/images/logo/lens-logo.png"
-          alt=""
-          width={126}
-          height={32}
-          className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"
-          priority
-        />
+        {isRemote ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt="" className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90" />
+        ) : (
+          <Image
+            src={src}
+            alt=""
+            width={126}
+            height={32}
+            className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"
+            priority
+          />
+        )}
         <span className="hidden sm:block text-[9px] lg:text-[10px] leading-tight mt-0.5 text-slate-400 font-normal">
           {subtitle}
         </span>
@@ -75,7 +82,7 @@ function SoonBadge() {
   );
 }
 
-export default function SiteHeaderClient({ entries }: { entries: NavEntry[] }) {
+export default function SiteHeaderClient({ entries, logoUrl }: { entries: NavEntry[]; logoUrl?: string }) {
   const { t } = useTranslation();
   const resolveLabel = useNavLabel();
   const pathname = usePathname() ?? "/";
@@ -255,7 +262,7 @@ export default function SiteHeaderClient({ entries }: { entries: NavEntry[] }) {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
-          <SiteLogo subtitle={t("site.subtitle")} onNavigate={() => setOpenMenu(null)} />
+          <SiteLogo subtitle={t("site.subtitle")} logoUrl={logoUrl} onNavigate={() => setOpenMenu(null)} />
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-1" aria-label="Primary" onClick={onDesktopNavClick}>

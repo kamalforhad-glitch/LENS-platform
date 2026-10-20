@@ -95,10 +95,33 @@ function FooterLink({ link, resolveLabel }: { link: NavChild; resolveLabel: (l: 
   );
 }
 
-export default function SiteFooterClient({ columns }: { columns: FooterColumn[] }) {
+export default function SiteFooterClient({
+  columns,
+  settings,
+}: {
+  columns: FooterColumn[];
+  settings?: Record<string, { value: string; valueBn: string }>;
+}) {
   const { t, i18n } = useTranslation();
+  const isBn = i18n.language === "bn";
   const resolveLabel = (label: NavLabel) =>
-    label.kind === "key" ? t(label.key) : i18n.language === "bn" ? label.bn : label.en;
+    label.kind === "key" ? t(label.key) : isBn ? label.bn : label.en;
+
+  const getSetting = (key: string, bn = false) => {
+    const s = settings?.[key];
+    if (!s) return "";
+    return bn ? s.valueBn || s.value : s.value;
+  };
+
+  const dynamicSocials = [
+    { Icon: FacebookIcon, href: getSetting("social_facebook") || "https://www.facebook.com/lensorgbd", label: "Facebook" },
+    { Icon: XIcon, href: getSetting("social_twitter") || "https://twitter.com/lensorgbd", label: "X" },
+    { Icon: LinkedinIcon, href: getSetting("social_linkedin") || "https://www.linkedin.com/company/lensorgbd", label: "LinkedIn" },
+    { Icon: YoutubeIcon, href: getSetting("social_youtube") || "https://www.youtube.com/@lensorgbd", label: "YouTube" },
+    { Icon: RssIcon, href: "/rss.xml", label: "RSS" },
+  ];
+
+  const tagline = (isBn ? (getSetting("footer_description", true) || getSetting("site_tagline", true)) : (getSetting("footer_description") || getSetting("site_tagline"))) || t("footer.about_text");
 
   return (
     <footer className="bg-navy-950 text-slate-300 pt-16 pb-8 relative overflow-hidden">
@@ -120,9 +143,9 @@ export default function SiteFooterClient({ columns }: { columns: FooterColumn[] 
               </Link>
               <span className="block text-[10px] text-slate-400 leading-tight">{t("site.subtitle")}</span>
             </div>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-xs">{t("footer.about_text")}</p>
+            <p className="text-sm text-slate-400 leading-relaxed max-w-xs">{tagline}</p>
             <div className="flex gap-3 mt-6">
-              {SOCIAL_LINKS.map((social) =>
+              {dynamicSocials.map((social) =>
                 social.href.startsWith("/") ? (
                   <Link
                     key={social.label}
@@ -167,7 +190,7 @@ export default function SiteFooterClient({ columns }: { columns: FooterColumn[] 
 
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between pt-6 gap-4 text-xs text-slate-500">
-          <span>{t("footer.copyright", { year: new Date().getFullYear() })}</span>
+          <span>{getSetting("footer_copyright", isBn) || t("footer.copyright", { year: new Date().getFullYear() })}</span>
           <div className="flex gap-4 items-center">
             <Link href="/privacy" className="hover:text-teal-400 transition-colors duration-300">
               {t("footer.privacy_policy")}
