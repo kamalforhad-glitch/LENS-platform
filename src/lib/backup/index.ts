@@ -20,6 +20,27 @@ const BACKUP_DIR = join(process.cwd(), "backups");
 const MAX_BACKUPS = 30; // 30 days retention
 const MAX_BACKUP_SIZE_MB = 500;
 
+/** True when the child process failed to spawn because the binary is absent. */
+function isMissingBinary(error: unknown): boolean {
+  return (
+    !!error &&
+    typeof error === "object" &&
+    (error as NodeJS.ErrnoException).code === "ENOENT"
+  );
+}
+
+/** Shared, safe guidance for hosts without the PostgreSQL client tools. */
+function missingBinaryMessage(binary: string): string {
+  return (
+    `${binary} is not available on this runtime. Vercel serverless functions ` +
+    "cannot run PostgreSQL client tools: scheduled backups run from the " +
+    "GitHub Actions `Scheduled database backup` workflow (pg_dump → Cloudflare R2) " +
+    "instead. When the backend moves to Render, use a runtime with the " +
+    "postgresql-client package there."
+  );
+}
+
+
 export interface BackupResult {
   id: string;
   filename: string;
@@ -53,13 +74,22 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
     // Plain SQL format matches the .sql extension and the cleanup filter.
     // execFile (no shell) prevents DATABASE_URL shell injection.
     const filePath = join(BACKUP_DIR, basename(filename));
-    await execFileAsync("pg_dump", [
-      databaseUrl,
-      "--no-owner",
-      "--no-acl",
-      "--format=plain",
-      `--file=${filePath}`,
-    ]);
+    try {
+      await execFileAsync("pg_dump", [
+        databaseUrl,
+        "--no-owner",
+        "--no-acl",
+        "--format=plain",
+        `--file=${filePath}`,
+      ]);
+    } catch (error) {
+      if (isMissingBinary(error)) {
+        // Clear, actionable failure signal (recorded in BackupRecord + email
+        // report) instead of a bare ENOENT — no secret values are included.
+        throw new Error(missingBinaryMessage("pg_dump"));
+      }
+      throw error;
+    }
     const fileStat = await stat(filePath);
 
     // Cloudflare R2 persistence (null = R2 unconfigured → explicit local mode).
@@ -161,13 +191,20 @@ export async function restoreBackup(backupId: string): Promise<{ success: boolea
     const databaseUrl = requireDatabaseUrl();
 
     // Plain-format dumps restore with psql (no shell — args array only).
-    await execFileAsync("psql", [
-      databaseUrl,
-      "--no-owner",
-      "--quiet",
-      "--file",
-      filePath,
-    ]);
+    try {
+      await execFileAsync("psql", [
+        databaseUrl,
+        "--no-owner",
+        "--quiet",
+        "--file",
+        filePath,
+      ]);
+    } catch (error) {
+      if (isMissingBinary(error)) {
+        return { success: false, error: missingBinaryMessage("psql") };
+      }
+      throw error;
+    }
     if (tempPath) await unlink(tempPath).catch(() => {});
     return { success: true };
   } catch (error) {

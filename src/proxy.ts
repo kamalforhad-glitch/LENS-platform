@@ -180,15 +180,37 @@ export function proxy(request: NextRequest) {
   response.headers.delete("X-Powered-By");
   response.headers.delete("Server");
 
-  // Cache control for static assets
-  if (pathname.startsWith("/_next/static/") || pathname.endsWith(".ico") || pathname.endsWith(".png")) {
+  // ============================================================
+  // Cache control
+  // ============================================================
+  // Server Action IDs are build artifacts: every new deployment generates a
+  // new ID for the same action (Next.js rotates IDs even without code
+  // changes). A CDN serving HTML from an older deployment (or a long-lived
+  // edge entry reaching past a redeploy) makes browsers reference Action IDs
+  // that no longer exist on the server — the documented root cause of
+  // "Failed to find Server Action ..." right after a deploy.
+  //
+  // Therefore:
+  // - Immutable caching is reserved for content-addressed static assets
+  //   (/_next/static/*, favicons, images).
+  // - /admin responses are ALWAYS no-store: they are session-sensitive and
+  //   Server-Action-bearing (login form, CMS mutations).
+  // - Public HTML gets NO explicit CDN Cache-Control from the proxy: caching
+  //   is governed by Next.js per-route rendering semantics (prerendered
+  //   routes, ISR, and CMS-driven revalidatePath calls). A blanket
+  //   `s-maxage=3600, stale-while-revalidate=86400` here previously overrode
+  //   those semantics and kept pre-revalidation HTML live on the edge cache
+  //   across deployments.
+  if (pathname.startsWith("/admin")) {
+    response.headers.set("Cache-Control", "no-store, must-revalidate");
+  } else if (
+    pathname.startsWith("/_next/static/") ||
+    pathname.endsWith(".ico") ||
+    pathname.endsWith(".png")
+  ) {
     response.headers.set("Cache-Control", "public, max-age=31536000, immutable");
   }
-
-  // No cache for HTML pages (allow revalidation)
-  if (!pathname.startsWith("/_next/") && !pathname.includes(".")) {
-    response.headers.set("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
-  }
+  // Public HTML pages: intentionally no Cache-Control override.
 
   return response;
 }

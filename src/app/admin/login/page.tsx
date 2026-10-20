@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, unstable_isUnrecognizedActionError } from "next/navigation";
 import { login } from "@/lib/actions/auth";
 
 export default function AdminLoginPage() {
@@ -9,11 +9,13 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [needsReload, setNeedsReload] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setNeedsReload(false);
     setLoading(true);
 
     try {
@@ -23,11 +25,28 @@ export default function AdminLoginPage() {
       } else {
         setError(result.error || "Login failed");
       }
-    } catch {
-      setError("An error occurred. Please try again.");
+    } catch (requestError) {
+      // A thrown error means the request never reached a matching Server
+      // Action: in particular, when the browser holds JavaScript from an
+      // older deployment and the Server Action ID no longer exists on the
+      // server ("Failed to find Server Action"). Next.js tags precisely this
+      // failure; a reload fetches the current deployment's client bundle and
+      // restores matching Action IDs. No credentials are retried or stored.
+      if (unstable_isUnrecognizedActionError(requestError)) {
+        setError(
+          "This page was loaded before a recent update of the site. Click Reload to get the current version, then sign in again."
+        );
+        setNeedsReload(true);
+      } else {
+        setError("An error occurred. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleReload = () => {
+    if (typeof window !== "undefined") window.location.reload();
   };
 
   return (
@@ -46,8 +65,20 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8 space-y-5">
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div
+              role="alert"
+              className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
+            >
               {error}
+              {needsReload && (
+                <button
+                  type="button"
+                  onClick={handleReload}
+                  className="mt-3 w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-100 border border-red-500/30 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Reload page
+                </button>
+              )}
             </div>
           )}
 

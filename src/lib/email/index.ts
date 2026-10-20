@@ -3,7 +3,9 @@ import { db } from "@/lib/db";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = process.env.EMAIL_FROM || "LENS <noreply@lensbd.org>";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@lensbd.org";
+// Fallback identities correspond to the seeded super_admin account
+// (admin@lens.org.bd); set EMAIL_FROM / ADMIN_EMAIL explicitly in production.
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@lens.org.bd";
 
 export interface EmailOptions {
   to: string | string[];

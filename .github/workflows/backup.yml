@@ -1,32 +1,114 @@
-# Scheduled database backup trigger.
+# Scheduled PostgreSQL backup — direct dump + Cloudflare R2 upload.
 #
-# Why not Vercel Cron: vercel.json crons support path+schedule only and cannot
-# attach the `Authorization: Bearer <CRON_SECRET>` header that
-# /api/cron/backup requires (fail-closed). This workflow sends the header.
+# WHY THIS RUNS IN GITHUB ACTIONS (and not as a Vercel/Render cron):
+# /api/cron/backup executes `pg_dump` inside the Next.js runtime. Vercel
+# serverless images do not ship PostgreSQL client tools, so a cron hitting
+# that endpoint would fail with ENOENT on every run. This workflow runs
+# pg_dump directly against the Prisma DIRECT_URL connection (read-only)
+# and uploads the artifact to Cloudflare R2 via the S3-compatible API.
 #
-# OPS REQUIRED — repository secrets (never hardcode):
-#   BACKUP_APP_URL : production base URL, e.g. https://lens.org.bd (no path)
-#   CRON_SECRET    : same value as the app's CRON_SECRET env var
-name: Scheduled backup
+# SCHEDULE OWNERSHIP — exactly one place:
+# This workflow is the ONLY scheduled backup trigger. Do NOT add a matching
+# `crons[]` entry to vercel.json and do NOT add a duplicate Render Cron Job
+# while this workflow is enabled, so backups never run twice concurrently.
+#
+# `/api/cron/backup` remains available for MANUAL/admin-triggered runs from
+# the admin Backups page (it fail-closes without CRON_SECRET and reports a
+# clear ENOENT diagnostic when pg_dump is unavailable).
+#
+# OPS REQUIRED — repository secrets (Settings → Secrets → Actions; never
+# hardcode or commit values):
+#   DIRECT_URL           Supabase direct connection (port 5432). pg_dump must
+#                        use the direct connection, not the pooler.
+#   R2_ACCOUNT_ID        Cloudflare account id
+#   R2_ACCESS_KEY_ID     R2 API token credentials (scoped to R2_BUCKET)
+#   R2_SECRET_ACCESS_KEY
+#   R2_BUCKET            e.g. lens-backups
+#
+# SAFETY: read-only against PostgreSQL; additive-only writes to R2; NO
+# deletes happen here. Retention is an R2 lifecycle rule (30 days) — see
+# DEPLOYMENT_RUNBOOK.md instead of scripting deletion.
+name: Scheduled database backup
+
 on:
   schedule:
     - cron: "0 2 * * *"
-  workflow_dispatch:
+  workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: scheduled-db-backup
+  cancel-in-progress: false
 
 jobs:
-  trigger-backup:
+  backup:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Trigger backup endpoint
+      - name: Preflight — required secrets are configured
         env:
-          BACKUP_APP_URL: ${{ secrets.BACKUP_APP_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
-          http_code=$(curl -s -o /tmp/backup.json -w "%{http_code}" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            "$BACKUP_APP_URL/api/cron/backup")
-          cat /tmp/backup.json
-          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
-            echo "Backup trigger failed with HTTP $http_code"
+          set -euo pipefail
+          missing=()
+          for name in DIRECT_URL R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET; do
+            if [ -z "${!name}" ]; then missing+=("$name"); fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repository secrets: ${missing[*]}"
+            echo "Add them under Settings -> Secrets -> Actions."
+            echo "See DEPLOYMENT_RUNBOOK.md § 'Scheduled backups' for the canonical procedure."
             exit 1
           fi
+
+      - name: Dump database (plain format — restoreable with psql)
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          set -euo pipefail
+          # ubuntu-latest ships postgresql-client; install only if absent.
+          if ! pg_dump --version >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          fi
+          artifact="$RUNNER_TEMP/lens-backup-$(date -u +%Y%m%dT%H%M%SZ).sql"
+          pg_dump "$DIRECT_URL" --no-owner --no-acl --format=plain --file="$artifact"
+          gzip -9 --verbose "$artifact"
+          echo "ARTIFACT=$artifact.gz" >> "$GITHUB_ENV"
+          echo "Created $(basename "$artifact.gz") ($(stat -c%s "$artifact.gz") bytes gzipped)"
+
+      - name: Upload artifact to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          endpoint="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+          key="backups/$(date -u +%Y)/$(basename "$ARTIFACT")"
+          aws s3 cp "$ARTIFACT" "s3://$R2_BUCKET/$key" --endpoint-url "$endpoint" --only-show-errors
+          echo "BACKUP_KEY=$key" >> "$GITHUB_ENV"
+          echo "Uploaded s3://$R2_BUCKET/$key"
+
+      - name: Verify — object exists in R2 with nonzero size
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          endpoint="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+          head=$(aws s3api head-object --bucket "$R2_BUCKET" --key "$BACKUP_KEY" --endpoint-url "$endpoint")
+          echo "$head"
+          bytes=$(echo "$head" | grep -o '"ContentLength":[0-9]*' | cut -d: -f2)
+          if [ "${bytes:-0}" -le 0 ]; then
+            echo "::error::Uploaded object has zero size — failing loudly."
+            exit 1
+          fi
+          echo "Verified s3://$R2_BUCKET/$BACKUP_KEY ($bytes bytes)"
