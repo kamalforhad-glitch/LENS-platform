@@ -54,11 +54,11 @@ function SiteLogo({ subtitle, logoUrl, onNavigate }: { subtitle: string; logoUrl
       <div className="flex flex-col justify-center">
         {isRemote ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90" />
+          <img src={src} alt="LENS — Lighthouse for Evolving Narrative Systems" className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90" />
         ) : (
           <Image
             src={src}
-            alt=""
+            alt="LENS — Lighthouse for Evolving Narrative Systems"
             width={126}
             height={32}
             className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"

@@ -2,8 +2,8 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-async function createBmpDib(svgBuf, width, height) {
-  const { data } = await sharp(svgBuf)
+async function createBmpDib(sourcePngBuf, width, height) {
+  const { data } = await sharp(sourcePngBuf)
     .resize(width, height)
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -15,45 +15,36 @@ async function createBmpDib(svgBuf, width, height) {
 
   const dib = Buffer.alloc(dibSize);
 
-  // BITMAPINFOHEADER (40 bytes)
   dib.writeUInt32LE(40, 0); // biSize
   dib.writeInt32LE(width, 4); // biWidth
-  dib.writeInt32LE(height * 2, 8); // biHeight (doubled for XOR + AND masks)
+  dib.writeInt32LE(height * 2, 8); // biHeight (doubled)
   dib.writeUInt16LE(1, 12); // biPlanes
-  dib.writeUInt16LE(32, 14); // biBitCount (32-bit BGRA)
-  dib.writeUInt32LE(0, 16); // biCompression (BI_RGB)
+  dib.writeUInt16LE(32, 14); // biBitCount
+  dib.writeUInt32LE(0, 16); // biCompression
   dib.writeUInt32LE(xorSize + andMaskSize, 20); // biSizeImage
-  dib.writeInt32LE(0, 24); // biXPelsPerMeter
-  dib.writeInt32LE(0, 28); // biYPelsPerMeter
-  dib.writeUInt32LE(0, 32); // biClrUsed
-  dib.writeUInt32LE(0, 36); // biClrImportant
+  dib.writeInt32LE(0, 24);
+  dib.writeInt32LE(0, 28);
+  dib.writeUInt32LE(0, 32);
+  dib.writeUInt32LE(0, 36);
 
-  // XOR mask (bottom-up BGRA)
   let xorOffset = 40;
   for (let y = height - 1; y >= 0; y--) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const a = data[idx + 3];
-
-      dib[xorOffset] = b;
-      dib[xorOffset + 1] = g;
-      dib[xorOffset + 2] = r;
-      dib[xorOffset + 3] = a;
+      dib[xorOffset] = data[idx + 2];     // B
+      dib[xorOffset + 1] = data[idx + 1]; // G
+      dib[xorOffset + 2] = data[idx];     // R
+      dib[xorOffset + 3] = data[idx + 3]; // A
       xorOffset += 4;
     }
   }
 
-  // AND mask (bottom-up 1-bit per pixel: 1 = transparent, 0 = opaque)
   let andOffset = 40 + xorSize;
   for (let y = height - 1; y >= 0; y--) {
     const rowBuf = Buffer.alloc(andRowBytes);
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
-      const a = data[idx + 3];
-      if (a < 128) {
+      if (data[idx + 3] < 128) {
         const bytePos = Math.floor(x / 8);
         const bitPos = 7 - (x % 8);
         rowBuf[bytePos] |= (1 << bitPos);
@@ -67,15 +58,33 @@ async function createBmpDib(svgBuf, width, height) {
 }
 
 async function generateFavicon() {
-  const svgPath = path.join(__dirname, '..', 'public', 'favicon.svg');
-  const icoPath = path.join(__dirname, '..', 'public', 'favicon.ico');
-  const svgBuf = fs.readFileSync(svgPath);
+  const rootDir = path.resolve(__dirname, '..');
+  const sourceLogoPath = path.join(rootDir, 'public/images/logo/lens-logo.png');
+  const icoPath = path.join(rootDir, 'public/favicon.ico');
+
+  // Load and trim official wordmark
+  const trimmed = await sharp(sourceLogoPath).trim().toBuffer({ resolveWithObject: true });
+  const logoW = 450;
+  const logoH = Math.round(logoW * (trimmed.info.height / trimmed.info.width));
+  const resizedLogoBuf = await sharp(trimmed.data).resize(logoW, logoH).toBuffer();
+
+  const brandMark512 = await sharp({
+    create: {
+      width: 512,
+      height: 512,
+      channels: 4,
+      background: { r: 10, g: 22, b: 40, alpha: 1 } // #0a1628
+    }
+  })
+  .composite([{ input: resizedLogoBuf, top: Math.round((512 - logoH) / 2), left: Math.round((512 - logoW) / 2) }])
+  .png()
+  .toBuffer();
 
   const sizes = [16, 32, 48];
   const images = [];
 
   for (const s of sizes) {
-    const dib = await createBmpDib(svgBuf, s, s);
+    const dib = await createBmpDib(brandMark512, s, s);
     images.push({ width: s, height: s, buffer: dib });
   }
 
@@ -88,19 +97,19 @@ async function generateFavicon() {
     const entry = Buffer.alloc(16);
     entry.writeUInt8(img.width >= 256 ? 0 : img.width, 0);
     entry.writeUInt8(img.height >= 256 ? 0 : img.height, 1);
-    entry.writeUInt8(0, 2); // colors
-    entry.writeUInt8(0, 3); // reserved
-    entry.writeUInt16LE(1, 4); // planes
-    entry.writeUInt16LE(32, 6); // bpp
-    entry.writeUInt32LE(img.buffer.length, 8); // size
-    entry.writeUInt32LE(offset, 12); // offset
+    entry.writeUInt8(0, 2);
+    entry.writeUInt8(0, 3);
+    entry.writeUInt16LE(1, 4);
+    entry.writeUInt16LE(32, 6);
+    entry.writeUInt32LE(img.buffer.length, 8);
+    entry.writeUInt32LE(offset, 12);
     entries.push(entry);
     offset += img.buffer.length;
   }
 
   const header = Buffer.alloc(6);
-  header.writeUInt16LE(0, 0); // reserved
-  header.writeUInt16LE(1, 2); // ICO type 1
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
   header.writeUInt16LE(sizes.length, 4);
 
   const icoBuf = Buffer.concat([header, ...entries, ...images.map(i => i.buffer)]);

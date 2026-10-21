@@ -135,7 +135,7 @@ export default function SiteFooterClient({
               <Link href="/" className="inline-block group py-1" aria-label="LENS — home">
                 <Image
                   src="/images/logo/lens-logo.png"
-                  alt=""
+                  alt="LENS — Lighthouse for Evolving Narrative Systems"
                   width={126}
                   height={32}
                   className="h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"

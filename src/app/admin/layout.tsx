@@ -71,7 +71,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/" className="flex flex-col justify-center group py-1" aria-label="LENS — home">
             <Image
               src="/images/logo/lens-logo.png"
-              alt=""
+              alt="LENS — Lighthouse for Evolving Narrative Systems"
               width={100}
               height={26}
               className="h-6 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"

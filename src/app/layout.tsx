@@ -92,7 +92,7 @@ const BASE_METADATA: Metadata = {
       { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
-    apple: "/favicon.svg",
+    apple: "/apple-touch-icon.png",
   },
 };
 
@@ -184,7 +184,7 @@ export default function RootLayout({
                   description: DEFAULT_DESCRIPTION,
                   logo: {
                     "@type": "ImageObject",
-                    url: `https://${CANONICAL_HOST}/favicon.svg`,
+                    url: `https://${CANONICAL_HOST}/images/logo/lens-logo.png`,
                   },
                   sameAs: [
                     "https://www.facebook.com/lensorgbd",

@@ -112,7 +112,7 @@ export default function Footer() {
               <Link href="/" className="inline-block group py-1" aria-label="LENS — home">
                 <Image
                   src="/images/logo/lens-logo.png"
-                  alt=""
+                  alt="LENS — Lighthouse for Evolving Narrative Systems"
                   width={126}
                   height={32}
                   className="h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"
@@ -129,7 +129,7 @@ export default function Footer() {
             <ul className="space-y-2.5">
               {quickLinks.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-sm text-slate-400 hover:text-teal-400 transition-colors duration-300">{link.label}</a>
+                  <Link href={link.href} className="text-sm text-slate-400 hover:text-teal-400 transition-colors duration-300">{link.label}</Link>
                 </li>
               ))}
             </ul>
@@ -141,7 +141,7 @@ export default function Footer() {
             <ul className="space-y-2.5">
               {supportLinks.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-sm text-slate-400 hover:text-teal-400 transition-colors duration-300">{link.label}</a>
+                  <Link href={link.href} className="text-sm text-slate-400 hover:text-teal-400 transition-colors duration-300">{link.label}</Link>
                 </li>
               ))}
             </ul>
@@ -168,11 +168,11 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between pt-6 gap-4 text-xs text-slate-500">
           <span>{t("footer.copyright", { year: new Date().getFullYear() })}</span>
           <div className="flex gap-4 items-center">
-            <a href="/privacy" className="hover:text-teal-400 transition-colors duration-300">{t("footer.privacy_policy")}</a>
+            <Link href="/privacy" className="hover:text-teal-400 transition-colors duration-300">{t("footer.privacy_policy")}</Link>
             <span className="text-slate-600">|</span>
-            <a href="/terms" className="hover:text-teal-400 transition-colors duration-300">{t("footer.terms")}</a>
+            <Link href="/terms" className="hover:text-teal-400 transition-colors duration-300">{t("footer.terms")}</Link>
             <span className="text-slate-600">|</span>
-            <a href="/admin/login" className="text-slate-400 hover:text-teal-400 transition-colors duration-300">Admin</a>
+            <Link href="/admin/login" className="text-slate-400 hover:text-teal-400 transition-colors duration-300">Admin</Link>
           </div>
         </div>
       </div>

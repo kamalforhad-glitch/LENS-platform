@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 function AcceptForm() {
   const params = useSearchParams();
@@ -119,8 +120,14 @@ export default function InviteAcceptPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex flex-col items-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo/lens-logo.png" alt="LENS" className="h-9 w-auto mb-2" />
+            <Image
+              src="/images/logo/lens-logo-dark.png"
+              alt="LENS — Lighthouse for Evolving Narrative Systems"
+              width={140}
+              height={36}
+              className="h-9 w-auto mb-2 object-contain"
+              priority
+            />
             <span className="text-[10px] uppercase tracking-widest text-slate-400">Admin Account Setup</span>
           </div>
         </div>

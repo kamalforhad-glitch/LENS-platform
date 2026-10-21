@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter, unstable_isUnrecognizedActionError } from "next/navigation";
 import { login } from "@/lib/actions/auth";
 
@@ -53,13 +54,17 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-navy-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-teal-500/30">
-            <svg viewBox="0 0 24 24" className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M12 2L2 19h20L12 2z" />
-              <circle cx="12" cy="12" r="2" fill="currentColor" />
-            </svg>
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/images/logo/lens-logo.png"
+              alt="LENS — Lighthouse for Evolving Narrative Systems"
+              width={160}
+              height={42}
+              className="h-10 w-auto object-contain"
+              priority
+            />
           </div>
-          <h1 className="text-2xl font-bold text-white">LENS Admin</h1>
+          <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
           <p className="text-sm text-slate-400 mt-1">Lighthouse for Evolving Narrative Systems</p>
         </div>
 

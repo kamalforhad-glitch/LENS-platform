@@ -112,7 +112,7 @@ export default function Header() {
             <div className="flex flex-col justify-center">
               <Image
                 src="/images/logo/lens-logo.png"
-                alt=""
+                alt="LENS — Lighthouse for Evolving Narrative Systems"
                 width={126}
                 height={32}
                 className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"
@@ -127,14 +127,14 @@ export default function Header() {
           {/* Desktop Nav */}
           <nav ref={navRef} className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 className="relative px-3 py-2 text-sm font-medium text-white/70 hover:text-white transition-colors rounded-md group"
               >
                 {link.label}
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-teal-400 rounded-full group-hover:w-4/5 transition-all duration-300" />
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -169,24 +169,24 @@ export default function Header() {
             className="lg:hidden border-t border-white/10 bg-navy-950/95 backdrop-blur-xl py-4"
           >
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 className="block px-4 py-3 text-sm font-medium text-white/70 hover:text-teal-400 hover:bg-white/5 rounded-lg transition-colors"
                 onClick={() => setMobileOpen(false)}
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             <div className="px-4 pt-3 space-y-2">
               <LanguageSwitcher />
-              <a
+              <Link
                 href="/contact"
                 className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-400 text-white text-sm font-semibold rounded-full w-full justify-center"
                 onClick={() => setMobileOpen(false)}
               >
                 {t("nav.donate")}
-              </a>
+              </Link>
             </div>
           </div>
         )}

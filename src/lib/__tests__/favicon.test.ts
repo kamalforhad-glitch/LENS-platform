@@ -6,6 +6,11 @@ describe("Favicon Configuration and Asset Integrity", () => {
   const rootDir = path.resolve(__dirname, "../../..");
   const publicFaviconIco = path.join(rootDir, "public/favicon.ico");
   const publicFaviconSvg = path.join(rootDir, "public/favicon.svg");
+  const publicAppleTouchIcon = path.join(rootDir, "public/apple-touch-icon.png");
+  const publicIcon192 = path.join(rootDir, "public/icon-192.png");
+  const publicIcon512 = path.join(rootDir, "public/icon-512.png");
+  const officialLogo = path.join(rootDir, "public/images/logo/lens-logo.png");
+  const officialDarkLogo = path.join(rootDir, "public/images/logo/lens-logo-dark.png");
   const rootAppFaviconSvg = path.join(rootDir, "app/favicon.svg");
   const srcAppFaviconIco = path.join(rootDir, "src/app/favicon.ico");
   const vercelJsonPath = path.join(rootDir, "vercel.json");
@@ -64,21 +69,35 @@ describe("Favicon Configuration and Asset Integrity", () => {
     expect(heights).toContain(32);
   });
 
-  it("should have a valid public/favicon.svg with LENS branding", () => {
+  it("should have a valid public/favicon.svg with official LENS brand colors", () => {
     expect(fs.existsSync(publicFaviconSvg)).toBe(true);
     const svg = fs.readFileSync(publicFaviconSvg, "utf8");
 
     expect(svg).toContain("<svg");
     expect(svg).toContain("</svg>");
-    expect(svg).toContain("#0891b2"); // LENS brand color
-    expect(svg).toContain('viewBox="0 0 64 64"');
+    expect(svg).toContain("#0a1628"); // LENS official brand dark navy
+    expect(svg).toContain('viewBox="0 0 512 512"');
+  });
+
+  it("should have all required touch and PWA icon assets", () => {
+    expect(fs.existsSync(publicAppleTouchIcon)).toBe(true);
+    expect(fs.statSync(publicAppleTouchIcon).size).toBeGreaterThan(500);
+
+    expect(fs.existsSync(publicIcon192)).toBe(true);
+    expect(fs.statSync(publicIcon192).size).toBeGreaterThan(500);
+
+    expect(fs.existsSync(publicIcon512)).toBe(true);
+    expect(fs.statSync(publicIcon512).size).toBeGreaterThan(500);
+
+    expect(fs.existsSync(officialLogo)).toBe(true);
+    expect(fs.statSync(officialLogo).size).toBeGreaterThan(1000);
+
+    expect(fs.existsSync(officialDarkLogo)).toBe(true);
+    expect(fs.statSync(officialDarkLogo).size).toBeGreaterThan(1000);
   });
 
   it("should not have conflicting root app/ or src/app/favicon.ico assets", () => {
-    // Root app/ directory hijacks Next.js App Router away from src/app/
     expect(fs.existsSync(rootAppFaviconSvg)).toBe(false);
-
-    // src/app/favicon.ico would override public/favicon.ico with the default Vercel logo
     expect(fs.existsSync(srcAppFaviconIco)).toBe(false);
   });
 

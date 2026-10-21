@@ -1,11 +1,21 @@
 import { ImageResponse } from "next/og";
+import fs from "fs";
+import path from "path";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const title = searchParams.get("title") || "LENS";
   const subtitle = searchParams.get("subtitle") || "Lighthouse for Evolving Narrative Systems";
+
+  let logoSrc = "";
+  try {
+    const logoBuffer = fs.readFileSync(path.join(process.cwd(), "public/images/logo/lens-logo.png"));
+    logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+  } catch {
+    logoSrc = "";
+  }
 
   return new ImageResponse(
     (
@@ -23,51 +33,32 @@ export async function GET(request: Request) {
           padding: "60px",
         }}
       >
-        {/* Logo mark */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            marginBottom: "40px",
-          }}
-        >
-          <div
+        {/* Official LENS Logo */}
+        {logoSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoSrc}
+            alt="LENS"
+            height="56"
             style={{
-              width: "60px",
-              height: "60px",
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #22d3ee, #0891b2)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              height: "56px",
+              objectFit: "contain",
+              marginBottom: "40px",
+            }}
+          />
+        ) : (
+          <span
+            style={{
+              fontSize: "36px",
+              fontWeight: "bold",
+              color: "white",
+              letterSpacing: "0.15em",
+              marginBottom: "40px",
             }}
           >
-            <svg
-              viewBox="0 0 24 24"
-              width="32"
-              height="32"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-            >
-              <path d="M12 2L2 19h20L12 2z" />
-              <circle cx="12" cy="12" r="2" fill="white" />
-            </svg>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <span
-              style={{
-                fontSize: "28px",
-                fontWeight: "bold",
-                color: "white",
-                letterSpacing: "0.05em",
-              }}
-            >
-              LENS
-            </span>
-          </div>
-        </div>
+            LENS
+          </span>
+        )}
 
         {/* Title */}
         <div
