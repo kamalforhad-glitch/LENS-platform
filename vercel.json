@@ -1,15 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [],
-  "headers": [
-    {
-      "source": "/favicon.ico",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "image/vnd.microsoft.icon"
-        }
-      ]
-    }
-  ]
+  "crons": []
 }

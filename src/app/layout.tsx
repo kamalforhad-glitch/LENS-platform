@@ -87,6 +87,13 @@ const BASE_METADATA: Metadata = {
     description: DEFAULT_DESCRIPTION,
     images: [OG_IMAGE_PATH],
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/favicon.svg",
+  },
 };
 
 // ============================================================
@@ -121,6 +128,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: BASE_METADATA.metadataBase,
     title: BASE_METADATA.title,
     description,
+    icons: BASE_METADATA.icons,
     openGraph: {
       ...(BASE_METADATA.openGraph as NonNullable<Metadata["openGraph"]>),
       title,
@@ -152,7 +160,6 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
         
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/favicon.svg" />
         <meta name="author" content="LENS" />
         <meta name="publisher" content="LENS" />
         <meta name="keywords" content="LENS, Lighthouse for Evolving Narrative Systems, Bangladesh think tank, media literacy, press freedom, narrative research, policy advocacy, digital rights, journalist safety, cybersecurity, media indexing, strategic communication, Bangladesh media, information ecosystem, civic engagement" />
