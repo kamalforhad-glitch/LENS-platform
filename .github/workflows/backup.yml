@@ -71,12 +71,30 @@ jobs:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
         run: |
           set -euo pipefail
-          # ubuntu-latest ships postgresql-client; install only if absent.
-          if ! pg_dump --version >/dev/null 2>&1; then
-            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          # The runner image ships postgresql-client-16, but pg_dump refuses to
+          # dump a NEWER server ("aborting because of server version mismatch").
+          # Install the matching PostgreSQL 17 client from the PGDG apt repo.
+          if ! /usr/lib/postgresql/17/bin/pg_dump --version >/dev/null 2>&1; then
+            sudo install -d /usr/share/postgresql-common/pgdg
+            sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+              -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+            . /etc/os-release
+            echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+              | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client-17
           fi
+          # Invoke the versioned binary directly: /usr/bin/pg_dump is a
+          # postgresql-common wrapper that can still resolve to client 16.
+          PG_DUMP=/usr/lib/postgresql/17/bin/pg_dump
+          pg_version="$("$PG_DUMP" --version 2>/dev/null || true)"
+          case "$pg_version" in
+            "pg_dump (PostgreSQL) 17."*) ;;
+            *) echo "::error::pg_dump 17.x required (Supabase server is PostgreSQL 17.11); got: ${pg_version:-not found}"
+               exit 1 ;;
+          esac
           artifact="$RUNNER_TEMP/lens-backup-$(date -u +%Y%m%dT%H%M%SZ).sql"
-          pg_dump "$DIRECT_URL" --no-owner --no-acl --format=plain --file="$artifact"
+          "$PG_DUMP" "$DIRECT_URL" --no-owner --no-acl --format=plain --file="$artifact"
           gzip -9 --verbose "$artifact"
           echo "ARTIFACT=$artifact.gz" >> "$GITHUB_ENV"
           echo "Created $(basename "$artifact.gz") ($(stat -c%s "$artifact.gz") bytes gzipped)"
