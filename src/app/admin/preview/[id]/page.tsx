@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageSectionsView, { type SectionWithResolved } from "@/components/page/PageSectionsView";
+import HomeClient from "@/app/HomeClient";
 import { resolveSectionItems } from "@/components/page/resolveSectionItems";
 import { getPage } from "@/lib/actions/cms";
 import { getCurrentUser } from "@/lib/auth";
@@ -68,27 +69,46 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
   const status = String(page.status ?? "draft");
   const slug = String(page.slug ?? "");
 
+  const previewBanner = (
+    <div className="pt-20 pb-2 bg-navy-950/90 border-b border-amber-500/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="font-semibold text-amber-950 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            Draft preview mode
+          </span>
+          <span>
+            Status: <span className="font-mono font-bold uppercase text-xs px-2 py-0.5 rounded bg-amber-100">{status}</span>
+          </span>
+          <span>
+            Slug: <span className="font-mono">/{slug}</span>
+          </span>
+          <span className="text-amber-700 hidden sm:inline ml-auto text-xs">
+            Viewing unpublished CMS changes. Hidden sections are enabled in preview.
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (slug === "home") {
+    return (
+      <>
+        {previewBanner}
+        <HomeClient
+          header={<SiteHeader />}
+          footer={<SiteFooter />}
+          pageData={{ ...page, sections }}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <SiteHeader />
       <main className="flex-1">
-        {/* Draft banner — never indexed, plain-text interpolation only. */}
-        <div className="pt-20 pb-2">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex flex-wrap items-center gap-x-4 gap-y-1">
-              <span className="font-semibold">Draft preview</span>
-              <span>
-                Status: <span className="font-mono">{status}</span>
-              </span>
-              <span>
-                Slug: <span className="font-mono">/{slug}</span>
-              </span>
-              <span className="text-amber-700 hidden sm:inline">
-                This is how the page renders once published. Hidden sections are shown here.
-              </span>
-            </div>
-          </div>
-        </div>
+        {previewBanner}
         <PageSectionsView sections={sections} />
       </main>
       <SiteFooter />

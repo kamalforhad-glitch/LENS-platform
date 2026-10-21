@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getSiteSettings, updateSiteSettingsBulk } from "@/lib/actions/cms";
+import { DEFAULT_SITE_SETTINGS } from "@/lib/cms-defaults";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
 
 interface SettingItem {
@@ -18,6 +19,7 @@ interface SettingItem {
 
 const GROUPS = [
   { id: "general", label: "General & Branding" },
+  { id: "design", label: "Design & Navigation" },
   { id: "contact", label: "Contact Information" },
   { id: "social", label: "Social Media Links" },
   { id: "footer", label: "Footer Content" },
@@ -34,7 +36,24 @@ export default function SiteSettingsAdminPage() {
 
   useEffect(() => {
     getSiteSettings().then((items) => {
-      setSettings(items as SettingItem[]);
+      const existingMap = new Map((items as SettingItem[]).map((it) => [it.key, it]));
+      const merged: SettingItem[] = [...(items as SettingItem[])];
+      for (const def of DEFAULT_SITE_SETTINGS) {
+        if (!existingMap.has(def.key)) {
+          merged.push({
+            id: `temp-${def.key}`,
+            key: def.key,
+            value: def.value,
+            valueBn: def.valueBn,
+            type: def.type,
+            group: def.group,
+            label: def.label,
+            labelBn: def.labelBn,
+            sortOrder: def.sortOrder,
+          });
+        }
+      }
+      setSettings(merged);
       setLoading(false);
     });
   }, []);
@@ -186,6 +205,76 @@ export default function SiteSettingsAdminPage() {
                       <img src={item.value} alt="" className="w-full h-full object-cover" />
                     </div>
                   )}
+                </div>
+              ) : item.key === "brand_accent_color" ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={item.value.startsWith("#") ? item.value : "#0d9488"}
+                      onChange={(e) => {
+                        handleChange(item.key, "value", e.target.value);
+                        handleChange(item.key, "valueBn", e.target.value);
+                      }}
+                      className="w-10 h-10 rounded-lg cursor-pointer border border-slate-300 p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={item.value}
+                      onChange={(e) => {
+                        handleChange(item.key, "value", e.target.value);
+                        handleChange(item.key, "valueBn", e.target.value);
+                      }}
+                      className="w-36 px-3 py-2 border border-slate-200 rounded-xl text-sm font-mono"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="text-slate-400 self-center">Brand Presets:</span>
+                    {[
+                      { name: "Teal (Official)", hex: "#0d9488" },
+                      { name: "Cyan", hex: "#06b6d4" },
+                      { name: "Gold", hex: "#d4a843" },
+                      { name: "Navy Blue", hex: "#1e3a8a" },
+                      { name: "Emerald", hex: "#10b981" },
+                    ].map((p) => (
+                      <button
+                        key={p.hex}
+                        type="button"
+                        onClick={() => {
+                          handleChange(item.key, "value", p.hex);
+                          handleChange(item.key, "valueBn", p.hex);
+                        }}
+                        className="px-2.5 py-1 rounded-md border border-slate-200 text-slate-700 hover:border-slate-400 text-xs flex items-center gap-1.5"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.hex }} />
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : item.key === "header_layout" ? (
+                <div className="flex gap-2">
+                  {[
+                    { id: "standard", label: "Standard (Nav between Logo & Actions)" },
+                    { id: "compact", label: "Compact (Slim Bar)" },
+                    { id: "centered", label: "Centered Nav" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        handleChange(item.key, "value", preset.id);
+                        handleChange(item.key, "valueBn", preset.id);
+                      }}
+                      className={`px-3 py-2 rounded-xl text-xs font-medium border transition-colors ${
+                        item.value === preset.id
+                          ? "bg-teal-50 border-teal-500 text-teal-800 font-semibold"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
                 </div>
               ) : item.key.includes("description") || item.key.includes("keywords") || item.key.includes("address") ? (
                 <div className="grid sm:grid-cols-2 gap-4">

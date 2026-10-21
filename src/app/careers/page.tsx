@@ -4,6 +4,10 @@ import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import ContentListState from "@/components/ContentListState";
 import { getPublicCareerOpenings } from "@/lib/public-content";
+import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
+import { resolveSectionItems } from "@/components/page/resolveSectionItems";
+import type { SectionWithResolved } from "@/components/page/PageSectionsView";
+import CmsPageView from "@/components/page/CmsPageView";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +27,22 @@ const CAREER_TYPES: Record<string, string> = {
 const careerType = (type: string) =>
   CAREER_TYPES[type] ?? type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
+async function resolveCmsSections(sections: PublicSectionData[]) {
+  return Promise.all(
+    sections.map(async (s) => ({
+      ...s,
+      resolved: await resolveSectionItems(s.type, s.content).catch(() => ({ items: [] })),
+    }))
+  );
+}
+
 export default async function CareersPage() {
+  const cms = await getPublicPage("careers");
+  if (cms) {
+    const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
+    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+  }
+
   const { items: openings, error } = await getPublicCareerOpenings();
 
   return (

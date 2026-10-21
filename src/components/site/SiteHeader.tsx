@@ -15,5 +15,5 @@ export default async function SiteHeader() {
   // fall back to the packaged logo when unset or invalid.
   const check = sanitizeUrl(settings.site_logo_url?.value || "");
   const logoUrl = check.ok && check.url ? check.url : "/images/logo/lens-logo.png";
-  return <SiteHeaderClient entries={entries} logoUrl={logoUrl} />;
+  return <SiteHeaderClient entries={entries} logoUrl={logoUrl} settings={settings} />;
 }

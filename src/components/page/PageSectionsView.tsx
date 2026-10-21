@@ -183,35 +183,105 @@ function HeroLike({ section, content, bn }: { section: SectionWithResolved; cont
   const eyebrow = asString(content.eyebrow);
   const subtitle = asString(content.subtitle);
   const image = safeHref(content.image) || safeHref(content.backgroundImage);
+  const backgroundVideo = safeHref(content.backgroundVideo) || safeHref(content.videoUrl);
+  const posterImage = safeHref(content.posterImage) || image;
+  const imageAlt = asString(content.imageAlt) || asString(content.alt) || "Hero media";
+  const overlayColor = asString(content.overlayColor) || "navy";
+  const overlayOpacityNum = typeof content.overlayOpacity === "number" || typeof content.overlayOpacity === "string"
+    ? Math.max(0, Math.min(1, Number(content.overlayOpacity) || 0.6))
+    : 0.6;
+  const layoutVariant = asString(content.layoutVariant) || "default";
+  const textAlignment = asString(content.textAlignment) || "left";
   const ctaLabel = asString(content.ctaLabel);
   const ctaUrl = safeHref(content.ctaUrl);
   const cta2Label = asString(content.ctaLabel2);
   const cta2Url = safeHref(content.ctaUrl2);
 
-  const dark = Boolean(image);
+  const dark = Boolean(image || backgroundVideo);
+
+  const overlayBg =
+    overlayColor === "none" ? "transparent" :
+    overlayColor === "teal" ? "rgb(15 118 110)" :
+    overlayColor === "dark" ? "rgb(15 23 42)" :
+    "rgb(10 25 47)";
+
+  const isCentered = layoutVariant === "centered" || textAlignment === "center";
+  const isSplit = layoutVariant === "split" && (image || backgroundVideo);
+
   return (
     <section className={`relative overflow-hidden rounded-2xl ${dark ? "bg-navy-950" : "bg-slate-50 border border-slate-100"}`}>
-      {image && (
+      {/* Background media if not split */}
+      {!isSplit && (image || backgroundVideo) && (
         <div className="absolute inset-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image} alt="" className="w-full h-full object-cover opacity-60" />
-          <div className="absolute inset-0 bg-gradient-to-t from-navy-950/95 via-navy-950/60 to-navy-950/30" />
+          {backgroundVideo ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              poster={posterImage || undefined}
+              className="w-full h-full object-cover"
+              aria-label={imageAlt}
+            >
+              <source src={backgroundVideo} type="video/mp4" />
+              {image && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={image} alt={imageAlt} className="w-full h-full object-cover" />
+              )}
+            </video>
+          ) : image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt={imageAlt} className="w-full h-full object-cover" />
+          ) : null}
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: overlayBg, opacity: overlayOpacityNum }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-navy-950/95 via-transparent to-navy-950/40" />
         </div>
       )}
-      <div className={`relative px-6 sm:px-10 py-16 sm:py-24 max-w-4xl ${dark ? "text-white" : "text-navy-950"}`}>
-        {eyebrow && (
-          <span className="inline-block mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-teal-500">{eyebrow}</span>
-        )}
-        <h1 className={`text-3xl sm:text-5xl font-bold leading-tight tracking-tight ${dark ? "text-white" : "text-navy-950"}`}>{title}</h1>
-        {subtitle && <p className={`mt-5 text-base sm:text-lg max-w-2xl ${dark ? "text-slate-300" : "text-slate-600"}`}>{subtitle}</p>}
-        <div className="mt-8 flex flex-wrap gap-3">
-          {ctaLabel && ctaUrl && (
-            <a href={ctaUrl} className="inline-flex px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold">{ctaLabel}</a>
+
+      <div className={`relative px-6 sm:px-10 py-16 sm:py-24 ${isSplit ? "max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center" : isCentered ? "max-w-4xl mx-auto text-center" : "max-w-4xl"} ${dark ? "text-white" : "text-navy-950"}`}>
+        <div className={isCentered ? "mx-auto" : ""}>
+          {eyebrow && (
+            <span className="inline-block mb-4 text-[11px] font-bold uppercase tracking-[0.2em] text-teal-400 bg-teal-500/10 border border-teal-500/20 px-3 py-1 rounded-full">{eyebrow}</span>
           )}
-          {cta2Label && cta2Url && (
-            <a href={cta2Url} className={`inline-flex px-6 py-3 rounded-xl text-sm font-semibold ${dark ? "border border-white/25 text-white hover:bg-white/10" : "border border-slate-300 text-slate-700 hover:bg-slate-100"}`}>{cta2Label}</a>
-          )}
+          <h1 className={`text-3xl sm:text-5xl font-bold leading-tight tracking-tight ${dark ? "text-white" : "text-navy-950"}`}>{title}</h1>
+          {subtitle && <p className={`mt-5 text-base sm:text-lg ${isCentered ? "max-w-2xl mx-auto" : "max-w-2xl"} ${dark ? "text-slate-300" : "text-slate-600"}`}>{subtitle}</p>}
+          <div className={`mt-8 flex flex-wrap gap-3 ${isCentered ? "justify-center" : ""}`}>
+            {ctaLabel && ctaUrl && (
+              <a href={ctaUrl} className="inline-flex px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors shadow-xs">{ctaLabel}</a>
+            )}
+            {cta2Label && cta2Url && (
+              <a href={cta2Url} className={`inline-flex px-6 py-3 rounded-xl text-sm font-semibold transition-colors ${dark ? "border border-white/25 text-white hover:bg-white/10" : "border border-slate-300 text-slate-700 hover:bg-slate-100"}`}>{cta2Label}</a>
+            )}
+          </div>
         </div>
+
+        {isSplit && (
+          <div className="relative rounded-xl overflow-hidden border border-white/10 shadow-2xl aspect-video">
+            {backgroundVideo ? (
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster={posterImage || undefined}
+                className="w-full h-full object-cover"
+                aria-label={imageAlt}
+              >
+                <source src={backgroundVideo} type="video/mp4" />
+                {image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={image} alt={imageAlt} className="w-full h-full object-cover" />
+                )}
+              </video>
+            ) : image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={image} alt={imageAlt} className="w-full h-full object-cover" />
+            ) : null}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -15,8 +15,8 @@ const FocusAreas = dynamic(() => import("@/components/FocusAreas"), { ssr: false
 const FeaturedResearch = dynamic(() => import("@/components/FeaturedResearch"), { ssr: false });
 const ImpactStats = dynamic(() => import("@/components/ImpactStats"), { ssr: false });
 const EventsNewsletter = dynamic(() => import("@/components/EventsNewsletter"), { ssr: false });
+const PageSectionsView = dynamic(() => import("@/components/page/PageSectionsView"), { ssr: false });
 const SmoothScrollProvider = dynamic(() => import("@/components/SmoothScrollProvider"), { ssr: false });
-const CustomCursor = dynamic(() => import("@/components/CustomCursor"), { ssr: false });
 const ScrollProgress = dynamic(() => import("@/components/ScrollProgress"), { ssr: false });
 const BackToTop = dynamic(() => import("@/components/BackToTop"), { ssr: false });
 
@@ -28,6 +28,20 @@ function SectionSeparator() {
   );
 }
 
+export interface HomeSectionData {
+  id: string;
+  type: string;
+  title: string;
+  titleBn?: string;
+  description?: string;
+  descriptionBn?: string;
+  sortOrder: number;
+  visible?: boolean;
+  settings?: any;
+  content?: any;
+  contentBn?: any;
+}
+
 export default function HomeClient({
   header,
   footer,
@@ -37,14 +51,89 @@ export default function HomeClient({
   footer: ReactNode;
   pageData?: any;
 }) {
-  const sections = pageData?.sections || [];
-  const heroSection = sections.find((s: any) => s.type === "hero");
-  const focusSection = sections.find((s: any) => s.type === "focus");
-  const researchSection = sections.find((s: any) => s.type === "featured_research");
-  const impactSection = sections.find((s: any) => s.type === "impact");
-  const eventsSection = sections.find((s: any) => s.type === "events_newsletter");
+  const rawSections: HomeSectionData[] = Array.isArray(pageData?.sections) ? pageData.sections : [];
+  
+  // Sort sections by sortOrder
+  const sortedSections = [...rawSections].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const isVisible = (sec?: HomeSectionData) => (sec ? sec.visible !== false : true);
+  const visibleSections = sortedSections.filter(isVisible);
 
-  const isVisible = (sec?: any) => (sec ? sec.visible !== false : true);
+  // Check if indexing_scanner is an explicit section in DB
+  const hasExplicitScanner = visibleSections.some((s) => s.type === "indexing_scanner" || s.type === "indexing");
+
+  const renderSection = (sec: HomeSectionData, index: number) => {
+    switch (sec.type) {
+      case "hero":
+        return <Hero key={sec.id || `hero-${index}`} cmsData={sec} />;
+
+      case "focus":
+        return (
+          <div key={sec.id || `focus-${index}`}>
+            <SectionSeparator />
+            <section id="focus">
+              <FocusAreas cmsData={sec} />
+            </section>
+            {/* Auto-render IndexingScanner after focus if not an explicit custom section */}
+            {!hasExplicitScanner && <IndexingScanner />}
+          </div>
+        );
+
+      case "indexing_scanner":
+      case "indexing":
+        return <IndexingScanner key={sec.id || `scanner-${index}`} />;
+
+      case "featured_research":
+        return (
+          <div key={sec.id || `research-${index}`}>
+            <section id="research">
+              <FeaturedResearch cmsData={sec} />
+            </section>
+          </div>
+        );
+
+      case "impact":
+        return (
+          <div key={sec.id || `impact-${index}`}>
+            <SectionSeparator />
+            <section id="impact">
+              <ImpactStats cmsData={sec} />
+            </section>
+          </div>
+        );
+
+      case "events_newsletter":
+        return (
+          <div key={sec.id || `events-${index}`}>
+            <SectionSeparator />
+            <section id="events">
+              <EventsNewsletter cmsData={sec} />
+            </section>
+          </div>
+        );
+
+      default:
+        // Render any reusable block added from the CMS library
+        return (
+          <div key={sec.id || `sec-${index}`}>
+            <SectionSeparator />
+            <PageSectionsView sections={[{
+              ...sec,
+              id: sec.id,
+              type: sec.type,
+              title: sec.title || "",
+              titleBn: sec.titleBn || "",
+              description: sec.description || "",
+              descriptionBn: sec.descriptionBn || "",
+              sortOrder: sec.sortOrder ?? index,
+              visible: true,
+              settings: typeof sec.settings === "object" ? sec.settings : {},
+              content: typeof sec.content === "object" ? sec.content : {},
+              contentBn: typeof sec.contentBn === "object" ? sec.contentBn : {},
+            } as any]} />
+          </div>
+        );
+    }
+  };
 
   return (
     <ErrorBoundary>
@@ -55,38 +144,20 @@ export default function HomeClient({
 
         {header}
         <main className="flex-1" id="main-content">
-          {isVisible(heroSection) && <Hero cmsData={heroSection} />}
-          {isVisible(focusSection) && (
+          {visibleSections.length > 0 ? (
+            visibleSections.map((sec, idx) => renderSection(sec, idx))
+          ) : (
+            // Default fallback if sections array is empty
             <>
+              <Hero />
               <SectionSeparator />
-              <section id="focus">
-                <FocusAreas cmsData={focusSection} />
-              </section>
-            </>
-          )}
-          {/* Press Freedom Index live-radar section (replaces the old separator gap). */}
-          <IndexingScanner />
-          {isVisible(researchSection) && (
-            <>
-              <section id="research">
-                <FeaturedResearch cmsData={researchSection} />
-              </section>
-            </>
-          )}
-          {isVisible(impactSection) && (
-            <>
+              <section id="focus"><FocusAreas /></section>
+              <IndexingScanner />
+              <section id="research"><FeaturedResearch /></section>
               <SectionSeparator />
-              <section id="impact">
-                <ImpactStats cmsData={impactSection} />
-              </section>
-            </>
-          )}
-          {isVisible(eventsSection) && (
-            <>
+              <section id="impact"><ImpactStats /></section>
               <SectionSeparator />
-              <section id="events">
-                <EventsNewsletter cmsData={eventsSection} />
-              </section>
+              <section id="events"><EventsNewsletter /></section>
             </>
           )}
         </main>

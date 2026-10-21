@@ -46,19 +46,31 @@ function isEntryActive(pathname: string, entry: NavEntry): boolean {
   return entry.children?.some((child) => isEntryActive(pathname, child as NavEntry)) ?? false;
 }
 
-function SiteLogo({ subtitle, logoUrl, onNavigate }: { subtitle: string; logoUrl?: string; onNavigate?: () => void }) {
+function SiteLogo({
+  subtitle,
+  logoUrl,
+  destination = "/",
+  altText = "LENS — Lighthouse for Evolving Narrative Systems",
+  onNavigate,
+}: {
+  subtitle: string;
+  logoUrl?: string;
+  destination?: string;
+  altText?: string;
+  onNavigate?: () => void;
+}) {
   const src = logoUrl || "/images/logo/lens-logo.png";
   const isRemote = /^https?:\/\//i.test(src);
   return (
-    <Link href="/" onClick={onNavigate} className="flex items-center gap-3 shrink-0 group py-1" aria-label="LENS — home">
+    <Link href={destination} onClick={onNavigate} className="flex items-center gap-3 shrink-0 group py-1" aria-label={altText}>
       <div className="flex flex-col justify-center">
         {isRemote ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="LENS — Lighthouse for Evolving Narrative Systems" className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90" />
+          <img src={src} alt={altText} className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90" />
         ) : (
           <Image
             src={src}
-            alt="LENS — Lighthouse for Evolving Narrative Systems"
+            alt={altText}
             width={126}
             height={32}
             className="h-7 sm:h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"
@@ -82,8 +94,17 @@ function SoonBadge() {
   );
 }
 
-export default function SiteHeaderClient({ entries, logoUrl }: { entries: NavEntry[]; logoUrl?: string }) {
-  const { t } = useTranslation();
+export default function SiteHeaderClient({
+  entries,
+  logoUrl,
+  settings,
+}: {
+  entries: NavEntry[];
+  logoUrl?: string;
+  settings?: Record<string, { value: string; valueBn: string }>;
+}) {
+  const { t, i18n } = useTranslation();
+  const isBn = i18n.language === "bn";
   const resolveLabel = useNavLabel();
   const pathname = usePathname() ?? "/";
   const [scrolled, setScrolled] = useState(false);
@@ -99,6 +120,20 @@ export default function SiteHeaderClient({ entries, logoUrl }: { entries: NavEnt
 
   const isHome = pathname === "/";
   const solid = scrolled || !isHome;
+
+  // Settings resolution
+  const announcementEnabled = settings?.announcement_enabled?.value === "true";
+  const announcementText = isBn
+    ? (settings?.announcement_text?.valueBn || settings?.announcement_text?.value)
+    : (settings?.announcement_text?.value || "");
+  const announcementLink = settings?.announcement_link?.value || "/about";
+  const logoDestination = settings?.site_logo_destination?.value || "/";
+  const logoAlt = (isBn ? settings?.site_logo_alt?.valueBn : settings?.site_logo_alt?.value)
+    || "LENS — Lighthouse for Evolving Narrative Systems";
+  const ctaVisible = settings?.header_cta_visible?.value !== "false";
+  const ctaLabel = (isBn ? settings?.header_cta_label?.valueBn : settings?.header_cta_label?.value)
+    || (DONATE_CTA.label.kind === "key" ? t(DONATE_CTA.label.key) : t("nav.donate"));
+  const ctaUrl = settings?.header_cta_url?.value || DONATE_CTA.href;
 
   // --- scroll state -------------------------------------------------
   useEffect(() => {
@@ -260,9 +295,31 @@ export default function SiteHeaderClient({ entries, logoUrl }: { entries: NavEnt
           : "bg-transparent"
       }`}
     >
+      {/* Announcement Bar */}
+      {announcementEnabled && announcementText && (
+        <div className="bg-gradient-to-r from-teal-900/90 via-navy-900/95 to-teal-900/90 text-white text-xs py-1.5 px-4 border-b border-teal-500/20 text-center">
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse shrink-0" />
+            {announcementLink ? (
+              <Link href={announcementLink} className="hover:text-teal-300 font-medium transition-colors underline decoration-teal-400/40 underline-offset-2 truncate">
+                {announcementText}
+              </Link>
+            ) : (
+              <span className="font-medium truncate">{announcementText}</span>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
-          <SiteLogo subtitle={t("site.subtitle")} logoUrl={logoUrl} onNavigate={() => setOpenMenu(null)} />
+          <SiteLogo
+            subtitle={t("site.subtitle")}
+            logoUrl={logoUrl}
+            destination={logoDestination}
+            altText={logoAlt}
+            onNavigate={() => setOpenMenu(null)}
+          />
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-1" aria-label="Primary" onClick={onDesktopNavClick}>
@@ -378,13 +435,15 @@ export default function SiteHeaderClient({ entries, logoUrl }: { entries: NavEnt
           {/* Right actions */}
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
-            {/* Informational /donate page; no payment processing (Phase B scope). */}
-            <Link
-              href={DONATE_CTA.href}
-              className="hidden sm:inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-400 text-white text-sm font-semibold rounded-full hover:from-gold-400 hover:to-gold-300 transition-all shadow-md hover:shadow-lg hover:shadow-gold-500/20"
-            >
-              {t(DONATE_CTA.label.kind === "key" ? DONATE_CTA.label.key : "nav.donate")}
-            </Link>
+            {/* Configurable Action / Donate CTA button */}
+            {ctaVisible && (
+              <Link
+                href={ctaUrl}
+                className="hidden sm:inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-400 text-white text-sm font-semibold rounded-full hover:from-gold-400 hover:to-gold-300 transition-all shadow-md hover:shadow-lg hover:shadow-gold-500/20"
+              >
+                {ctaLabel}
+              </Link>
+            )}
             <button
               ref={mobileToggleRef}
               type="button"

@@ -85,11 +85,40 @@ export const SECTION_TYPE_DEFS: SectionTypeDef[] = [
   {
     type: "hero",
     label: "Hero",
-    description: "Large banner with optional background image and CTAs.",
+    description: "Large banner with background image/video, CTAs, overlay and layout options.",
     fields: [
       { key: "eyebrow", label: "Eyebrow text", kind: "text", target: "content" },
       { key: "subtitle", label: "Subtitle", kind: "textarea", target: "content" },
       { key: "image", label: "Background image", kind: "image", target: "content" },
+      { key: "backgroundVideo", label: "Background video URL (.mp4/.webm)", kind: "url", target: "content", help: "Upload to Media Library and copy URL or relative path" },
+      { key: "posterImage", label: "Video poster / fallback image", kind: "image", target: "content" },
+      { key: "imageAlt", label: "Media alt / accessibility text", kind: "text", target: "content" },
+      { key: "overlayColor", label: "Overlay color", kind: "select", target: "content",
+        options: [
+          { value: "navy", label: "Navy blue (LENS default)" },
+          { value: "dark", label: "Dark slate" },
+          { value: "teal", label: "Teal" },
+          { value: "none", label: "None / transparent" },
+        ] },
+      { key: "overlayOpacity", label: "Overlay opacity", kind: "select", target: "content",
+        options: [
+          { value: "0.2", label: "20% (Subtle)" },
+          { value: "0.4", label: "40%" },
+          { value: "0.6", label: "60% (Default)" },
+          { value: "0.8", label: "80% (Dark)" },
+          { value: "0.95", label: "95% (Almost solid)" },
+        ] },
+      { key: "layoutVariant", label: "Layout variant", kind: "select", target: "content",
+        options: [
+          { value: "default", label: "Default (Full-width text left)" },
+          { value: "centered", label: "Centered" },
+          { value: "split", label: "Split (Text left, Media right)" },
+        ] },
+      { key: "textAlignment", label: "Text alignment", kind: "select", target: "content",
+        options: [
+          { value: "left", label: "Left" },
+          { value: "center", label: "Center" },
+        ] },
       { key: "ctaLabel", label: "Primary button label", kind: "text", target: "content" },
       { key: "ctaUrl", label: "Primary button URL", kind: "url", target: "content" },
       { key: "ctaLabel2", label: "Secondary button label", kind: "text", target: "content" },
@@ -132,11 +161,28 @@ export const SECTION_TYPE_DEFS: SectionTypeDef[] = [
   {
     type: "banner",
     label: "Banner",
-    description: "Slim hero-style banner (same fields as Hero).",
+    description: "Slim hero-style banner with image or video.",
     fields: [
       { key: "eyebrow", label: "Eyebrow text", kind: "text", target: "content" },
       { key: "subtitle", label: "Subtitle", kind: "textarea", target: "content" },
       { key: "image", label: "Background image", kind: "image", target: "content" },
+      { key: "backgroundVideo", label: "Background video URL", kind: "url", target: "content" },
+      { key: "posterImage", label: "Video poster / fallback image", kind: "image", target: "content" },
+      { key: "overlayColor", label: "Overlay color", kind: "select", target: "content",
+        options: [
+          { value: "navy", label: "Navy blue" },
+          { value: "dark", label: "Dark slate" },
+          { value: "teal", label: "Teal" },
+          { value: "none", label: "None" },
+        ] },
+      { key: "overlayOpacity", label: "Overlay opacity", kind: "select", target: "content",
+        options: [
+          { value: "0.3", label: "30%" },
+          { value: "0.6", label: "60% (Default)" },
+          { value: "0.85", label: "85%" },
+        ] },
+      { key: "ctaLabel", label: "Button label", kind: "text", target: "content" },
+      { key: "ctaUrl", label: "Button URL", kind: "url", target: "content" },
     ],
   },
   {
@@ -750,6 +796,7 @@ function SectionForm(props: RowProps) {
   const { row, onSave, onDuplicate, onDelete } = props;
   const typeDef = SECTION_TYPE_DEFS.find((d) => d.type === row.type);
   const [draft, setDraft] = useState<SectionRow>({ ...row });
+  const [activeLang, setActiveLang] = useState<"en" | "bn">("en");
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [pickerKey, setPickerKey] = useState<string | null>(null);
@@ -760,37 +807,86 @@ function SectionForm(props: RowProps) {
 
   const setJson = (target: "content" | "settings" | "contentBn", next: Record<string, unknown>) => {
     const serialized = JSON.stringify(next);
-    setDraft((d) => ({ ...d, [target === "contentBn" ? "contentBn" : target]: serialized }));
+    setDraft((d) => ({ ...d, [target]: serialized }));
   };
 
   const getRoot = (target: "content" | "settings") => (target === "settings" ? settings : content);
-  const setValue = (field: FieldDef, value: unknown) =>
-    setJson(field.target, { ...obj(getRoot(field.target)), [field.key]: value });
 
-  const getItemList = (field: FieldDef) => records(obj(getRoot(field.target))[field.key]);
-  const setItemList = (field: FieldDef, list: Record<string, unknown>[]) =>
-    setJson(field.target, { ...obj(getRoot(field.target)), [field.key]: list });
-  const setItemValue = (field: FieldDef, idx: number, key: string, value: unknown) => {
-    const list = getItemList(field);
+  const setValue = (field: FieldDef, value: unknown, lang: "en" | "bn" = activeLang) => {
+    if (field.target === "settings") {
+      setJson("settings", { ...settings, [field.key]: value });
+    } else if (lang === "bn") {
+      setJson("contentBn", { ...contentBn, [field.key]: value });
+    } else {
+      setJson("content", { ...content, [field.key]: value });
+    }
+  };
+
+  const getItemList = (field: FieldDef, lang: "en" | "bn" = activeLang) => {
+    if (lang === "bn") {
+      const bnList = records(contentBn[field.key]);
+      const enList = records(content[field.key]);
+      if (bnList.length < enList.length) {
+        const padded = [...bnList];
+        for (let i = bnList.length; i < enList.length; i++) {
+          const blank: Record<string, unknown> = {};
+          for (const f of field.itemFields ?? []) blank[f.key] = f.kind === "number" ? 0 : "";
+          padded.push(blank);
+        }
+        return padded;
+      }
+      return bnList;
+    }
+    return records(obj(getRoot(field.target))[field.key]);
+  };
+
+  const setItemList = (field: FieldDef, list: Record<string, unknown>[], lang: "en" | "bn" = activeLang) => {
+    if (lang === "bn") {
+      setJson("contentBn", { ...contentBn, [field.key]: list });
+    } else {
+      setJson(field.target, { ...obj(getRoot(field.target)), [field.key]: list });
+    }
+  };
+
+  const setItemValue = (field: FieldDef, idx: number, key: string, value: unknown, lang: "en" | "bn" = activeLang) => {
+    const list = getItemList(field, lang);
     setItemList(
       field,
-      list.map((it, i) => (i === idx ? { ...it, [key]: value } : it))
+      list.map((it, i) => (i === idx ? { ...it, [key]: value } : it)),
+      lang
     );
   };
+
   const addItem = (field: FieldDef) => {
     const blank: Record<string, unknown> = {};
     for (const f of field.itemFields ?? []) blank[f.key] = f.kind === "number" ? 0 : "";
-    setItemList(field, [...getItemList(field), blank]);
+    setItemList(field, [...getItemList(field, "en"), blank], "en");
+    if (records(contentBn[field.key]).length > 0) {
+      setItemList(field, [...getItemList(field, "bn"), { ...blank }], "bn");
+    }
   };
-  const removeItem = (field: FieldDef, idx: number) =>
-    setItemList(field, getItemList(field).filter((_, i) => i !== idx));
+
+  const removeItem = (field: FieldDef, idx: number) => {
+    setItemList(field, getItemList(field, "en").filter((_, i) => i !== idx), "en");
+    if (records(contentBn[field.key]).length > 0) {
+      setItemList(field, getItemList(field, "bn").filter((_, i) => i !== idx), "bn");
+    }
+  };
+
   const moveItem = (field: FieldDef, idx: number, dir: -1 | 1) => {
-    const list = getItemList(field);
+    const list = getItemList(field, "en");
     const swap = idx + dir;
     if (swap < 0 || swap >= list.length) return;
     const next = [...list];
     [next[idx], next[swap]] = [next[swap], next[idx]];
-    setItemList(field, next);
+    setItemList(field, next, "en");
+
+    const bnList = getItemList(field, "bn");
+    if (bnList.length === list.length) {
+      const nextBn = [...bnList];
+      [nextBn[idx], nextBn[swap]] = [nextBn[swap], nextBn[idx]];
+      setItemList(field, nextBn, "bn");
+    }
   };
 
   /** pickerKey format:
@@ -801,14 +897,53 @@ function SectionForm(props: RowProps) {
     const [target, key] = parts;
     const field = typeDef?.fields.find((f) => f.key === key);
     if (!field) { setPickerKey(null); return; }
+    const isBn = target === "contentBn";
     if (parts.length === 4) {
-      setItemValue(field, Number(parts[2]), parts[3], url);
+      setItemValue(field, Number(parts[2]), parts[3], url, isBn ? "bn" : "en");
     } else {
-      setValue(field, url);
+      setValue(field, url, isBn ? "bn" : "en");
     }
-    void target;
     setPickerKey(null);
   };
+
+  const fields = typeDef?.fields ?? [];
+
+  const translationPercent = useMemo(() => {
+    let total = 0;
+    let translated = 0;
+    if (draft.title?.trim()) {
+      total++;
+      if (draft.titleBn?.trim()) translated++;
+    }
+    if (draft.description?.trim()) {
+      total++;
+      if (draft.descriptionBn?.trim()) translated++;
+    }
+    for (const f of fields) {
+      if (f.target !== "content") continue;
+      if (f.kind === "text" || f.kind === "textarea" || f.kind === "paragraphs") {
+        const enVal = asStr(content[f.key]);
+        if (enVal.trim()) {
+          total++;
+          if (asStr(contentBn[f.key]).trim()) translated++;
+        }
+      } else if (f.itemFields) {
+        const enItems = records(content[f.key]);
+        const bnItems = records(contentBn[f.key]);
+        if (enItems.length > 0) {
+          total += enItems.length;
+          for (let i = 0; i < enItems.length; i++) {
+            const bnItem = bnItems[i];
+            if (bnItem && Object.values(bnItem).some((v) => typeof v === "string" && v.trim())) {
+              translated++;
+            }
+          }
+        }
+      }
+    }
+    if (total === 0) return 100;
+    return Math.round((translated / total) * 100);
+  }, [draft.title, draft.titleBn, draft.description, draft.descriptionBn, content, contentBn, fields]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -826,21 +961,87 @@ function SectionForm(props: RowProps) {
     }
   };
 
-  const fields = typeDef?.fields ?? [];
-
   return (
     <div className="space-y-4">
       {localError && (
         <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">{localError}</div>
       )}
 
+      {/* Language Switcher & Translation Progress */}
+      <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 flex-wrap gap-2">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg">
+          <button
+            type="button"
+            onClick={() => setActiveLang("en")}
+            className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+              activeLang === "en"
+                ? "bg-navy-950 text-white shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            English (EN)
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveLang("bn")}
+            className={`px-3 py-1 rounded-md text-xs font-semibold transition-all font-bangla ${
+              activeLang === "bn"
+                ? "bg-teal-600 text-white shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            বাংলা (BN)
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-slate-500 font-medium">Translation:</span>
+          <span
+            className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+              translationPercent === 100
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : translationPercent > 0
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-slate-100 text-slate-600 border-slate-200"
+            }`}
+          >
+            {translationPercent}% Translated
+          </span>
+        </div>
+      </div>
+
+      {/* Title & Description */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Input label="Section title (EN)" value={draft.title} onChange={(v) => setDraft({ ...draft, title: v })} />
-        <Input label="Section title (বাংলা)" value={draft.titleBn} onChange={(v) => setDraft({ ...draft, titleBn: v })} bangla />
+        <Input
+          label="Section title (EN)"
+          value={draft.title}
+          onChange={(v) => setDraft({ ...draft, title: v })}
+          highlight={activeLang === "en"}
+        />
+        <Input
+          label="Section title (বাংলা)"
+          value={draft.titleBn}
+          onChange={(v) => setDraft({ ...draft, titleBn: v })}
+          bangla
+          highlight={activeLang === "bn"}
+        />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Textarea label="Section description (EN)" value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })} rows={2} />
-        <Textarea label="Section description (বাংলা)" value={draft.descriptionBn} onChange={(v) => setDraft({ ...draft, descriptionBn: v })} rows={2} bangla />
+        <Textarea
+          label="Section description (EN)"
+          value={draft.description}
+          onChange={(v) => setDraft({ ...draft, description: v })}
+          rows={2}
+          highlight={activeLang === "en"}
+        />
+        <Textarea
+          label="Section description (বাংলা)"
+          value={draft.descriptionBn}
+          onChange={(v) => setDraft({ ...draft, descriptionBn: v })}
+          rows={2}
+          bangla
+          highlight={activeLang === "bn"}
+        />
       </div>
 
       <label className="flex items-center gap-2 text-xs text-slate-700 font-medium">
@@ -853,37 +1054,70 @@ function SectionForm(props: RowProps) {
         Visible on public page
       </label>
 
+      {/* Dynamic Type Fields */}
       {fields.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {fields.map((field) =>
-            field.itemFields ? (
-              <ItemsEditor
-                key={field.key}
-                field={field}
-                list={getItemList(field)}
-                add={() => addItem(field)}
-                remove={(i) => removeItem(field, i)}
-                move={(i, d) => moveItem(field, i, d)}
-                setItemValue={(i, k, v) => setItemValue(field, i, k, v)}
-                openPicker={(k) => setPickerKey(`content:${field.key}:${k}`)}
-              />
-            ) : field.kind === "paragraphs" ? (
-              <ParagraphsEditor
-                key={field.key}
-                field={field}
-                value={obj(getRoot(field.target))[field.key]}
-                onChange={(list) => setValue(field, list)}
-              />
-            ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+          {fields.map((field) => {
+            const isBn = activeLang === "bn";
+            const isSettings = field.target === "settings";
+
+            if (field.itemFields) {
+              const list = getItemList(field, activeLang);
+              const enList = getItemList(field, "en");
+              return (
+                <ItemsEditor
+                  key={field.key}
+                  field={field}
+                  list={list}
+                  enList={enList}
+                  activeLang={activeLang}
+                  add={() => addItem(field)}
+                  remove={(i) => removeItem(field, i)}
+                  move={(i, d) => moveItem(field, i, d)}
+                  setItemValue={(i, k, v) => setItemValue(field, i, k, v, activeLang)}
+                  openPicker={(k) => setPickerKey(`${isBn ? "contentBn" : "content"}:${field.key}:${k}`)}
+                />
+              );
+            }
+
+            if (field.kind === "paragraphs") {
+              const currentVal = isBn
+                ? (contentBn[field.key] !== undefined ? contentBn[field.key] : "")
+                : obj(getRoot(field.target))[field.key];
+              const enVal = content[field.key];
+              const enRef = Array.isArray(enVal) ? enVal.join("\n\n") : asStr(enVal);
+              return (
+                <ParagraphsEditor
+                  key={field.key}
+                  field={field}
+                  value={currentVal}
+                  enReference={isBn ? enRef : undefined}
+                  bangla={isBn}
+                  onChange={(list) => setValue(field, list, activeLang)}
+                />
+              );
+            }
+
+            // Normal TypeField
+            const val = isSettings
+              ? settings[field.key]
+              : isBn
+              ? (contentBn[field.key] !== undefined ? contentBn[field.key] : "")
+              : content[field.key];
+            const enRef = isBn && !isSettings ? asStr(content[field.key]) : undefined;
+
+            return (
               <TypeField
                 key={field.key}
                 field={field}
-                value={obj(getRoot(field.target))[field.key]}
-                onChange={(v) => setValue(field, v)}
-                openPicker={() => setPickerKey(`content:${field.key}`)}
+                value={val}
+                enReference={enRef}
+                bangla={isBn && !isSettings}
+                onChange={(v) => setValue(field, v, activeLang)}
+                openPicker={() => setPickerKey(`${isBn && !isSettings ? "contentBn" : "content"}:${field.key}`)}
               />
-            )
-          )}
+            );
+          })}
         </div>
       )}
 
@@ -893,12 +1127,10 @@ function SectionForm(props: RowProps) {
           Bengali content override (advanced JSON)
         </summary>
         <p className="text-[11px] text-slate-500 mt-1.5">
-          Mirror the same shapes above, e.g. <code>{`{"subtitle":"..."}`}</code> or{" "}
-          <code>{`{"items":[{"title":"...", "description":"..."}]}`}</code>. Empty means Bengali falls
-          back to the English content. Invalid URLs or script tags are rejected on save.
+          Directly synced with the Bengali inputs above. You can paste custom JSON shapes here, e.g. <code>{`{"subtitle":"..."}`}</code>. Invalid URLs or script tags are rejected on save.
         </p>
         <textarea
-          rows={5}
+          rows={4}
           value={draft.contentBn}
           onChange={(e) => setDraft({ ...draft, contentBn: e.target.value })}
           className="mt-2 w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
@@ -908,24 +1140,27 @@ function SectionForm(props: RowProps) {
 
       {/* Media picker overlay */}
       {pickerKey && (
-        <MediaPickerModal open onClose={() => setPickerKey(null)} onSelect={onPick} title="Select Image" />
+        <MediaPickerModal open onClose={() => setPickerKey(null)} onSelect={onPick} title="Select Image or Media" />
       )}
 
       <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={() => onDuplicate(row)}
             className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-50 transition-colors shadow-2xs"
           >
             Duplicate
           </button>
           <button
+            type="button"
             onClick={() => { if (confirm(`Delete "${draft.title || row.type}"? This cannot be undone.`)) onDelete(row); }}
-            className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs hover:bg-red-500/20 transition-colors"
+            className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-xs hover:bg-red-500/20 transition-colors"
           >
             Delete
           </button>
           <button
+            type="button"
             onClick={handleSave}
             disabled={saving}
             className="px-4 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors shadow-xs disabled:opacity-50"
@@ -945,11 +1180,20 @@ function SectionForm(props: RowProps) {
 const inputCls =
   "w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors";
 
-function TypeField({ field, value, onChange, openPicker }: {
+function TypeField({
+  field,
+  value,
+  onChange,
+  openPicker,
+  enReference,
+  bangla,
+}: {
   field: FieldDef;
   value: unknown;
   onChange: (v: unknown) => void;
   openPicker: () => void;
+  enReference?: string;
+  bangla?: boolean;
 }) {
   const s = asStr(value);
 
@@ -958,14 +1202,24 @@ function TypeField({ field, value, onChange, openPicker }: {
       <div>
         <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
         <div className="flex items-center gap-2">
-          <input type="text" value={s} onChange={(e) => onChange(e.target.value)} placeholder="Image URL" className={inputCls} />
+          <input
+            type="text"
+            value={s}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={enReference ? `EN: ${enReference}` : "Image URL or path"}
+            className={inputCls}
+          />
           <button
+            type="button"
             onClick={openPicker}
             className="px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-200 transition-colors whitespace-nowrap"
           >
             Browse…
           </button>
         </div>
+        {enReference && !s && (
+          <p className="text-[11px] text-slate-400 mt-1 truncate">Using English image: {enReference}</p>
+        )}
         {s && /^https?:\/\/|^\//.test(s) && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={s} alt="" className="mt-2 max-h-20 rounded-lg border border-slate-200" />
@@ -977,14 +1231,19 @@ function TypeField({ field, value, onChange, openPicker }: {
   if (field.kind === "text") {
     return (
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
+        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+          {field.label} {bangla && <span className="text-teal-600 text-[10px] lowercase">(বাংলা)</span>}
+        </label>
         <input
           type="text"
           value={s}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={field.label}
-          className={inputCls}
+          placeholder={enReference ? `EN: ${enReference}` : field.label}
+          className={`${inputCls} ${bangla ? "font-bangla" : ""}`}
         />
+        {enReference && (
+          <p className="text-[11px] text-slate-400 mt-1 truncate">EN: {enReference}</p>
+        )}
       </div>
     );
   }
@@ -995,7 +1254,7 @@ function TypeField({ field, value, onChange, openPicker }: {
         <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
         <select value={s} onChange={(e) => onChange(e.target.value)} className={inputCls}>
           {(field.options ?? []).map((o) => (
-            <option key={o.value} value={o.value} >{o.label}</option>
+            <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
       </div>
@@ -1020,8 +1279,19 @@ function TypeField({ field, value, onChange, openPicker }: {
   if (field.kind === "textarea") {
     return (
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
-        <textarea rows={3} value={s} onChange={(e) => onChange(e.target.value)} className={`${inputCls} resize-y`} placeholder={field.label} />
+        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+          {field.label} {bangla && <span className="text-teal-600 text-[10px] lowercase">(বাংলা)</span>}
+        </label>
+        <textarea
+          rows={3}
+          value={s}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${inputCls} resize-y ${bangla ? "font-bangla" : ""}`}
+          placeholder={enReference ? `EN: ${enReference}` : field.label}
+        />
+        {enReference && (
+          <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">EN: {enReference}</p>
+        )}
       </div>
     );
   }
@@ -1034,9 +1304,13 @@ function TypeField({ field, value, onChange, openPicker }: {
           type="text"
           value={s}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="https://… or /path"
+          placeholder={enReference ? `EN: ${enReference}` : "https://… or /path"}
           className={inputCls}
         />
+        {enReference && !s && (
+          <p className="text-[11px] text-slate-400 mt-1 truncate">Using EN link: {enReference}</p>
+        )}
+        {field.help && <p className="text-[11px] text-slate-500 mt-1">{field.help}</p>}
       </div>
     );
   }
@@ -1044,8 +1318,16 @@ function TypeField({ field, value, onChange, openPicker }: {
   if (field.kind === "paragraphs") {
     return (
       <div>
-        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
-        <textarea rows={3} value={s} onChange={(e) => onChange(e.target.value)} className={`${inputCls} resize-y`} placeholder="Blank line = new paragraph" />
+        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+          {field.label} {bangla && <span className="text-teal-600 text-[10px] lowercase">(বাংলা)</span>}
+        </label>
+        <textarea
+          rows={3}
+          value={s}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${inputCls} resize-y ${bangla ? "font-bangla" : ""}`}
+          placeholder="Blank line = new paragraph"
+        />
       </div>
     );
   }
@@ -1057,23 +1339,34 @@ function TypeField({ field, value, onChange, openPicker }: {
         type="text"
         value={s}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={undefined}
-        className={inputCls}
+        className={`${inputCls} ${bangla ? "font-bangla" : ""}`}
       />
       {field.help && <p className="text-[11px] text-slate-500 mt-1">{field.help}</p>}
     </div>
   );
 }
 
-function ParagraphsEditor({ field, value, onChange }: {
+function ParagraphsEditor({
+  field,
+  value,
+  onChange,
+  enReference,
+  bangla,
+}: {
   field: FieldDef;
   value: unknown;
   onChange: (list: string[]) => void;
+  enReference?: string;
+  bangla?: boolean;
 }) {
   const initial = Array.isArray(value)
     ? (value as unknown[]).filter((v): v is string => typeof v === "string").join("\n\n")
     : typeof value === "string" ? value : "";
   const [text, setText] = useState(initial);
+
+  useEffect(() => {
+    setText(initial);
+  }, [initial]);
 
   const commit = (next: string) => {
     setText(next);
@@ -1082,14 +1375,27 @@ function ParagraphsEditor({ field, value, onChange }: {
 
   return (
     <div className="md:col-span-2">
-      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+          {field.label} {bangla && <span className="text-teal-600 text-[10px] lowercase">(বাংলা)</span>}
+        </label>
+        {bangla && enReference && (
+          <span className="text-[11px] text-slate-400">English text available below for reference</span>
+        )}
+      </div>
       <textarea
         rows={6}
         value={text}
         onChange={(e) => commit(e.target.value)}
-        className={`${inputCls} resize-y`}
-        placeholder="Blank line = new paragraph"
+        className={`${inputCls} resize-y ${bangla ? "font-bangla" : ""}`}
+        placeholder={enReference ? `বাংলা অনুচ্ছেদ লিখুন...\n\n(Reference: ${enReference.slice(0, 80)}...)` : "Blank line = new paragraph"}
       />
+      {bangla && enReference && (
+        <details className="mt-1 text-[11px] text-slate-500 bg-slate-50 p-2 rounded border border-slate-200">
+          <summary className="cursor-pointer font-medium text-slate-600">View English reference text</summary>
+          <div className="mt-1 whitespace-pre-line text-slate-700">{enReference}</div>
+        </details>
+      )}
       <p className="text-[11px] text-slate-500 mt-1">
         Blank line = new paragraph. Supports *italic*, **bold**, [label](/link).
       </p>
@@ -1097,21 +1403,35 @@ function ParagraphsEditor({ field, value, onChange }: {
   );
 }
 
-function ItemsEditor({ field, list, add, remove, move, setItemValue, openPicker }: {
+function ItemsEditor({
+  field,
+  list,
+  enList,
+  activeLang,
+  add,
+  remove,
+  move,
+  setItemValue,
+  openPicker,
+}: {
   field: FieldDef;
   list: Record<string, unknown>[];
+  enList: Record<string, unknown>[];
+  activeLang: "en" | "bn";
   add: () => void;
   remove: (idx: number) => void;
   move: (idx: number, dir: -1 | 1) => void;
   setItemValue: (idx: number, key: string, v: unknown) => void;
   openPicker: (key: string) => void;
 }) {
-  void setItemValue; // handled inside ItemCard via props below
   return (
     <div className="md:col-span-2">
       <div className="flex items-center justify-between mb-2">
-        <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">{field.label}</label>
+        <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+          {field.label} {activeLang === "bn" && <span className="text-teal-600 text-[10px] lowercase">(বাংলা)</span>}
+        </label>
         <button
+          type="button"
           onClick={add}
           className="text-[11px] px-2.5 py-1 rounded-md bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 transition-colors font-medium"
         >
@@ -1125,6 +1445,8 @@ function ItemsEditor({ field, list, add, remove, move, setItemValue, openPicker 
             field={field}
             fields={field.itemFields ?? []}
             item={item}
+            enItem={enList[idx] || {}}
+            activeLang={activeLang}
             index={idx}
             listLen={list.length}
             setItemValue={setItemValue}
@@ -1139,10 +1461,24 @@ function ItemsEditor({ field, list, add, remove, move, setItemValue, openPicker 
   );
 }
 
-function ItemCard({ field, fields, item, index, listLen, setItemValue, removeItem, moveItem, openPicker }: {
+function ItemCard({
+  field,
+  fields,
+  item,
+  enItem,
+  activeLang,
+  index,
+  listLen,
+  setItemValue,
+  removeItem,
+  moveItem,
+  openPicker,
+}: {
   field: FieldDef;
   fields: FieldDef[];
   item: Record<string, unknown>;
+  enItem: Record<string, unknown>;
+  activeLang: "en" | "bn";
   index: number;
   listLen: number;
   setItemValue: (idx: number, key: string, v: unknown) => void;
@@ -1155,23 +1491,31 @@ function ItemCard({ field, fields, item, index, listLen, setItemValue, removeIte
     "w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors";
 
   const previewKey = field.itemLabelKey ?? "title";
-  const preview = asStr(item[previewKey]).slice(0, 60) || `Item ${index + 1}`;
+  const preview = asStr(item[previewKey]).slice(0, 60) || asStr(enItem[previewKey]).slice(0, 60) || `Item ${index + 1}`;
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-2xs">
       <div className="flex items-center gap-2 px-3 py-2">
-        <button onClick={() => setOpen((v) => !v)} className="flex-1 text-left min-w-0">
-          <p className="text-xs font-medium text-slate-900 truncate">{preview}</p>
+        <button type="button" onClick={() => setOpen((v) => !v)} className="flex-1 text-left min-w-0">
+          <p className="text-xs font-medium text-slate-900 truncate">
+            {preview}
+            {activeLang === "bn" && !item[previewKey] && Boolean(enItem[previewKey]) && (
+              <span className="ml-2 text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">needs translation</span>
+            )}
+          </p>
         </button>
-        <button onClick={() => moveItem(index, -1)} disabled={index === 0} className="text-slate-500 hover:text-slate-900 disabled:opacity-30 text-xs" title="Move up">↑</button>
-        <button onClick={() => moveItem(index, 1)} disabled={index === listLen - 1} className="text-slate-500 hover:text-slate-900 disabled:opacity-30 text-xs" title="Move down">↓</button>
-        <button onClick={() => removeItem(index)} className="text-red-600 hover:text-red-800 text-xs" title="Remove">✕</button>
+        <button type="button" onClick={() => moveItem(index, -1)} disabled={index === 0} className="text-slate-500 hover:text-slate-900 disabled:opacity-30 text-xs p-1" title="Move up">↑</button>
+        <button type="button" onClick={() => moveItem(index, 1)} disabled={index === listLen - 1} className="text-slate-500 hover:text-slate-900 disabled:opacity-30 text-xs p-1" title="Move down">↓</button>
+        <button type="button" onClick={() => removeItem(index)} className="text-red-500 hover:text-red-700 text-xs p-1" title="Remove">✕</button>
       </div>
       {open && (
         <div className="px-3 pb-3 space-y-2">
           {fields.map((f) => {
+            const isBn = activeLang === "bn";
+            const enVal = asStr(enItem[f.key]);
+
             if (f.kind === "image") {
-              const url = asStr(item[f.key]);
+              const url = asStr(item[f.key]) || (isBn ? enVal : "");
               return (
                 <div key={f.key}>
                   <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">{f.label}</label>
@@ -1180,9 +1524,11 @@ function ItemCard({ field, fields, item, index, listLen, setItemValue, removeIte
                       type="text"
                       value={url}
                       onChange={(e) => setItemValue(index, f.key, e.target.value)}
+                      placeholder={isBn && enVal ? `EN: ${enVal}` : "Image URL"}
                       className={itemCls}
                     />
                     <button
+                      type="button"
                       onClick={() => openPicker(String(index) + ":" + f.key)}
                       className="px-2 py-1.5 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-medium text-slate-700 hover:bg-slate-200 transition-colors whitespace-nowrap"
                     >
@@ -1199,27 +1545,39 @@ function ItemCard({ field, fields, item, index, listLen, setItemValue, removeIte
             if (f.kind === "textarea") {
               return (
                 <div key={f.key}>
-                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">{f.label}</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    {f.label} {isBn && <span className="text-teal-600 text-[10px] lowercase">(বাংলা)</span>}
+                  </label>
                   <textarea
                     rows={2}
                     value={asStr(item[f.key])}
                     onChange={(e) => setItemValue(index, f.key, e.target.value)}
-                    className={`${itemCls} resize-y`}
+                    placeholder={isBn && enVal ? `EN: ${enVal}` : f.label}
+                    className={`${itemCls} resize-y ${isBn ? "font-bangla" : ""}`}
                   />
+                  {isBn && enVal && (
+                    <p className="text-[10px] text-slate-400 mt-0.5 truncate">EN: {enVal}</p>
+                  )}
                 </div>
               );
             }
             return (
               <div key={f.key}>
-                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">{f.label}</label>
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  {f.label} {isBn && f.kind !== "number" && <span className="text-teal-600 text-[10px] lowercase">(বাংলা)</span>}
+                </label>
                 <input
                   type={f.kind === "number" ? "number" : "text"}
                   value={f.kind === "number" ? String(Number(item[f.key]) || 0) : asStr(item[f.key])}
+                  placeholder={isBn && enVal ? `EN: ${enVal}` : f.label}
                   onChange={(e) =>
                     setItemValue(index, f.key, f.kind === "number" ? (parseInt(e.target.value) || 0) : e.target.value)
                   }
-                  className={itemCls}
+                  className={`${itemCls} ${isBn && f.kind !== "number" ? "font-bangla" : ""}`}
                 />
+                {isBn && enVal && f.kind !== "number" && (
+                  <p className="text-[10px] text-slate-400 mt-0.5 truncate">EN: {enVal}</p>
+                )}
               </div>
             );
           })}
@@ -1233,29 +1591,63 @@ function ItemCard({ field, fields, item, index, listLen, setItemValue, removeIte
 // Primitives
 // ============================================================
 
-function Input({ label, value, onChange, bangla }: { label: string; value: string; onChange: (v: string) => void; bangla?: boolean }) {
+function Input({
+  label,
+  value,
+  onChange,
+  bangla,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  bangla?: boolean;
+  highlight?: boolean;
+}) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+        {label}
+      </label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors ${bangla ? "font-bangla" : ""}`}
+        className={`w-full px-3.5 py-2.5 bg-white border rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors ${
+          bangla ? "font-bangla" : ""
+        } ${highlight ? "border-teal-500/50 bg-teal-50/10" : "border-slate-300"}`}
       />
     </div>
   );
 }
 
-function Textarea({ label, value, onChange, rows, bangla }: { label: string; value: string; onChange: (v: string) => void; rows: number; bangla?: boolean }) {
+function Textarea({
+  label,
+  value,
+  onChange,
+  rows,
+  bangla,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows: number;
+  bangla?: boolean;
+  highlight?: boolean;
+}) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+        {label}
+      </label>
       <textarea
         rows={rows}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors resize-none ${bangla ? "font-bangla" : ""}`}
+        className={`w-full px-3.5 py-2.5 bg-white border rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors resize-none ${
+          bangla ? "font-bangla" : ""
+        } ${highlight ? "border-teal-500/50 bg-teal-50/10" : "border-slate-300"}`}
       />
     </div>
   );
