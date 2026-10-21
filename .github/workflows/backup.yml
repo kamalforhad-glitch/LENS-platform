@@ -124,7 +124,7 @@ jobs:
           endpoint="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
           head=$(aws s3api head-object --bucket "$R2_BUCKET" --key "$BACKUP_KEY" --endpoint-url "$endpoint")
           echo "$head"
-          bytes=$(echo "$head" | grep -o '"ContentLength":[0-9]*' | cut -d: -f2)
+          bytes=$(aws s3api head-object --bucket "$R2_BUCKET" --key "$BACKUP_KEY" --endpoint-url "$endpoint" --query 'ContentLength' --output text)
           if [ "${bytes:-0}" -le 0 ]; then
             echo "::error::Uploaded object has zero size — failing loudly."
             exit 1
