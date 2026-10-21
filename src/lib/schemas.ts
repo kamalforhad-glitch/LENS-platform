@@ -56,18 +56,26 @@ const stringList = (maxItemLength: number) =>
 // status/totalDownloads/slug/… on the researcher_profiles table).
 export const researcherCreateSchema = z.object({
   name: z.string().trim().min(2).max(150),
+  nameBn: z.string().trim().max(150).optional().default(""),
   email: optionalEmailSchema,
   affiliation: z.string().trim().max(200).default(""),
+  affiliationBn: z.string().trim().max(150).optional().default(""),
   position: z.string().trim().max(200).default(""),
+  positionBn: z.string().trim().max(150).optional().default(""),
   bio: z.string().trim().max(5000).default(""),
+  bioBn: z.string().trim().max(5000).optional().default(""),
   image: optionalUrlSchema,
   orcid: z.string().trim().max(100).optional().nullable(),
   website: optionalUrlSchema,
   social: z.record(z.string().trim().max(50), z.string().trim().max(500)).optional(),
   researchAreas: stringList(120).default([]),
+  researchAreasBn: stringList(120).default([]),
   expertise: stringList(120).default([]),
+  expertiseBn: stringList(120).default([]),
   education: stringList(300).default([]),
+  educationBn: stringList(300).default([]),
   languages: stringList(60).default([]),
+  languagesBn: stringList(60).default([]),
   featured: z.boolean().default(false),
 });
 

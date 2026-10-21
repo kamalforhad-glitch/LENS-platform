@@ -245,6 +245,242 @@ export const SECTION_TYPE_DEFS: SectionTypeDef[] = [
         help: "Allowed hosts: youtube.com, youtube-nocookie.com, youtu.be, player.vimeo.com, google.com/maps" },
     ],
   },
+  {
+    type: "video",
+    label: "Video (uploaded file)",
+    description: "Plays an uploaded MP4/WebM file from the media library.",
+    fields: [
+      { key: "url", label: "Video URL", kind: "url", target: "content",
+        help: "Upload in Media Library first, then paste the file URL. Allowed: same-origin paths or https URLs ending in .mp4 or .webm" },
+      { key: "posterImage", label: "Poster image", kind: "image", target: "content",
+        help: "Optional poster shown before playback." },
+      { key: "caption", label: "Caption", kind: "text", target: "content" },
+    ],
+  },
+  {
+    type: "faq",
+    label: "FAQ",
+    description: "Accordion-style frequently asked questions.",
+    fields: [
+      { key: "items", label: "FAQ Items", kind: "text", target: "content",
+        itemFields: [
+          { key: "question", label: "Question", kind: "text", target: "content" },
+          { key: "answer", label: "Answer", kind: "textarea", target: "content" },
+        ],
+        itemLabelKey: "question" },
+    ],
+  },
+  {
+    type: "timeline",
+    label: "Timeline",
+    description: "Chronological timeline with dates and events.",
+    fields: [
+      { key: "items", label: "Timeline Items", kind: "text", target: "content",
+        itemFields: [
+          { key: "date", label: "Date", kind: "text", target: "content" },
+          { key: "title", label: "Title", kind: "text", target: "content" },
+          { key: "description", label: "Description", kind: "textarea", target: "content" },
+        ],
+        itemLabelKey: "title" },
+    ],
+  },
+  {
+    type: "table",
+    label: "Table",
+    description: "Structured data table with headers and rows.",
+    fields: [
+      { key: "headers", label: "Column Headers (comma-separated)", kind: "text", target: "content" },
+      { key: "rows", label: "Rows", kind: "text", target: "content",
+        itemFields: [
+          { key: "cells", label: "Row Cells (comma-separated)", kind: "text", target: "content" },
+        ],
+        itemLabelKey: "cells" },
+    ],
+  },
+  {
+    type: "contact_form",
+    label: "Contact Form",
+    description: "Contact form with configurable fields.",
+    fields: [
+      { key: "title", label: "Form Title", kind: "text", target: "content" },
+      { key: "description", label: "Form Description", kind: "textarea", target: "content" },
+      { key: "submitLabel", label: "Submit Button Label", kind: "text", target: "content" },
+      { key: "successMessage", label: "Success Message", kind: "text", target: "content" },
+      { key: "errorMessage", label: "Error Message", kind: "text", target: "content" },
+      { key: "fields", label: "Form Fields", kind: "text", target: "content",
+        itemFields: [
+          { key: "name", label: "Field Name", kind: "text", target: "content" },
+          { key: "label", label: "Field Label", kind: "text", target: "content" },
+          { key: "type", label: "Field Type", kind: "select", target: "content",
+            options: [
+              { value: "text", label: "Text" },
+              { value: "email", label: "Email" },
+              { value: "textarea", label: "Textarea" },
+              { value: "select", label: "Select" },
+            ]},
+          { key: "required", label: "Required", kind: "text", target: "content" },
+          { key: "placeholder", label: "Placeholder", kind: "text", target: "content" },
+        ],
+        itemLabelKey: "label" },
+    ],
+  },
+  {
+    type: "newsletter",
+    label: "Newsletter Signup",
+    description: "Email newsletter subscription form.",
+    fields: [
+      { key: "title", label: "Title", kind: "text", target: "content" },
+      { key: "description", label: "Description", kind: "textarea", target: "content" },
+      { key: "placeholder", label: "Email Placeholder", kind: "text", target: "content" },
+      { key: "buttonLabel", label: "Subscribe Button Label", kind: "text", target: "content" },
+      { key: "successMessage", label: "Success Message", kind: "text", target: "content" },
+      { key: "errorMessage", label: "Error Message", kind: "text", target: "content" },
+      { key: "disclaimer", label: "Disclaimer Text", kind: "textarea", target: "content" },
+    ],
+  },
+  {
+    type: "search_filter",
+    label: "Search & Filter",
+    description: "Search and filter interface for content collections.",
+    fields: [
+      { key: "placeholder", label: "Search Placeholder", kind: "text", target: "content" },
+      { key: "collection", label: "Collection", kind: "select", target: "content",
+        options: [
+          { value: "research", label: "Research" },
+          { value: "publications", label: "Publications" },
+          { value: "events", label: "Events" },
+          { value: "blog", label: "Blog" },
+          { value: "media", label: "Media" },
+          { value: "resources", label: "Resources" },
+        ]},
+      { key: "filters", label: "Filter Facets", kind: "text", target: "content",
+        itemFields: [
+          { key: "key", label: "Filter Key", kind: "text", target: "content" },
+          { key: "label", label: "Filter Label", kind: "text", target: "content" },
+          { key: "type", label: "Filter Type", kind: "select", target: "content",
+            options: [
+              { value: "category", label: "Category" },
+              { value: "tag", label: "Tag" },
+              { value: "date", label: "Date Range" },
+            ]},
+        ],
+        itemLabelKey: "label" },
+    ],
+  },
+  {
+    type: "testimonial",
+    label: "Testimonial",
+    description: "Quote with author attribution.",
+    fields: [
+      { key: "items", label: "Testimonials", kind: "text", target: "content",
+        itemFields: [
+          { key: "quote", label: "Quote", kind: "textarea", target: "content" },
+          { key: "author", label: "Author Name", kind: "text", target: "content" },
+          { key: "role", label: "Author Role/Title", kind: "text", target: "content" },
+          { key: "image", label: "Author Image", kind: "image", target: "content" },
+        ],
+        itemLabelKey: "author" },
+    ],
+  },
+  {
+    type: "logo_cloud",
+    label: "Logo Cloud",
+    description: "Grid of partner/client logos.",
+    fields: [
+      { key: "items", label: "Logos", kind: "text", target: "content",
+        itemFields: [
+          { key: "image", label: "Logo Image", kind: "image", target: "content" },
+          { key: "alt", label: "Alt Text", kind: "text", target: "content" },
+          { key: "url", label: "Link URL", kind: "url", target: "content" },
+        ],
+        itemLabelKey: "alt" },
+    ],
+  },
+  {
+    type: "accordion",
+    label: "Accordion",
+    description: "Collapsible content sections.",
+    fields: [
+      { key: "items", label: "Accordion Items", kind: "text", target: "content",
+        itemFields: [
+          { key: "title", label: "Title", kind: "text", target: "content" },
+          { key: "content", label: "Content", kind: "textarea", target: "content" },
+        ],
+        itemLabelKey: "title" },
+    ],
+  },
+  {
+    type: "program_list",
+    label: "Program List",
+    description: "Automatically displays published programs in a grid.",
+    fields: [
+      { key: "limit", label: "Number of programs (1-24)", kind: "number", target: "content" },
+      { key: "category", label: "Filter by Category (optional)", kind: "text", target: "content" },
+    ],
+  },
+  {
+    type: "event_list",
+    label: "Event List",
+    description: "Automatically displays published events in a timeline.",
+    fields: [
+      { key: "limit", label: "Number of events (1-24)", kind: "number", target: "content" },
+      { key: "upcomingOnly", label: "Upcoming only", kind: "text", target: "content" },
+    ],
+  },
+  {
+    type: "publication_list",
+    label: "Publication List",
+    description: "Automatically displays published publications in a grid.",
+    fields: [
+      { key: "limit", label: "Number of publications (1-24)", kind: "number", target: "content" },
+      { key: "type", label: "Filter by Type (optional)", kind: "text", target: "content" },
+    ],
+  },
+  {
+    type: "media_list",
+    label: "Media List",
+    description: "Automatically displays published media items in a grid.",
+    fields: [
+      { key: "limit", label: "Number of media items (1-24)", kind: "number", target: "content" },
+      { key: "type", label: "Filter by Type (optional)", kind: "text", target: "content" },
+    ],
+  },
+  {
+    type: "blog_list",
+    label: "Blog List",
+    description: "Automatically displays published blog posts in a grid.",
+    fields: [
+      { key: "limit", label: "Number of blog posts (1-24)", kind: "number", target: "content" },
+      { key: "category", label: "Filter by Category (optional)", kind: "text", target: "content" },
+    ],
+  },
+  {
+    type: "resource_list",
+    label: "Resource List",
+    description: "Automatically displays published resources in a grid.",
+    fields: [
+      { key: "limit", label: "Number of resources (1-24)", kind: "number", target: "content" },
+      { key: "category", label: "Filter by Category (optional)", kind: "text", target: "content" },
+    ],
+  },
+  {
+    type: "career_list",
+    label: "Career List",
+    description: "Automatically displays open career positions.",
+    fields: [
+      { key: "limit", label: "Number of positions (1-24)", kind: "number", target: "content" },
+      { key: "department", label: "Filter by Department (optional)", kind: "text", target: "content" },
+    ],
+  },
+  {
+    type: "researcher_grid",
+    label: "Researcher Grid",
+    description: "Automatically displays featured researchers in a grid.",
+    fields: [
+      { key: "limit", label: "Number of researchers (1-24)", kind: "number", target: "content" },
+      { key: "featuredOnly", label: "Featured only", kind: "text", target: "content" },
+    ],
+  },
 ];
 
 const MACHINE_TYPES = new Set([
@@ -294,7 +530,12 @@ export default function PageSectionEditor({ pageId }: { pageId: string }) {
         content,
       });
       await load();
-      setExpandedId(created.id);
+      // Schedule the expanded state update after the current React
+      // update batch has flushed (i.e. after the load() state change
+      // has been processed by the DOM). This prevents Playwright’s
+      // waitForSelector from firing before the SectionForm with title
+      // fields is visible in the DOM.
+      void Promise.resolve().then(() => setExpandedId(created.id));
       setShowAdd(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Add failed");
@@ -422,6 +663,14 @@ export default function PageSectionEditor({ pageId }: { pageId: string }) {
     </div>
   );
 }
+
+
+function getPlaceholder(field: FieldDef): string | undefined {
+  if (field.kind === "url") return "https://... or /path";
+  if (field.kind === "text" || field.kind === "textarea") return field.label;
+  return undefined;
+}
+
 
 // ============================================================
 // One section row (collapsed listing + expanded editor)
@@ -725,6 +974,21 @@ function TypeField({ field, value, onChange, openPicker }: {
     );
   }
 
+  if (field.kind === "text") {
+    return (
+      <div>
+        <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+        <input
+          type="text"
+          value={s}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.label}
+          className={inputCls}
+        />
+      </div>
+    );
+  }
+
   if (field.kind === "select") {
     return (
       <div>
@@ -757,7 +1021,7 @@ function TypeField({ field, value, onChange, openPicker }: {
     return (
       <div>
         <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
-        <textarea rows={3} value={s} onChange={(e) => onChange(e.target.value)} className={`${inputCls} resize-y`} />
+        <textarea rows={3} value={s} onChange={(e) => onChange(e.target.value)} className={`${inputCls} resize-y`} placeholder={field.label} />
       </div>
     );
   }
@@ -769,7 +1033,7 @@ function TypeField({ field, value, onChange, openPicker }: {
         type="text"
         value={s}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={field.kind === "url" ? "https://… or /path" : undefined}
+        placeholder={field.kind === "text" ? field.label : field.kind === "textarea" ? field.label : undefined}
         className={inputCls}
       />
       {field.help && <p className="text-[11px] text-slate-500 mt-1">{field.help}</p>}
@@ -800,6 +1064,7 @@ function ParagraphsEditor({ field, value, onChange }: {
         value={text}
         onChange={(e) => commit(e.target.value)}
         className={`${inputCls} resize-y`}
+        placeholder="Blank line = new paragraph"
       />
       <p className="text-[11px] text-slate-500 mt-1">
         Blank line = new paragraph. Supports *italic*, **bold**, [label](/link).
