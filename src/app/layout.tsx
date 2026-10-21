@@ -148,9 +148,9 @@ export default function RootLayout({
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/favicon.svg" />
+        
         <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.svg" />
         <meta name="author" content="LENS" />
         <meta name="publisher" content="LENS" />
         <meta name="keywords" content="LENS, Lighthouse for Evolving Narrative Systems, Bangladesh think tank, media literacy, press freedom, narrative research, policy advocacy, digital rights, journalist safety, cybersecurity, media indexing, strategic communication, Bangladesh media, information ecosystem, civic engagement" />
