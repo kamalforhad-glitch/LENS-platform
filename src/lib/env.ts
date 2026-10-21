@@ -46,12 +46,19 @@ export function warnOptionalIntegrations(): void {
   if (warned || isBuildPhase()) return;
   warned = true;
   if (!process.env.RESEND_API_KEY) {
-    console.warn("[env] RESEND_API_KEY missing — emails will log as dev-mode and NOT deliver.");
+    console.warn(
+      "[env] RESEND_API_KEY missing — emails will log as dev-mode and NOT deliver."
+    );
   }
   if (!process.env.OPENAI_API_KEY) {
-    console.warn("[env] OPENAI_API_KEY missing — AI uses retrieval fallback without LLM answers.");
+    console.warn(
+      "[env] OPENAI_API_KEY missing — AI uses retrieval fallback without LLM answers."
+    );
   }
   if (!process.env.S3_ACCESS_KEY_ID) {
-    console.warn("[env] S3 keys missing — uploads use local public/uploads (ephemeral on serverless).");
+    console.warn(
+      "[env] S3_ACCESS_KEY_ID missing — uploads will fail in production; " +
+        "local public/uploads is ephemeral and does not persist across redeployments."
+    );
   }
 }

@@ -98,16 +98,24 @@ const BASE_METADATA: Metadata = {
 export async function generateMetadata(): Promise<Metadata> {
   const { getPublicSiteSettings } = await import("@/lib/actions/cms");
   const settings = await getPublicSiteSettings();
-  const metaTitle = settings.seo_meta_title?.value?.trim();
-  const metaDescription = settings.seo_meta_description?.value?.trim();
-  const ogImage = settings.seo_og_image?.value?.trim();
+  const seoTitle = settings.seo_meta_title?.value;
+  const seoTitleBn = settings.seo_meta_title?.valueBn;
+  const seoDescription = settings.seo_meta_description?.value;
+  const seoDescriptionBn = settings.seo_meta_description?.valueBn;
+  const ogImage = settings.seo_og_image?.value;
+  const ogImageBn = settings.seo_og_image?.valueBn;
 
-  if (!metaTitle && !metaDescription && !ogImage) return BASE_METADATA;
+  // Prefer Bangla when the Bengali payload is usable, otherwise English.
+  const metaTitle = seoTitleBn || seoTitle;
+  const metaDescription = seoDescriptionBn || seoDescription;
+  const ogImageSrc = ogImageBn || ogImage;
+
+  if (!metaTitle && !metaDescription && !ogImageSrc) return BASE_METADATA;
 
   const title = metaTitle || DEFAULT_TITLE;
   const description = metaDescription || DEFAULT_DESCRIPTION;
   // Only propagate validated/normalized image paths.
-  const image = ogImage || OG_IMAGE_PATH;
+  const image = ogImageSrc || OG_IMAGE_PATH;
 
   return {
     metadataBase: BASE_METADATA.metadataBase,
@@ -141,7 +149,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="author" content="LENS" />
         <meta name="publisher" content="LENS" />

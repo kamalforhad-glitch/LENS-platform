@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     // Validate file type
     if (!validateFileType(file.type)) {
       return NextResponse.json(
-        { error: "File type not allowed. Allowed: images (JPEG, PNG, GIF, WebP, AVIF), documents (PDF, DOC, DOCX)" },
+        { error: "File type not allowed. Allowed: images (JPEG, PNG, GIF, WebP, AVIF), documents (PDF, DOC, DOCX), videos (MP4, WebM)" },
         { status: 400 }
       );
     }
@@ -64,8 +64,16 @@ export async function POST(request: Request) {
     const key = generateStorageKey(file.name);
     const publicUrl = getPublicUrl(key);
 
-    // Upload to S3 if configured, otherwise save locally
-    const s3Key = process.env.S3_ACCESS_KEY_ID ? key : null;
+    // Upload to S3 if configured, otherwise save locally.
+    // In production, require S3 configuration — do not silently persist to
+    // ephemeral local disk, which does not survive redeployments.
+    const s3Key = process.env.S3_ACCESS_KEY_ID;
+
+    if (process.env.NEXT_PUBLIC_NODE_ENV === "production" && !s3Key) {
+      throw new Error(
+        "S3 storage is required in production (S3_ACCESS_KEY_ID environment variable missing)."
+      );
+    }
 
     if (s3Key) {
       const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
@@ -88,7 +96,7 @@ export async function POST(request: Request) {
         })
       );
     } else {
-      // Local storage fallback
+      // Local storage fallback — development only; does NOT persist across redeployments.
       const { writeFile, mkdir } = await import("fs/promises");
       const { join, dirname } = await import("path");
       const localDir = join(process.cwd(), "public", "uploads");

@@ -37,11 +37,26 @@ const ALLOWED_DOCUMENT_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
-const ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES];
+// Video: conservative allowlist limited to formats every modern browser can
+// play natively via <video> and that have unambiguous magic numbers.
+// QuickTime (.mov) files that start with a non-"ftyp" atom (moov/mdat-first)
+// are intentionally NOT accepted — their signatures are ambiguous.
+const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm"];
 
-// Size limits (bytes)
+const ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES, ...ALLOWED_VIDEO_TYPES];
+
+// Size limits (bytes). The video limit is configurable through the
+// MAX_VIDEO_SIZE_MB environment variable (clamped to 1–1024 MB) so operators
+// can tune it for their storage backend without a code change.
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_DOCUMENT_SIZE = 50 * 1024 * 1024; // 50MB
+const DEFAULT_MAX_VIDEO_SIZE_MB = 100;
+
+export function getMaxVideoSizeBytes(): number {
+  const raw = Number(process.env.MAX_VIDEO_SIZE_MB);
+  const mb = Number.isFinite(raw) && raw > 0 ? Math.min(Math.max(Math.floor(raw), 1), 1024) : DEFAULT_MAX_VIDEO_SIZE_MB;
+  return mb * 1024 * 1024;
+}
 
 export function validateFileType(mimeType: string): boolean {
   return ALLOWED_TYPES.includes(mimeType);
@@ -63,6 +78,11 @@ const MAGIC_SIGNATURES: Array<{ mime: string; test: (b: Buffer) => boolean }> = 
   { mime: "application/pdf", test: (b) => b.length >= 5 && b.toString("ascii", 0, 5) === "%PDF-" },
   { mime: "application/msword", test: (b) => b.length >= 8 && b[0] === 0xd0 && b[1] === 0xcf && b[2] === 0x11 && b[3] === 0xe0 },
   { mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", test: (b) => b.length >= 4 && b.toString("hex", 0, 4) === "504b" }, // zip/office-open-xml
+  // MP4 family: ISO BMFF files carry the "ftyp" box header at offset 4
+  // (size field occupies the first 4 bytes). Covers isom/mp42/avc1/dash brands.
+  { mime: "video/mp4", test: (b) => b.length >= 12 && b.toString("ascii", 4, 8) === "ftyp" },
+  // WebM/Matroska: EBML header 0x1A45DFA3.
+  { mime: "video/webm", test: (b) => b.length >= 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3 },
 ];
 
 /** Detect the true file type from magic bytes, or null when unknown. */
@@ -94,15 +114,21 @@ export function verifyUploadContent(
   }
   // Same family check: declared images must sniff as any image, declared
   // documents must sniff as pdf/zip-office (MS Word legacy and open-xml both
-  // pass their own sniff). Content is never stored when families disagree.
+  // pass their own sniff), declared videos must sniff as video. Content is
+  // never stored when families disagree.
   const declaredImage = ALLOWED_IMAGE_TYPES.includes(declaredType);
   const sniffedImage = ALLOWED_IMAGE_TYPES.includes(sniffed);
   const declaredDoc = ALLOWED_DOCUMENT_TYPES.includes(declaredType);
   const sniffedDoc = ALLOWED_DOCUMENT_TYPES.includes(sniffed);
+  const declaredVideo = ALLOWED_VIDEO_TYPES.includes(declaredType);
+  const sniffedVideo = ALLOWED_VIDEO_TYPES.includes(sniffed);
   if (declaredImage && !sniffedImage) {
     return { ok: false, error: `Declared ${declaredType} but file content is ${sniffed}` };
   }
   if (declaredDoc && !sniffedDoc) {
+    return { ok: false, error: `Declared ${declaredType} but file content is ${sniffed}` };
+  }
+  if (declaredVideo && !sniffedVideo) {
     return { ok: false, error: `Declared ${declaredType} but file content is ${sniffed}` };
   }
   return { ok: true, effectiveType: declaredType };
@@ -170,6 +196,11 @@ export function validateFileSize(mimeType: string, size: number): { valid: boole
     if (size > MAX_DOCUMENT_SIZE) {
       return { valid: false, error: `Document size must be less than ${MAX_DOCUMENT_SIZE / 1024 / 1024}MB` };
     }
+  } else if (ALLOWED_VIDEO_TYPES.includes(mimeType)) {
+    const maxVideo = getMaxVideoSizeBytes();
+    if (size > maxVideo) {
+      return { valid: false, error: `Video size must be less than ${Math.floor(maxVideo / 1024 / 1024)}MB` };
+    }
   } else {
     return { valid: false, error: "File type not allowed" };
   }
@@ -215,7 +246,15 @@ export async function getSignedUploadUrl(
   const config = getConfig();
 
   if (!config.accessKeyId) {
-    // Local storage fallback
+    // In production, fail clearly if S3 is not configured rather than silently
+    // falling back to ephemeral local storage. In development, allow the
+    // local fallback so the UI remains functional without credentials.
+    if (process.env.NEXT_PUBLIC_NODE_ENV === "production") {
+      throw new Error(
+        "S3 storage is not configured (S3_ACCESS_KEY_ID missing) and is required in production."
+      );
+    }
+    // Local storage fallback for development
     return `/api/upload?key=${encodeURIComponent(key)}`;
   }
 
