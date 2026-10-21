@@ -48,5 +48,32 @@ next-env.d.ts
 # backups
 /backups
 
+# one-time operator scripts (must never be committed)
+ops-recover-admin.tmp.ts
+
 # prisma
 prisma/config.ts
+# Temporary reports, scripts & test outputs
+test-*.txt
+test-results.txt
+tsc-output.txt
+prisma-output.txt
+db-pages.txt
+playwright-report/
+test-results/
+public/uploads/
+apply_bn_migration.ts
+check_columns.ts
+check_pages.ts
+check_sections.ts
+create_cms_pages.ts
+create_nested_pages.ts
+update_cms_pages.ts
+update_draft_pages.ts
+update_menus_settings.ts
+*_REPORT.md
+*_AUDIT.md
+*_SUMMARY.md
+*_MATRIX.md
+ROOT_CAUSE_REPORT_HEADER_NAV_POLLUTION.md
+PHASE_1-4_AUDIT_COMPLETE.md

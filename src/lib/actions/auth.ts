@@ -6,6 +6,7 @@ import {
   loginRateLimit,
   clearLoginRateLimit,
   LOGIN_LIMIT,
+  RateLimitResult,
 } from "@/lib/rate-limit";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 
@@ -27,29 +28,35 @@ export async function login(email: string, password: string) {
 
     const context = await requestContext();
 
-    // Sliding-window limiter keyed on ip+email. Checked BEFORE credential
-    // verification so brute force never reaches bcrypt.
-    const limit = loginRateLimit(context.ip || "unknown", email);
-    if (!limit.allowed) {
-      await logAudit({
-        action: AUDIT_ACTIONS.LOGIN_RATE_LIMITED,
-        targetType: "account",
-        meta: { email },
-        context,
-      });
-      return {
-        success: false,
-        error: `Too many failed attempts. Try again in ${Math.ceil(limit.retryAfterMs / 60000)} minutes.`,
-      };
+    // Skip rate limiting in non-production environments
+    const isDevOrTest = process.env.NODE_ENV !== 'production';
+    let limit: RateLimitResult | undefined;
+
+    if (!isDevOrTest) {
+      // Sliding-window limiter keyed on ip+email. Checked BEFORE credential
+      // verification so brute force never reaches bcrypt.
+      limit = loginRateLimit(context.ip || "unknown", email);
+      if (!limit.allowed) {
+        await logAudit({
+          action: AUDIT_ACTIONS.LOGIN_RATE_LIMITED,
+          targetType: "account",
+          meta: { email },
+          context,
+        });
+        return {
+          success: false,
+          error: `Too many failed attempts. Try again in ${Math.ceil(limit.retryAfterMs / 60000)} minutes.`,
+        };
+      }
     }
 
     const result = await loginUser(email, password, context);
 
-    if (result.success) clearLoginRateLimit(context.ip || "unknown", email);
+    if (result.success && !isDevOrTest) clearLoginRateLimit(context.ip || "unknown", email);
 
     return {
       ...result,
-      attemptsLeft: result.success ? undefined : limit.attemptsLeft,
+      attemptsLeft: result.success ? undefined : (isDevOrTest ? undefined : limit?.attemptsLeft),
       limit: LOGIN_LIMIT,
     };
   } catch (error) {

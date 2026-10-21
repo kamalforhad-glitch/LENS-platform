@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";import { getCurrentUser, requireAuth, requireAdmin } from "@/lib/auth";
-import { DEFAULT_SITE_SETTINGS, DEFAULT_HOME_SECTIONS } from "@/lib/cms-defaults";
+import { DEFAULT_SITE_SETTINGS, DEFAULT_HOME_SECTIONS, getDefaultSectionsForSlug } from "@/lib/cms-defaults";
 import { validateSlug, sanitizeUrl } from "@/lib/cms-validation";
 import { serializeSectionJson, toJson, clampText } from "@/lib/cms-validation";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
+import { assertValidMenuParent, assertValidMenuParentInput } from "@/lib/menu-validation";
 
 async function checkAuth() {
   const user = await getCurrentUser();
@@ -103,6 +104,164 @@ function fallbackHome(id: string): PublicPageData {
   };
 }
 
+function fallbackPage(slug: string, id: string): PublicPageData | null {
+  const defaultSections = getDefaultSectionsForSlug(slug);
+  if (!defaultSections) return null;
+
+  // Default metadata for known slugs
+  const metadata: Record<string, { title: string; titleBn: string; description: string; descriptionBn: string; metaTitle: string; metaTitleBn: string; metaDescription: string; metaDescriptionBn: string }> = {
+    research: {
+      title: "Research & Insights",
+      titleBn: "গবেষণা ও অন্তর্দৃষ্টি",
+      description: "Evidence-based research on media literacy, press freedom, narrative analysis and cybersecurity in Bangladesh.",
+      descriptionBn: "বাংলাদেশে মিডিয়া সাক্ষরতা, প্রেস স্বাধীনতা, ন্যারেটিভ বিশ্লেষণ এবং সাইবার নিরাপত্তার ওপর তথ্যপ্রমাণভিত্তিক গবেষণা।",
+      metaTitle: "Research & Insights — LENS",
+      metaTitleBn: "গবেষণা ও অন্তর্দৃষ্টি — লেন্স",
+      metaDescription: "Evidence-based research on media literacy, press freedom, narrative analysis, policy advocacy and cybersecurity in Bangladesh.",
+      metaDescriptionBn: "বাংলাদেশে মিডিয়া সাক্ষরতা, প্রেস স্বাধীনতা, ন্যারেটিভ বিশ্লেষণ, নীতি অ্যাডভোকেসি ও সাইবার নিরাপত্তার ওপর তথ্যপ্রমাণভিত্তিক গবেষণা।",
+    },
+    publications: {
+      title: "Publications",
+      titleBn: "প্রকাশনা",
+      description: "Policy briefs, working papers and research reports from LENS.",
+      descriptionBn: "LENS-এর নীতি বিবরণী, ওয়ার্কিং পেপার এবং গবেষণা প্রতিবেদন।",
+      metaTitle: "Publications — LENS",
+      metaTitleBn: "প্রকাশনা — লেন্স",
+      metaDescription: "Policy briefs, working papers, research reports and analysis from the LENS research team.",
+      metaDescriptionBn: "LENS গবেষণা দল থেকে নীতি বিবরণী, ওয়ার্কিং পেপার, গবেষণা প্রতিবেদন এবং বিশ্লেষণ।",
+    },
+    events: {
+      title: "Events & Workshops",
+      titleBn: "ইভেন্ট ও কর্মশালা",
+      description: "Workshops, summits, conferences and community events by LENS.",
+      descriptionBn: "LENS-এর কর্মশালা, সাবমিট, সম্মেলন এবং কমিউনিটি ইভেন্ট।",
+      metaTitle: "Events — LENS",
+      metaTitleBn: "ইভেন্ট — লেন্স",
+      metaDescription: "Workshops, summits, conferences and community events by LENS to strengthen Bangladesh's narrative ecosystem.",
+      metaDescriptionBn: "বাংলাদেশের ন্যারেটিভ ইকোসিস্টেমকে শক্তিশালী করার জন্য LENS-এর কর্মশালা, সাবমিট, সম্মেলন ও কমিউনিটি ইভেন্ট।",
+    },
+    blog: {
+      title: "Blog & Analysis",
+      titleBn: "ব্লগ ও বিশ্লেষণ",
+      description: "Research insights, expert commentary, and analysis on Bangladesh's media landscape.",
+      descriptionBn: "বাংলাদেশের মিডিয়া ল্যান্ডস্কেপে গবেষণা অন্তর্দৃষ্টি, বিশেষজ্ঞ মন্তব্য ও বিশ্লেষণ।",
+      metaTitle: "Blog — LENS",
+      metaTitleBn: "ব্লগ — লেন্স",
+      metaDescription: "LENS blog - insights, analysis, and commentary on Bangladesh's media landscape, digital rights, narrative ecosystems, and press freedom.",
+      metaDescriptionBn: "LENS ব্লগ - বাংলাদেশের মিডিয়া ল্যান্ডস্কেপ, ডিজিটাল অধিকার, ন্যারেটিভ ইকোসিস্টেম এবং প্রেস স্বাধীনতার ওপর অন্তর্দৃষ্টি, বিশ্লেষণ এবং মন্তব্য।",
+    },
+    media: {
+      title: "Media & Press",
+      titleBn: "মিডিয়া ও প্রেস",
+      description: "Press releases, interviews, and media coverage from LENS.",
+      descriptionBn: "LENS-এর প্রেস রিলিজ, সাক্ষাত্কার এবং মিডিয়া কভারেজ।",
+      metaTitle: "Media — LENS",
+      metaTitleBn: "মিডিয়া — লেন্স",
+      metaDescription: "LENS media coverage, press mentions, interviews, and media resources for journalists covering Bangladesh's narrative ecosystem.",
+      metaDescriptionBn: "বাংলাদেশের ন্যারেটিভ ইকোসিস্টেম কভার করন पत्रকারদের জন্য LENS মিডিয়া কভারেজ, প্রেস উল্লেখ, সাক্ষাত্কার এবং মিডিয়া সম্পদ।",
+    },
+    resources: {
+      title: "Resources & Tools",
+      titleBn: "রিসোর্স ও টুলস",
+      description: "Research tools, datasets, and educational materials from LENS.",
+      descriptionBn: "LENS-এর গবেষণা টুলস, ডেটাসেট এবং শিক্ষামূলক উপাদান।",
+      metaTitle: "Resources — LENS",
+      metaTitleBn: "রিসোর্স — লেন্স",
+      metaDescription: "LENS resources - research tools, datasets, media literacy guides, and educational materials for journalists, researchers, and civil society.",
+      metaDescriptionBn: "LENS রিসোর্স - সাংবাদিক, গবেষক এবং সুশীল সমাজের জন্য গবেষণা টুলস, ডেটাসেট, মিডিয়া সাক্ষরতা গাইড এবং শিক্ষামূলক উপাদান।",
+    },
+    programs: {
+      title: "Programs & Training",
+      titleBn: "প্রোগ্রাম ও প্রশিক্ষণ",
+      description: "Training programs and capacity building initiatives by LENS.",
+      descriptionBn: "LENS-এর প্রশিক্ষণ প্রোগ্রাম এবং সক্ষমতা বৃদ্ধির উদ্যোগ।",
+      metaTitle: "Programs — LENS",
+      metaTitleBn: "প্রোগ্রাম — লেন্স",
+      metaDescription: "Training programs, workshops, and capacity building initiatives by LENS for media literacy, digital rights, and narrative research in Bangladesh.",
+      metaDescriptionBn: "বাংলাদেশে মিডিয়া সাক্ষরতা, ডিজিটাল অধিকার এবং ন্যারেটিভ গবেষণার জন্য LENS-এর প্রশিক্ষণ প্রোগ্রাম, কর্মশালা এবং সক্ষমতা বৃদ্ধির উদ্যোগ।",
+    },
+    about: {
+      title: "About LENS",
+      titleBn: "লেন্স সম্পর্কে",
+      description: "Learn about LENS, our mission, values and team.",
+      descriptionBn: "লেন্স, আমাদের মিশন, মূল্যবোধ এবং দল সম্পর্কে জানুন।",
+      metaTitle: "About LENS — Our Mission, Values & Team",
+      metaTitleBn: "লেন্স সম্পর্কে — আমাদের মিশন, মূল্যবোধ ও দল",
+      metaDescription: "Learn about LENS, a research-driven think tank working to strengthen Bangladesh's narrative ecosystem through evidence, media literacy and policy engagement.",
+      metaDescriptionBn: "লেন্স সম্পর্কে জানুন, একটি গবেষণাভিত্তিক থিংক ট্যাংক যা তথ্যপ্রমাণ, গণমাধ্যম সাক্ষরতা ও নীতিগত সম্পৃক্ততার মাধ্যমে বাংলাদেশের ন্যারেটিভ ইকোসিস্টেমকে শক্তিশালী করতে কাজ করছে।",
+    },
+    donate: {
+      title: "Support LENS",
+      titleBn: "লেন্সকে সহযোগিতা করুন",
+      description: "Support evidence-based research and media literacy in Bangladesh.",
+      descriptionBn: "বাংলাদেশে তথ্যপ্রমাণভিত্তিক গবেষণা এবং মিডিয়া সাক্ষরতা সমর্থন করুন।",
+      metaTitle: "Donate — Support LENS",
+      metaTitleBn: "দান — লেন্সকে সহযোগিতা করুন",
+      metaDescription: "Support LENS — a research-driven think tank strengthening Bangladesh's narrative ecosystem. Online donation processing is not yet available.",
+      metaDescriptionBn: "LENSকে সহযোগিতা করুন — বাংলাদেশের ন্যারেটিভ ইকোসিস্টেমকে শক্তিশালীকারী একটি গবেষণাভিত্তিক থিংক ট্যাংক। অনলাইন দান প্রক্রিয়া এখনও উপলব্ধ নয়।",
+    },
+    contact: {
+      title: "Contact Us",
+      titleBn: "যোগাযোগ",
+      description: "Get in touch with LENS for research inquiries, partnership opportunities and media queries.",
+      descriptionBn: "বাংলাদেশে ricerca inquiries, partnership opportunities and media queries.",
+      metaTitle: "Contact Us — LENS",
+      metaTitleBn: "যোগাযোগ — লেন্স",
+      metaDescription: "Get in touch with LENS for research inquiries, partnership opportunities and media queries.",
+      metaDescriptionBn: "bangladeshrese inquiries, partnership opportunities and media queries.",
+    },
+    partnerships: {
+      title: "Partnerships & Collaboration",
+      titleBn: "অংশীদারিতা ও সহযোগিতা",
+      description: "Collaborate with LENS for research, training and advocacy.",
+      descriptionBn: "গবেষণা, প্রশিক্ষণ ও অ্যাডভোকেসির জন্য LENS-এর সাথে সহযোগিতা করুন।",
+      metaTitle: "Partnerships — LENS",
+      metaTitleBn: "অংশীদারিতা — লেন্স",
+      metaDescription: "Partner with LENS for research, training and advocacy. We collaborate with universities, NGOs, media organizations and international partners.",
+      metaDescriptionBn: "গবেষণা, প্রশিক্ষণ ও অ্যাডভোকেসির জন্য LENS-এর সাথে অংশীদারিত্ব করুন। আমরা বিশ্ববিদ্যালয়, এনজিও, মিডিয়া সংস্থা এবং আন্তর্জাতিক অংশীদারদের সাথে সহযোগিতা করি।",
+    },
+  };
+
+  const meta = metadata[slug] || {
+    title: slug.charAt(0).toUpperCase() + slug.slice(1),
+    titleBn: "",
+    description: "",
+    descriptionBn: "",
+    metaTitle: slug.charAt(0).toUpperCase() + slug.slice(1) + " — LENS",
+    metaTitleBn: "",
+    metaDescription: "",
+    metaDescriptionBn: "",
+  };
+
+  return {
+    id,
+    slug,
+    title: meta.title,
+    titleBn: meta.titleBn,
+    description: meta.description,
+    descriptionBn: meta.descriptionBn,
+    template: "default",
+    metaTitle: meta.metaTitle,
+    metaTitleBn: meta.metaTitleBn,
+    metaDescription: meta.metaDescription,
+    metaDescriptionBn: meta.metaDescriptionBn,
+    ogImage: null,
+    sections: defaultSections.map((s, idx) => ({
+      id: `${id}-${s.type}-${idx}`,
+      type: s.type,
+      title: s.title,
+      titleBn: s.titleBn,
+      description: s.description,
+      descriptionBn: s.descriptionBn,
+      sortOrder: s.sortOrder,
+      visible: s.visible,
+      settings: s.settings,
+      content: s.content,
+      contentBn: s.contentBn,
+    })),
+  };
+}
+
 export async function getPublicPage(slug: string): Promise<PublicPageData | null> {
   try {
     const page = await db.page.findFirst({
@@ -116,11 +275,18 @@ export async function getPublicPage(slug: string): Promise<PublicPageData | null
     });
 
     if (!page) {
+      // Try fallback for known slugs with default sections
+      const fallback = fallbackPage(slug, `fallback-${slug}`);
+      if (fallback) return fallback;
+      // Home fallback
       return slug === "home" ? fallbackHome("default-home") : null;
     }
 
     return sectionsToPublicPage(page as unknown as PublicPageRow);
   } catch {
+    // Try fallback for known slugs on error too
+    const fallback = fallbackPage(slug, `fallback-${slug}-error`);
+    if (fallback) return fallback;
     return slug === "home" ? fallbackHome("fallback-home") : null;
   }
 }
@@ -249,7 +415,7 @@ export async function createPage(data: {
   const auth = await checkAuth();
   if (!auth) throw new Error("Unauthorized");
 
-  const slugCheck = validateSlug(data.slug);
+  const slugCheck = validateSlug(data.slug, { allowMigratableReserved: true });
   if (!slugCheck.valid) throw new Error(slugCheck.error || "Invalid slug");
   const ogCheck = data.ogImage ? sanitizeUrl(data.ogImage) : { ok: true as const };
   if (!ogCheck.ok) throw new Error(ogCheck.error || "Invalid OG image URL");
@@ -314,7 +480,7 @@ async function mutatePage(id: string, raw: Record<string, unknown>) {
     const nextSlug = raw.slug.trim().toLowerCase();
     if (nextSlug !== existing.slug) {
       if (existing.slug === "home") throw new Error("The homepage slug cannot be changed");
-      const slugCheck = validateSlug(nextSlug);
+      const slugCheck = validateSlug(nextSlug, { allowMigratableReserved: true });
       if (!slugCheck.valid) throw new Error(slugCheck.error || "Invalid slug");
       const taken = await db.page.findFirst({ where: { slug: nextSlug, NOT: { id } } });
       if (taken) throw new Error("Slug is already in use by another page");
@@ -416,7 +582,7 @@ export async function duplicatePage(id: string, opts?: { newSlug?: string; newTi
   if (!source) throw new Error("Page not found");
 
   const desiredSlug = opts?.newSlug ?? `${source.slug}-copy`;
-  const slugCheck = validateSlug(desiredSlug);
+  const slugCheck = validateSlug(desiredSlug, { allowMigratableReserved: true });
   if (!slugCheck.valid) throw new Error(slugCheck.error || "Invalid slug");
   const taken = await db.page.findFirst({ where: { slug: desiredSlug } });
   if (taken) throw new Error("Slug is already in use by another page");
@@ -1002,6 +1168,8 @@ export async function createMenuItem(data: {
 
   if (!MENU_LOCATIONS.has(data.location)) throw new Error("Invalid menu location");
   const clean = await validatedMenuData(data);
+  const parentId = assertValidMenuParentInput(clean.parentId, undefined);
+  if (parentId) await assertValidMenuParent(parentId, data.location);
 
   const maxOrder = await db.menuItem.findFirst({
     where: { location: data.location },
@@ -1041,9 +1209,11 @@ export async function updateMenuItem(id: string, data: Record<string, unknown>) 
   } as { label?: string; labelBn?: string; url?: string; parentId?: string | null });
 
   const extra: Record<string, unknown> = {};
+  let targetLocation = "";
   if (data.location !== undefined) {
     if (!MENU_LOCATIONS.has(String(data.location))) throw new Error("Invalid menu location");
     extra.location = data.location;
+    targetLocation = String(data.location);
   }
   if (data.visible !== undefined) extra.visible = Boolean(data.visible);
   if (data.target !== undefined) {
@@ -1053,6 +1223,16 @@ export async function updateMenuItem(id: string, data: Record<string, unknown>) 
   }
   if (data.sortOrder !== undefined && typeof data.sortOrder === "number") {
     extra.sortOrder = data.sortOrder;
+  }
+
+  // Parent validation happens after the item itself is known: the
+  // effective location is the new one when set, otherwise the item's
+  // current one (fetched below).
+  const parentId = assertValidMenuParentInput(clean.parentId, id);
+  if (parentId) {
+    const effectiveLocation = targetLocation || (await db.menuItem.findUnique({ where: { id } }))?.location;
+    if (!effectiveLocation) throw new Error("Menu item not found");
+    await assertValidMenuParent(parentId, effectiveLocation, id);
   }
 
   const item = await db.menuItem.update({ where: { id }, data: { ...extra, ...clean } });
@@ -1090,15 +1270,31 @@ export async function reorderMenuItems(location: string, itemIds: string[]) {
   const auth = await checkAuth();
   if (!auth) throw new Error("Unauthorized");
 
+  // Ownership validation: only items that actually live in the given
+  // location may be reordered. Without this, an editor passing ids from
+  // another location (or arbitrary ids) would rewrite unrelated sort
+  // orders across menus.
+  if (!MENU_LOCATIONS.has(location)) throw new Error("Invalid menu location");
+  const ids = Array.isArray(itemIds) ? itemIds.slice(0, 200).filter((id) => typeof id === "string" && id) : [];
+  if (ids.length === 0) throw new Error("No menu items to reorder");
+  const owned = await db.menuItem.findMany({
+    where: { location, id: { in: ids } },
+    select: { id: true },
+  });
+  const ownedIds = new Set(owned.map((item) => item.id));
+  if (ids.some((id) => !ownedIds.has(id))) {
+    throw new Error("Menu items must belong to the location being reordered");
+  }
+
   await db.$transaction(
-    itemIds.map((id, i) => db.menuItem.update({ where: { id }, data: { sortOrder: i } }))
+    ids.map((id, i) => db.menuItem.update({ where: { id }, data: { sortOrder: i } }))
   );
 
   await logAudit({
     action: AUDIT_ACTIONS.MENU_REORDERED,
     actor: auth,
     targetType: "menu",
-    meta: { location, count: itemIds.length },
+    meta: { location, count: ids.length },
   });
   revalidatePath("/", "layout");
   return { success: true };

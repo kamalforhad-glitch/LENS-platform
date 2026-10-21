@@ -55,9 +55,9 @@ export function warnOptionalIntegrations(): void {
       "[env] OPENAI_API_KEY missing — AI uses retrieval fallback without LLM answers."
     );
   }
-  if (!process.env.S3_ACCESS_KEY_ID) {
+  if (!process.env.R2_ACCESS_KEY_ID) {
     console.warn(
-      "[env] S3_ACCESS_KEY_ID missing — uploads will fail in production; " +
+      "[env] R2_ACCESS_KEY_ID missing — uploads will fail in production; " +
         "local public/uploads is ephemeral and does not persist across redeployments."
     );
   }

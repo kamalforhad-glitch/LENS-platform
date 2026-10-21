@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 export default function CookieConsent() {
   const [show, setShow] = useState(false);
@@ -89,9 +90,9 @@ export default function CookieConsent() {
             </p>
             <p>
               View our{" "}
-              <a href="/privacy" className="text-teal-600 underline">
+              <Link href="/privacy" className="text-teal-600 underline">
                 Privacy Policy
-              </a>{" "}
+              </Link>{" "}
               for full details.
             </p>
           </div>

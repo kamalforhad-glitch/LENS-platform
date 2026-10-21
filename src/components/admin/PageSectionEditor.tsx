@@ -599,14 +599,14 @@ export default function PageSectionEditor({ pageId }: { pageId: string }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-white">Page Sections</h2>
-          <p className="text-slate-400 text-xs mt-0.5">
+          <h2 className="text-base font-semibold text-slate-900">Page Sections</h2>
+          <p className="text-slate-500 text-xs mt-0.5">
             Sections render top-to-bottom on the public page. Hidden sections stay editable but don&apos;t render.
           </p>
         </div>
         <button
           onClick={() => setShowAdd((v) => !v)}
-          className="px-3 py-2 bg-teal-500/10 border border-teal-500/30 text-teal-400 rounded-lg text-xs font-semibold hover:bg-teal-500/20 transition-colors"
+          className="px-3 py-2 bg-teal-50 border border-teal-200 text-teal-700 rounded-lg text-xs font-semibold hover:bg-teal-100 shadow-2xs transition-colors"
         >
           + Add Section
         </button>
@@ -617,15 +617,15 @@ export default function PageSectionEditor({ pageId }: { pageId: string }) {
       )}
 
       {showAdd && (
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {SECTION_TYPE_DEFS.map((def) => (
               <button
                 key={def.type}
                 onClick={() => add(def.type)}
-                className="text-left p-3 rounded-lg bg-white/5 border border-white/10 hover:border-teal-500/40 hover:bg-teal-500/5 transition-all"
+                className="text-left p-3 rounded-lg bg-white border border-slate-200 hover:border-teal-500 hover:shadow-xs transition-all"
               >
-                <p className="text-sm font-semibold text-white">{def.label}</p>
+                <p className="text-sm font-semibold text-slate-900">{def.label}</p>
                 <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">{def.description}</p>
               </button>
             ))}
@@ -634,11 +634,11 @@ export default function PageSectionEditor({ pageId }: { pageId: string }) {
       )}
 
       {loading ? (
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10 animate-pulse text-slate-400 text-sm">
+        <div className="p-4 rounded-xl bg-white border border-slate-200 animate-pulse text-slate-500 text-sm">
           Loading sections…
         </div>
       ) : ordered.length === 0 ? (
-        <div className="p-8 text-center rounded-xl bg-white/5 border border-dashed border-white/10">
+        <div className="p-8 text-center rounded-xl bg-white border border-dashed border-slate-300">
           <p className="text-slate-400 text-sm">No sections yet. Add a Hero or Heading to get started.</p>
         </div>
       ) : (
@@ -694,21 +694,21 @@ function SectionRowCard(props: RowProps) {
   const typeDef = SECTION_TYPE_DEFS.find((d) => d.type === row.type);
 
   return (
-    <div className={`rounded-xl border transition-colors ${expanded ? "bg-white/[0.07] border-teal-500/30" : "bg-white/5 border-white/10 hover:border-white/20"}`}>
+    <div className={`rounded-xl border transition-colors ${expanded ? "bg-slate-50 border-teal-500 shadow-xs" : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-xs"}`}>
       <div className="flex items-center gap-3 p-3">
-        <span className="w-7 h-7 rounded-md bg-white/5 border border-white/10 flex items-center justify-center text-[11px] text-slate-400 font-semibold">
+        <span className="w-7 h-7 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-[11px] text-slate-600 font-semibold">
           {index + 1}
         </span>
         <button onClick={onToggleExpand} className="flex-1 text-left min-w-0">
-          <p className="text-sm font-medium text-white truncate">
+          <p className="text-sm font-medium text-slate-900 truncate">
             {row.title || typeDef?.label || row.type}
-            <span className="ml-2 text-[10px] uppercase tracking-wider text-teal-400">{row.type}</span>
+            <span className="ml-2 text-[10px] uppercase tracking-wider text-teal-600 font-semibold">{row.type}</span>
           </p>
           <p className="text-[11px] text-slate-500 truncate">{typeDef?.description || ""}</p>
         </button>
         {!expanded && (
           <span
-            className={`text-[10px] px-2 py-1 rounded-full border ${row.visible ? "text-green-400 border-green-500/30 bg-green-500/10" : "text-slate-500 border-white/10 bg-white/5"}`}
+            className={`text-[10px] px-2 py-1 rounded-full border ${row.visible ? "text-emerald-700 border-emerald-200 bg-emerald-50" : "text-slate-500 border-slate-200 bg-slate-100"}`}
           >
             {row.visible ? "visible" : "hidden"}
           </span>
@@ -716,13 +716,13 @@ function SectionRowCard(props: RowProps) {
         <button
           onClick={() => props.onMove(row, -1)}
           disabled={index === 0}
-          className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30 transition-colors"
           title="Move up"
         >↑</button>
         <button
           onClick={() => props.onMove(row, 1)}
           disabled={last}
-          className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30 transition-colors"
+          className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 disabled:opacity-30 transition-colors"
           title="Move down"
         >↓</button>
       </div>
@@ -831,7 +831,7 @@ function SectionForm(props: RowProps) {
   return (
     <div className="space-y-4">
       {localError && (
-        <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">{localError}</div>
+        <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">{localError}</div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -843,12 +843,12 @@ function SectionForm(props: RowProps) {
         <Textarea label="Section description (বাংলা)" value={draft.descriptionBn} onChange={(v) => setDraft({ ...draft, descriptionBn: v })} rows={2} bangla />
       </div>
 
-      <label className="flex items-center gap-2 text-xs text-slate-300">
+      <label className="flex items-center gap-2 text-xs text-slate-700 font-medium">
         <input
           type="checkbox"
           checked={draft.visible}
           onChange={(e) => setDraft({ ...draft, visible: e.target.checked })}
-          className="rounded bg-white/10 border-white/20"
+          className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
         />
         Visible on public page
       </label>
@@ -888,8 +888,8 @@ function SectionForm(props: RowProps) {
       )}
 
       {/* Advanced: raw Bengali content override */}
-      <details className="rounded-lg bg-white/5 border border-white/10 p-3">
-        <summary className="text-xs font-medium text-slate-300 cursor-pointer">
+      <details className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+        <summary className="text-xs font-semibold text-slate-700 cursor-pointer">
           Bengali content override (advanced JSON)
         </summary>
         <p className="text-[11px] text-slate-500 mt-1.5">
@@ -901,7 +901,7 @@ function SectionForm(props: RowProps) {
           rows={5}
           value={draft.contentBn}
           onChange={(e) => setDraft({ ...draft, contentBn: e.target.value })}
-          className="mt-2 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+          className="mt-2 w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
           placeholder="{}"
         />
       </details>
@@ -915,7 +915,7 @@ function SectionForm(props: RowProps) {
         <div className="flex gap-2">
           <button
             onClick={() => onDuplicate(row)}
-            className="px-3 py-1.5 bg-white/5 border border-white/10 text-slate-300 rounded-lg text-xs hover:bg-white/10 transition-colors"
+            className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-50 transition-colors shadow-2xs"
           >
             Duplicate
           </button>
@@ -928,7 +928,7 @@ function SectionForm(props: RowProps) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-1.5 bg-teal-500 text-white rounded-lg text-xs font-semibold hover:bg-teal-400 transition-colors disabled:opacity-50"
+            className="px-4 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors shadow-xs disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save Section"}
           </button>
@@ -943,7 +943,7 @@ function SectionForm(props: RowProps) {
 // ============================================================
 
 const inputCls =
-  "w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30";
+  "w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors";
 
 function TypeField({ field, value, onChange, openPicker }: {
   field: FieldDef;
@@ -956,19 +956,19 @@ function TypeField({ field, value, onChange, openPicker }: {
   if (field.kind === "image") {
     return (
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
         <div className="flex items-center gap-2">
           <input type="text" value={s} onChange={(e) => onChange(e.target.value)} placeholder="Image URL" className={inputCls} />
           <button
             onClick={openPicker}
-            className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-slate-300 hover:bg-white/10 transition-colors whitespace-nowrap"
+            className="px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-200 transition-colors whitespace-nowrap"
           >
             Browse…
           </button>
         </div>
         {s && /^https?:\/\/|^\//.test(s) && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={s} alt="" className="mt-2 max-h-20 rounded-lg border border-white/10" />
+          <img src={s} alt="" className="mt-2 max-h-20 rounded-lg border border-slate-200" />
         )}
       </div>
     );
@@ -977,7 +977,7 @@ function TypeField({ field, value, onChange, openPicker }: {
   if (field.kind === "text") {
     return (
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
         <input
           type="text"
           value={s}
@@ -992,10 +992,10 @@ function TypeField({ field, value, onChange, openPicker }: {
   if (field.kind === "select") {
     return (
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
         <select value={s} onChange={(e) => onChange(e.target.value)} className={inputCls}>
           {(field.options ?? []).map((o) => (
-            <option key={o.value} value={o.value} className="bg-[#0b121e]">{o.label}</option>
+            <option key={o.value} value={o.value} >{o.label}</option>
           ))}
         </select>
       </div>
@@ -1006,7 +1006,7 @@ function TypeField({ field, value, onChange, openPicker }: {
     const num = typeof value === "number" ? value : parseInt(s) || 0;
     return (
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
         <input
           type="number"
           value={num}
@@ -1020,7 +1020,7 @@ function TypeField({ field, value, onChange, openPicker }: {
   if (field.kind === "textarea") {
     return (
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
         <textarea rows={3} value={s} onChange={(e) => onChange(e.target.value)} className={`${inputCls} resize-y`} placeholder={field.label} />
       </div>
     );
@@ -1029,7 +1029,7 @@ function TypeField({ field, value, onChange, openPicker }: {
   if (field.kind === "url") {
     return (
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
         <input
           type="text"
           value={s}
@@ -1044,7 +1044,7 @@ function TypeField({ field, value, onChange, openPicker }: {
   if (field.kind === "paragraphs") {
     return (
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
         <textarea rows={3} value={s} onChange={(e) => onChange(e.target.value)} className={`${inputCls} resize-y`} placeholder="Blank line = new paragraph" />
       </div>
     );
@@ -1052,7 +1052,7 @@ function TypeField({ field, value, onChange, openPicker }: {
 
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
       <input
         type="text"
         value={s}
@@ -1082,7 +1082,7 @@ function ParagraphsEditor({ field, value, onChange }: {
 
   return (
     <div className="md:col-span-2">
-      <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
       <textarea
         rows={6}
         value={text}
@@ -1110,10 +1110,10 @@ function ItemsEditor({ field, list, add, remove, move, setItemValue, openPicker 
   return (
     <div className="md:col-span-2">
       <div className="flex items-center justify-between mb-2">
-        <label className="text-xs font-medium text-slate-300">{field.label}</label>
+        <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">{field.label}</label>
         <button
           onClick={add}
-          className="text-[11px] px-2 py-1 rounded-md bg-teal-500/10 border border-teal-500/30 text-teal-400 hover:bg-teal-500/20 transition-colors"
+          className="text-[11px] px-2.5 py-1 rounded-md bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 transition-colors font-medium"
         >
           + Add item
         </button>
@@ -1152,20 +1152,20 @@ function ItemCard({ field, fields, item, index, listLen, setItemValue, removeIte
 }) {
   const [open, setOpen] = useState(false);
   const itemCls =
-    "w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/30";
+    "w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors";
 
   const previewKey = field.itemLabelKey ?? "title";
   const preview = asStr(item[previewKey]).slice(0, 60) || `Item ${index + 1}`;
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.03]">
+    <div className="rounded-lg border border-slate-200 bg-white shadow-2xs">
       <div className="flex items-center gap-2 px-3 py-2">
         <button onClick={() => setOpen((v) => !v)} className="flex-1 text-left min-w-0">
-          <p className="text-xs text-white truncate">{preview}</p>
+          <p className="text-xs font-medium text-slate-900 truncate">{preview}</p>
         </button>
-        <button onClick={() => moveItem(index, -1)} disabled={index === 0} className="text-slate-400 hover:text-white disabled:opacity-30 text-xs" title="Move up">↑</button>
-        <button onClick={() => moveItem(index, 1)} disabled={index === listLen - 1} className="text-slate-400 hover:text-white disabled:opacity-30 text-xs" title="Move down">↓</button>
-        <button onClick={() => removeItem(index)} className="text-red-400 hover:text-red-300 text-xs" title="Remove">✕</button>
+        <button onClick={() => moveItem(index, -1)} disabled={index === 0} className="text-slate-500 hover:text-slate-900 disabled:opacity-30 text-xs" title="Move up">↑</button>
+        <button onClick={() => moveItem(index, 1)} disabled={index === listLen - 1} className="text-slate-500 hover:text-slate-900 disabled:opacity-30 text-xs" title="Move down">↓</button>
+        <button onClick={() => removeItem(index)} className="text-red-600 hover:text-red-800 text-xs" title="Remove">✕</button>
       </div>
       {open && (
         <div className="px-3 pb-3 space-y-2">
@@ -1174,7 +1174,7 @@ function ItemCard({ field, fields, item, index, listLen, setItemValue, removeIte
               const url = asStr(item[f.key]);
               return (
                 <div key={f.key}>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">{f.label}</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">{f.label}</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
@@ -1184,14 +1184,14 @@ function ItemCard({ field, fields, item, index, listLen, setItemValue, removeIte
                     />
                     <button
                       onClick={() => openPicker(String(index) + ":" + f.key)}
-                      className="px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[11px] text-slate-300 hover:bg-white/10 transition-colors whitespace-nowrap"
+                      className="px-2 py-1.5 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-medium text-slate-700 hover:bg-slate-200 transition-colors whitespace-nowrap"
                     >
                       Browse…
                     </button>
                   </div>
                   {url && /^https?:\/\/|^\//.test(url) && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt="" className="mt-1.5 h-10 rounded border border-white/10" />
+                    <img src={url} alt="" className="mt-1.5 h-10 rounded border border-slate-200" />
                   )}
                 </div>
               );
@@ -1199,7 +1199,7 @@ function ItemCard({ field, fields, item, index, listLen, setItemValue, removeIte
             if (f.kind === "textarea") {
               return (
                 <div key={f.key}>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">{f.label}</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">{f.label}</label>
                   <textarea
                     rows={2}
                     value={asStr(item[f.key])}
@@ -1211,7 +1211,7 @@ function ItemCard({ field, fields, item, index, listLen, setItemValue, removeIte
             }
             return (
               <div key={f.key}>
-                <label className="block text-[11px] font-medium text-slate-400 mb-1">{f.label}</label>
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">{f.label}</label>
                 <input
                   type={f.kind === "number" ? "number" : "text"}
                   value={f.kind === "number" ? String(Number(item[f.key]) || 0) : asStr(item[f.key])}
@@ -1236,12 +1236,12 @@ function ItemCard({ field, fields, item, index, listLen, setItemValue, removeIte
 function Input({ label, value, onChange, bangla }: { label: string; value: string; onChange: (v: string) => void; bangla?: boolean }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-300 mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{label}</label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 ${bangla ? "font-bangla" : ""}`}
+        className={`w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors ${bangla ? "font-bangla" : ""}`}
       />
     </div>
   );
@@ -1250,12 +1250,12 @@ function Input({ label, value, onChange, bangla }: { label: string; value: strin
 function Textarea({ label, value, onChange, rows, bangla }: { label: string; value: string; onChange: (v: string) => void; rows: number; bangla?: boolean }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-300 mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{label}</label>
       <textarea
         rows={rows}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none ${bangla ? "font-bangla" : ""}`}
+        className={`w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors resize-none ${bangla ? "font-bangla" : ""}`}
       />
     </div>
   );

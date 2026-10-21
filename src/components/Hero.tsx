@@ -6,6 +6,17 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import MagneticButton from "./MagneticButton";
 import dynamic from "next/dynamic";
+import { resolveCmsValue } from "@/lib/cms-content";
+
+function asString(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+function asWordList(v: unknown): string[] {
+  if (typeof v === "string") return v.trim() ? v.trim().split(/\s+/) : [];
+  if (Array.isArray(v)) return v.filter((w): w is string => typeof w === "string" && w.trim() !== "");
+  return [];
+}
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -35,19 +46,23 @@ function KineticText({
   useEffect(() => {
     if (!ref.current) return;
     const items = ref.current.querySelectorAll(isBn ? ".word" : ".char");
-    gsap.fromTo(
-      items,
-      { opacity: 0, y: isBn ? 15 : 20, filter: isBn ? "blur(4px)" : "blur(8px)" },
-      {
-        opacity: 1,
-        y: 0,
-        filter: "blur(0px)",
-        duration: isBn ? 0.5 : 0.6,
-        stagger,
-        ease: "power3.out",
-        delay,
-      }
-    );
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.fromTo(
+        items,
+        { opacity: 0, y: isBn ? 15 : 20, filter: isBn ? "blur(4px)" : "blur(8px)" },
+        {
+          opacity: 1,
+          y: 0,
+          filter: "blur(0px)",
+          duration: isBn ? 0.5 : 0.6,
+          stagger,
+          ease: "power3.out",
+          delay,
+        }
+      );
+    });
+    return () => mm.revert();
   }, [delay, stagger, isBn]);
 
   // Bangla: word-level animation
@@ -57,7 +72,7 @@ function KineticText({
         {text.split(" ").map((word, i) => (
           <span
             key={i}
-            className={`word inline-block opacity-0 mr-[0.3em] ${gradient ? "gradient-text" : ""}`}
+            className={`word inline-block mr-[0.3em] ${gradient ? "gradient-text" : ""}`}
           >
             {word}
           </span>
@@ -72,7 +87,7 @@ function KineticText({
       {text.split("").map((char, i) => (
         <span
           key={i}
-          className={`char inline-block opacity-0 ${gradient ? "gradient-text" : ""}`}
+          className={`char inline-block ${gradient ? "gradient-text" : ""}`}
           style={{ transformOrigin: "bottom", whiteSpace: char === " " ? "pre" : undefined }}
         >
           {char === " " ? "\u00A0" : char}
@@ -114,21 +129,35 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
   const cEn = parseJsonSafe(cmsData?.content);
   const cBn = parseJsonSafe(cmsData?.contentBn);
 
-  const badgeText = (isBn ? (cBn.badge || cEn.badge) : cEn.badge) || t("hero.badge");
-  const brandText = (isBn ? (cBn.brand || cEn.brand) : cEn.brand) || "LENS — Lighthouse for Evolving Narrative Systems";
-  const descText = (isBn ? (cBn.description || cEn.description) : cEn.description) || t("hero.description");
-  const ctaResearchText = (isBn ? (cBn.cta_research || cEn.cta_research) : cEn.cta_research) || t("hero.cta_research");
-  const ctaNetworkText = (isBn ? (cBn.cta_network || cEn.cta_network) : cEn.cta_network) || t("hero.cta_network");
-  const taglineBetterText = (isBn ? (cBn.tagline_better || cEn.tagline_better) : cEn.tagline_better) || t("hero.tagline_better");
-  const taglineStrongerText = (isBn ? (cBn.tagline_stronger || cEn.tagline_stronger) : cEn.tagline_stronger) || t("hero.tagline_stronger");
+  // Key-compatibility resolution (see lib/cms-content.ts): the Landing
+  // Page Editor writes `brandLine`, `primaryCtaText/Link`,
+  // `taglineBetter/Stronger` and `headlineWords`; older saved sections
+  // used the legacy renderer keys `brand`, `cta_research`,
+  // `cta_network`, `tagline_better/stronger` and `headline`. Editor
+  // keys take precedence; legacy keys keep previously saved content
+  // rendering; i18n is the final fallback. CTA destinations fall back
+  // to the pre-CMS hardcoded routes when no link was saved.
+  const badgeText = asString(resolveCmsValue(isBn, cEn, cBn, ["badge"])) || t("hero.badge");
+  const brandText = asString(resolveCmsValue(isBn, cEn, cBn, ["brandLine", "brand"])) || "LENS — Lighthouse for Evolving Narrative Systems";
+  const descText = asString(resolveCmsValue(isBn, cEn, cBn, ["description"])) || t("hero.description");
+  const ctaResearchText = asString(resolveCmsValue(isBn, cEn, cBn, ["primaryCtaText", "cta_research"])) || t("hero.cta_research");
+  const ctaNetworkText = asString(resolveCmsValue(isBn, cEn, cBn, ["secondaryCtaText", "cta_network"])) || t("hero.cta_network");
+  const ctaResearchLink = asString(resolveCmsValue(false, cEn, cBn, ["primaryCtaLink"])) || "/research";
+  const ctaNetworkLink = asString(resolveCmsValue(false, cEn, cBn, ["secondaryCtaLink"])) || "/programs";
+  const taglineBetterText = asString(resolveCmsValue(isBn, cEn, cBn, ["taglineBetter", "tagline_better"])) || t("hero.tagline_better");
+  const taglineStrongerText = asString(resolveCmsValue(isBn, cEn, cBn, ["taglineStronger", "tagline_stronger"])) || t("hero.tagline_stronger");
 
-  const cmsHeadline = isBn ? (cBn.headline || cEn.headline) : (cEn.headline || cBn.headline);
-  const headlineWords: string[] = cmsHeadline
-    ? cmsHeadline.trim().split(/\s+/)
-    : ((t("hero.headline_words", { returnObjects: true }) as string[]) || []);
+  const headlineFromArray = asWordList(resolveCmsValue(isBn, cEn, cBn, ["headlineWords"]));
+  const headlineFromString = asString(resolveCmsValue(isBn, cEn, cBn, ["headline"]));
+  const headlineWords: string[] = headlineFromArray.length > 0
+    ? headlineFromArray
+    : headlineFromString.trim()
+      ? headlineFromString.trim().split(/\s+/)
+      : ((t("hero.headline_words", { returnObjects: true }) as string[]) || []);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       // Badge entrance
       gsap.fromTo(
         ".hero-badge",
@@ -231,7 +260,7 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
       }
     });
 
-    return () => ctx.revert();
+    return () => mm.revert();
   }, [isBn]);
 
   return (
@@ -263,14 +292,14 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-8 xl:gap-12 items-center">
           {/* LEFT COLUMN: Editorial Information */}
           <div className="lg:col-span-7 xl:col-span-6 min-w-0 z-10 flex flex-col justify-center">
-            <div className="hero-badge inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 mb-4 sm:mb-6 lg:mb-8 opacity-0 w-fit">
+            <div className="hero-badge inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 mb-4 sm:mb-6 lg:mb-8 w-fit">
               <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
               <span className="text-teal-300 text-xs font-medium tracking-wide uppercase">
                 {badgeText}
               </span>
             </div>
 
-            <p className="hero-brand text-[11px] sm:text-xs font-semibold tracking-[0.22em] uppercase text-teal-200/70 mb-3 sm:mb-4 lg:mb-6 opacity-0">
+            <p className="hero-brand text-[11px] sm:text-xs font-semibold tracking-[0.22em] uppercase text-teal-200/70 mb-3 sm:mb-4 lg:mb-6">
               {brandText}
             </p>
 
@@ -288,7 +317,7 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
                   <span
                     key={i}
                     ref={(el) => { wordsRef.current[i] = el; }}
-                    className="inline-block opacity-0 mr-[0.3em]"
+                    className="inline-block mr-[0.3em]"
                     style={{ transformOrigin: "bottom" }}
                   >
                     {isGradient ? (
@@ -301,7 +330,7 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
               })}
             </h1>
 
-            <p className={`hero-desc text-slate-300/80 max-w-xl mb-6 sm:mb-8 lg:mb-10 leading-relaxed opacity-0 ${
+            <p className={`hero-desc text-slate-300/80 max-w-xl mb-6 sm:mb-8 lg:mb-10 leading-relaxed ${
               isBn ? "text-sm sm:text-base" : "text-sm sm:text-base md:text-lg"
             }`}>
               {descText}
@@ -309,8 +338,8 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
 
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <MagneticButton
-                href="/research"
-                className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 bg-teal-500 hover:bg-teal-400 text-white text-sm sm:text-base font-semibold rounded-full transition-all shadow-lg shadow-teal-500/25 hover:shadow-teal-400/40 opacity-0"
+                href={ctaResearchLink}
+                className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 bg-teal-500 hover:bg-teal-400 text-white text-sm sm:text-base font-semibold rounded-full transition-all shadow-lg shadow-teal-500/25 hover:shadow-teal-400/40"
                 data-cursor="Explore"
               >
                 {ctaResearchText}
@@ -319,8 +348,8 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
                 </svg>
               </MagneticButton>
               <MagneticButton
-                href="/programs"
-                className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 border border-white/20 text-white text-sm sm:text-base font-semibold rounded-full hover:border-teal-400 hover:text-teal-300 transition-all opacity-0"
+                href={ctaNetworkLink}
+                className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 border border-white/20 text-white text-sm sm:text-base font-semibold rounded-full hover:border-teal-400 hover:text-teal-300 transition-all"
               >
                 {ctaNetworkText}
               </MagneticButton>
@@ -339,12 +368,12 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
                 <div className="relative px-6 py-4 rounded-xl bg-navy-950/75 backdrop-blur-md border border-white/10 shadow-2xl shadow-teal-500/10 pointer-events-auto">
                   <div className="hero-tagline-line absolute -left-3 top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-teal-400/50 to-transparent origin-top" />
                   <div>
-                    <p className={`hero-tagline-text font-bold text-white/90 leading-snug opacity-0 ${
+                    <p className={`hero-tagline-text font-bold text-white/90 leading-snug ${
                       isBn ? "text-xl" : "text-2xl"
                     }`}>
                       {taglineBetterText}
                     </p>
-                    <p className={`hero-tagline-text font-bold text-teal-400 leading-snug mt-1 opacity-0 ${
+                    <p className={`hero-tagline-text font-bold text-teal-400 leading-snug mt-1 ${
                       isBn ? "text-xl" : "text-2xl"
                     }`}>
                       {taglineStrongerText}

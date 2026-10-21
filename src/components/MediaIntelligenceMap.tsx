@@ -34,6 +34,9 @@ export default function MediaIntelligenceMap() {
   // pure functions of (seed, w, h), so caching per resize produces pixel-
   // identical output without per-frame array rebuilds and seededRandom calls.
   const layoutRef = useRef<{ nodes: Node[]; connections: Connection[]; grid: Path2D } | null>(null);
+  // Use a ref for the draw function to avoid "accessed before declared" lint error
+  // when draw() calls itself via requestAnimationFrame.
+  const drawRef = useRef<() => void>(() => {});
 
   const buildLayout = useCallback((w: number, h: number) => {
     const nodeCount = 12;
@@ -92,7 +95,7 @@ export default function MediaIntelligenceMap() {
     // keep the RAF loop alive so rendering resumes instantly on settle.
     // The reduced-motion single-draw path (isVisible false) always renders.
     if (isScrollActive() && isVisible.current) {
-      animRef.current = requestAnimationFrame(draw);
+      animRef.current = requestAnimationFrame(drawRef.current!);
       return;
     }
 
@@ -169,9 +172,14 @@ export default function MediaIntelligenceMap() {
     }
 
     if (isVisible.current) {
-      animRef.current = requestAnimationFrame(draw);
+      animRef.current = requestAnimationFrame(drawRef.current!);
     }
   }, []);
+
+  // Keep drawRef updated with the latest draw function for recursive RAF calls.
+  useEffect(() => {
+    drawRef.current = draw;
+  }, [draw]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -197,7 +205,7 @@ export default function MediaIntelligenceMap() {
       ([entry]) => {
         isVisible.current = entry.isIntersecting;
         if (entry.isIntersecting && !prefersReduced.current) {
-          animRef.current = requestAnimationFrame(draw);
+          animRef.current = requestAnimationFrame(drawRef.current!);
         }
       },
       { threshold: 0 }
@@ -206,9 +214,9 @@ export default function MediaIntelligenceMap() {
 
     if (!prefersReduced.current) {
       isVisible.current = true;
-      animRef.current = requestAnimationFrame(draw);
+      animRef.current = requestAnimationFrame(drawRef.current!);
     } else {
-      draw();
+      drawRef.current!();
     }
 
     return () => {
@@ -216,7 +224,7 @@ export default function MediaIntelligenceMap() {
       cancelAnimationFrame(animRef.current);
       observer.disconnect();
     };
-  }, [draw, buildLayout]);
+  }, [buildLayout]);
 
   return (
     <div ref={containerRef} className="relative w-full h-full">

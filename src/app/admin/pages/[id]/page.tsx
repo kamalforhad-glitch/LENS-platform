@@ -130,6 +130,27 @@ export default function PageEditor() {
         throw new Error(data.error || "Failed to save page");
       }
 
+      // Sync form state from saved page so the UI reflects persisted values
+      // immediately — this also ensures values persist after page reload
+      // because the form state is already correct, and the useEffect on mount
+      // will further confirm/server-state-validate.
+      setForm({
+        id: data.page?.id || rawId,
+        slug: data.page?.slug || "",
+        title: data.page?.title || "",
+        titleBn: data.page?.titleBn || "",
+        description: data.page?.description || "",
+        descriptionBn: data.page?.descriptionBn || "",
+        metaTitle: data.page?.metaTitle || "",
+        metaDescription: data.page?.metaDescription || "",
+        keywords: data.page?.keywords || "[]",
+        canonicalUrl: data.page?.canonicalUrl || "",
+        ogImage: data.page?.ogImage || "",
+        parentId: data.page?.parentId || "",
+        status: data.page?.status || "draft",
+        sortOrder: data.page?.sortOrder || 0,
+      });
+
       setSuccess("Page saved successfully!");
       if (isNew && data.page?.id) {
         router.push(`/admin/pages/${data.page.id}`);
@@ -176,15 +197,15 @@ export default function PageEditor() {
         <div className="flex items-center gap-3">
           <Link
             href="/admin/pages"
-            className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 shadow-2xs transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold text-slate-900">
               {isNew ? "Create New Page" : `Edit Page: ${form.title || form.slug}`}
             </h1>
-            <p className="text-slate-400 text-sm mt-0.5">
+            <p className="text-slate-500 text-sm mt-0.5">
               Manage page metadata, bilingual titles, and publishing status.
             </p>
           </div>
@@ -203,7 +224,7 @@ export default function PageEditor() {
           {!isNew && (
             <button
               onClick={handleDelete}
-              className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
+              className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-colors"
               title="Delete page"
             >
               <Trash2 className="w-5 h-5" />
@@ -214,63 +235,63 @@ export default function PageEditor() {
 
       {/* Notifications */}
       {error && (
-        <div className="p-4 mb-6 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <div className="p-4 mb-6 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
           {error}
         </div>
       )}
       {success && (
-        <div className="p-4 mb-6 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
+        <div className="p-4 mb-6 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">
           {success}
         </div>
       )}
 
       {/* Form */}
       <form onSubmit={handleSave} className="space-y-6">
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
             <Globe className="w-4 h-4 text-teal-400" />
             Basic Page Information
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Page Title (EN) *</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Page Title (EN) *</label>
               <input
                 type="text"
                 required
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="e.g. About Us"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Page Title (বাংলা)</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Page Title (বাংলা)</label>
               <input
                 type="text"
                 value={form.titleBn}
                 onChange={(e) => setForm({ ...form, titleBn: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 font-bangla"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors font-bangla"
                 placeholder="যেমন: আমাদের সম্পর্কে"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-300 mb-1">Summary (EN)</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Summary (EN)</label>
               <textarea
                 rows={2}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors resize-none"
                 placeholder="Short description shown in page lists and used as meta fallback"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-300 mb-1">Summary (বাংলা)</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Summary (বাংলা)</label>
               <textarea
                 rows={2}
                 value={form.descriptionBn}
                 onChange={(e) => setForm({ ...form, descriptionBn: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none font-bangla"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors resize-none font-bangla"
                 placeholder="সংক্ষিপ্ত বিবরণ"
               />
             </div>
@@ -278,120 +299,120 @@ export default function PageEditor() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">URL Slug *</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">URL Slug *</label>
               <div className="flex items-center">
-                <span className="text-xs text-slate-500 px-2.5 py-2 bg-white/5 border border-r-0 border-white/10 rounded-l-lg">/</span>
+                <span className="text-xs text-slate-500 px-3 py-2.5 bg-slate-50 border border-r-0 border-slate-300 rounded-l-lg font-medium">/</span>
                 <input
                   type="text"
                   required
                   value={form.slug}
                   onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-") })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-r-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-r-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                   placeholder="about"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Status</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as PageData["status"] })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               >
-                <option value="draft" className="bg-[#0b121e]">Draft</option>
-                <option value="published" className="bg-[#0b121e]">Published</option>
-                {!isNew && <option value="archived" className="bg-[#0b121e]">Archived</option>}
+                <option value="draft" >Draft</option>
+                <option value="published" >Published</option>
+                {!isNew && <option value="archived" >Archived</option>}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Parent page (optional)</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Parent page (optional)</label>
               <select
                 value={form.parentId}
                 onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               >
-                <option value="" className="bg-[#0b121e]">— None (top level) —</option>
+                <option value="" >— None (top level) —</option>
                 {parents.map((p) => (
-                  <option key={p.id} value={p.id} className="bg-[#0b121e]">{p.title} (/{p.slug})</option>
+                  <option key={p.id} value={p.id} >{p.title} (/{p.slug})</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Sort Order</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Sort Order</label>
               <input
                 type="number"
                 value={form.sortOrder}
                 onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               />
             </div>
           </div>
         </div>
 
         {/* SEO Metadata */}
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h2 className="text-base font-semibold text-white">SEO & Social Meta</h2>
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-base font-semibold text-slate-900">SEO & Social Meta</h2>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Meta Title (Browser Tab Title)</label>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Meta Title (Browser Tab Title)</label>
             <input
               type="text"
               value={form.metaTitle}
               onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               placeholder="Defaults to Page Title | LENS"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Meta Description</label>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Meta Description</label>
             <textarea
               rows={3}
               value={form.metaDescription}
               onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors resize-none"
               placeholder="Search engine summary (approx 150-160 characters)"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Canonical URL</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Canonical URL</label>
               <input
                 type="url"
                 value={form.canonicalUrl}
                 onChange={(e) => setForm({ ...form, canonicalUrl: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="https://www.lensbd.org/about"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Keywords (Comma separated or JSON array)</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Keywords (Comma separated or JSON array)</label>
               <input
                 type="text"
                 value={form.keywords}
                 onChange={(e) => setForm({ ...form, keywords: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="youth, policy, research, bangladesh"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Social share image (og:image)</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Social share image (og:image)</label>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={form.ogImage}
                   onChange={(e) => setForm({ ...form, ogImage: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                   placeholder="Image URL"
                 />
                 <button
                   type="button"
                   onClick={() => setShowMediaPicker(true)}
-                  className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-slate-300 hover:bg-white/10 transition-colors whitespace-nowrap"
+                  className="px-3.5 py-2.5 bg-slate-100 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-200 transition-colors whitespace-nowrap"
                 >
                   Browse…
                 </button>
@@ -413,14 +434,14 @@ export default function PageEditor() {
         <div className="flex justify-end gap-3 pt-4">
           <Link
             href="/admin/pages"
-            className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 rounded-lg text-sm hover:bg-white/10 transition-colors"
+            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-2xs transition-colors"
           >
             Back to Pages
           </Link>
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2 bg-teal-500 text-white rounded-lg text-sm font-semibold hover:bg-teal-400 transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="px-5 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors shadow-xs transition-colors flex items-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? "Saving..." : isNew ? "Create Page" : "Save Changes"}

@@ -12,11 +12,15 @@ export default function AuthorEditorPage() {
   const [saving, setSaving] = useState(false);
   const [id, setId] = useState("");
   const [name, setName] = useState("");
+  const [nameBn, setNameBn] = useState("");
   const [email, setEmail] = useState("");
   const [affiliation, setAffiliation] = useState("");
+  const [affiliationBn, setAffiliationBn] = useState("");
   const [orcid, setOrcid] = useState("");
   const [bio, setBio] = useState("");
+  const [bioBn, setBioBn] = useState("");
   const [expertise, setExpertise] = useState("");
+  const [expertiseBn, setExpertiseBn] = useState("");
   const [image, setImage] = useState("");
   const [website, setWebsite] = useState("");
 
@@ -26,11 +30,15 @@ export default function AuthorEditorPage() {
         if (item) {
           setId(item.id);
           setName(item.name);
+          setNameBn(item.nameBn || "");
           setEmail(item.email || "");
           setAffiliation(item.affiliation);
+          setAffiliationBn(item.affiliationBn || "");
           setOrcid(item.orcid || "");
           setBio(item.bio);
+          setBioBn(item.bioBn || "");
           try { setExpertise(JSON.parse(item.expertise).join(", ")); } catch { setExpertise(""); }
+          try { setExpertiseBn(JSON.parse(item.expertiseBn).join(", ")); } catch { setExpertiseBn(""); }
           setImage(item.image || "");
           setWebsite(item.website || "");
         }
@@ -43,8 +51,9 @@ export default function AuthorEditorPage() {
     setSaving(true);
     try {
       const data = {
-        name, email: email || undefined, affiliation, orcid: orcid || undefined,
-        bio, expertise: expertise.split(",").map((t) => t.trim()).filter(Boolean),
+        name, nameBn, email: email || undefined, affiliation, affiliationBn, orcid: orcid || undefined,
+        bio, bioBn, expertise: expertise.split(",").map((t) => t.trim()).filter(Boolean),
+        expertiseBn: expertiseBn.split(",").map((t) => t.trim()).filter(Boolean),
         image: image || undefined, website: website || undefined,
       };
       if (isNew) {
@@ -69,8 +78,12 @@ export default function AuthorEditorPage() {
       </div>
       <div className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Name *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Name (EN) *</label>
           <input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Name (বাংলা)</label>
+          <input value={nameBn} onChange={(e) => setNameBn(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla" placeholder="নাম বাংলায়" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -83,16 +96,28 @@ export default function AuthorEditorPage() {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Affiliation</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Affiliation (EN)</label>
           <input value={affiliation} onChange={(e) => setAffiliation(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Bio</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Affiliation (বাংলা)</label>
+          <input value={affiliationBn} onChange={(e) => setAffiliationBn(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla" placeholder="সম্পৃক্ততা বাংলায়" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Bio (EN)</label>
           <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Expertise (comma separated)</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Bio (বাংলা)</label>
+          <textarea value={bioBn} onChange={(e) => setBioBn(e.target.value)} rows={4} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla" placeholder="জীবনী বাংলায়" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Expertise (EN, comma separated)</label>
           <input value={expertise} onChange={(e) => setExpertise(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" placeholder="media literacy, press freedom, fact-checking" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Expertise (বাংলা, কমা দিয়ে ভাগ করুন)</label>
+          <input value={expertiseBn} onChange={(e) => setExpertiseBn(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla" placeholder="মিডিয়া সাক্ষরতা, সংবাদ স্বাধীনতা, ফ্যাক্ট-চেকিং" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>

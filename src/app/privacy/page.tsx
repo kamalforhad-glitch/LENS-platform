@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
+import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
+import { resolveSectionItems } from "@/components/page/resolveSectionItems";
+import type { SectionWithResolved } from "@/components/page/PageSectionsView";
+import CmsPageView from "@/components/page/CmsPageView";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -9,7 +13,22 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function PrivacyPage() {
+async function resolveCmsSections(sections: PublicSectionData[]) {
+  return Promise.all(
+    sections.map(async (s) => ({
+      ...s,
+      resolved: await resolveSectionItems(s.type, s.content).catch(() => ({ items: [] })),
+    }))
+  );
+}
+
+export default async function PrivacyPage() {
+  const cms = await getPublicPage("privacy");
+  if (cms) {
+    const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
+    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+  }
+  // Hardcoded fallback — shown until a CMS page at this slug is published.
   return (
     <>
       <SiteHeader />
@@ -28,7 +47,7 @@ export default function PrivacyPage() {
               <h2 className="text-xl font-bold text-slate-900 mt-8">4. Data Protection</h2>
               <p>We implement appropriate security measures to protect your personal information. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.</p>
               <h2 className="text-xl font-bold text-slate-900 mt-8">5. Third-Party Services</h2>
-              <p>We may use third-party services that collect information used to identify you. These services have their own privacy policies addressing how they use such information.</p>
+              <p>We may use third-party services that collect information used to identify you. These services have their own privacy policies addressing how they use their own data.</p>
               <h2 className="text-xl font-bold text-slate-900 mt-8">6. Your Rights</h2>
               <p>You have the right to access, correct, or delete your personal information. To exercise these rights, please contact us at <a href="mailto:info@lensbd.org" className="text-teal-600 hover:underline">info@lensbd.org</a>.</p>
               <h2 className="text-xl font-bold text-slate-900 mt-8">7. Contact</h2>

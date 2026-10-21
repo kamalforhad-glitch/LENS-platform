@@ -6,6 +6,10 @@ import PageHero from "@/components/site/PageHero";
 import ContentListState from "@/components/ContentListState";
 import { getPublicResources } from "@/lib/public-content";
 import { RESOURCE_ELECTION_CATEGORY } from "@/lib/resource-taxonomy";
+import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
+import { resolveSectionItems } from "@/components/page/resolveSectionItems";
+import type { SectionWithResolved } from "@/components/page/PageSectionsView";
+import CmsPageView from "@/components/page/CmsPageView";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +23,22 @@ export const metadata: Metadata = {
 // category and they appear here. No election resources exist in the
 // repository, so nothing is invented — the empty state stands until
 // verified content is published.
+async function resolveCmsSections(sections: PublicSectionData[]) {
+  return Promise.all(
+    sections.map(async (s) => ({
+      ...s,
+      resolved: await resolveSectionItems(s.type, s.content).catch(() => ({ items: [] })),
+    }))
+  );
+}
+
 export default async function ElectionResourcesPage() {
+  const cms = await getPublicPage("resources/election");
+  if (cms) {
+    const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
+    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+  }
+
   const { items: resources, error } = await getPublicResources();
   const items = resources.filter((r) => r.category === RESOURCE_ELECTION_CATEGORY);
 

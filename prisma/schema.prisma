@@ -61,8 +61,11 @@ model ResearchArticle {
   id            String    @id @default(uuid())
   slug          String    @unique
   title         String
+  titleBn       String    @default("") @map("title_bn")
   description   String
+  descriptionBn String    @default("") @map("description_bn")
   content       String    @default("")
+  contentBn     String    @default("") @map("content_bn")
   category      String    @default("Research Report")
   author        String    @default("LENS Research Team")
   tags          String    @default("[]")
@@ -79,7 +82,9 @@ model ResearchArticle {
 
   // Academic workflow fields
   abstract      String    @default("")
+  abstractBn    String    @default("") @map("abstract_bn")
   methodology   String    @default("")
+  methodologyBn String    @default("") @map("methodology_bn")
   doi           String?
   version       Int       @default(1)
   submitterName String?   @map("submitter_name")
@@ -112,7 +117,9 @@ model Publication {
   id            String    @id @default(uuid())
   slug          String    @unique
   title         String
+  titleBn       String    @default("") @map("title_bn")
   description   String
+  descriptionBn String    @default("") @map("description_bn")
   type          String    @default("Research Report")
   author        String    @default("LENS Research Team")
   tags          String    @default("[]")
@@ -138,7 +145,9 @@ model Event {
   id              String    @id @default(uuid())
   slug            String    @unique
   name            String
+  nameBn          String    @default("") @map("name_bn")
   description     String
+  descriptionBn   String    @default("") @map("description_bn")
   startDate       DateTime  @map("start_date")
   endDate         DateTime  @map("end_date")
   time            String    @default("")
@@ -166,9 +175,12 @@ model TeamMember {
   id          String   @id @default(uuid())
   slug        String   @unique
   name        String
+  nameBn      String   @default("") @map("name_bn")
   role        String
+  roleBn      String   @default("") @map("role_bn")
   department  String   @default("General")
   bio         String   @default("")
+  bioBn       String   @default("") @map("bio_bn")
   image       String?
   email       String?
   social      String   @default("{}")
@@ -199,9 +211,12 @@ model MediaFile {
   size         Int
   url          String
   alt          String   @default("")
+  altBn        String   @default("") @map("alt_bn")
   // Optional editorial metadata + intrinsic image dimensions.
   title        String   @default("")
+  titleBn      String   @default("") @map("title_bn")
   description  String   @default("")
+  descriptionBn String  @default("") @map("description_bn")
   width        Int?
   height       Int?
   uploadedBy   String?  @map("uploaded_by")
@@ -324,11 +339,15 @@ model AuthorProfile {
   id            String   @id @default(uuid())
   slug          String   @unique
   name          String
+  nameBn        String   @default("") @map("name_bn")
   email         String?
   affiliation   String   @default("")
+  affiliationBn String   @default("") @map("affiliation_bn")
   orcid         String?
   bio           String   @default("")
+  bioBn         String   @default("") @map("bio_bn")
   expertise     String   @default("[]")
+  expertiseBn   String   @default("[]") @map("expertise_bn")
   image         String?
   website       String?
   social        String   @default("{}")
@@ -492,26 +511,26 @@ model AIMessage {
   @@map("ai_messages")
 }
 
-model DocumentEmbedding {
-  id           String   @id @default(uuid())
-  documentType String   @map("document_type") // research_article | publication | event | team
-  documentId   String   @map("document_id")
-  chunkIndex   Int      @default(0) @map("chunk_index")
-  chunkText    String   @map("chunk_text")
-  // pgvector embedding (1536 dims for text-embedding-3-small).
-  // Managed via raw SQL ($executeRaw/$queryRaw) — Prisma ORM cannot read/write Unsupported fields.
-  embedding    Unsupported("vector(1536)")
-  metadata     String   @default("{}") // JSON: title, author, category, date, etc.
-  tokenCount   Int      @default(0) @map("token_count")
-  indexed      Boolean  @default(false)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  @@index([documentType, documentId])
-  @@index([indexed])
-  @@index([createdAt])
-  @@map("document_embeddings")
-}
+// model DocumentEmbedding {
+//   id           String   @id @default(uuid())
+//   documentType String   @map("document_type") // research_article | publication | event | team
+//   documentId   String   @map("document_id")
+//   chunkIndex   Int      @default(0) @map("chunk_index")
+//   chunkText    String   @map("chunk_text")
+//   // pgvector embedding (1536 dims for text-embedding-3-small).
+//   // Managed via raw SQL ($executeRaw/$queryRaw) — Prisma ORM cannot read/write Unsupported fields.
+//   embedding    Unsupported("vector(1536)")
+//   metadata     String   @default("{}") // JSON: title, author, category, date, etc.
+//   tokenCount   Int      @default(0) @map("token_count")
+//   indexed      Boolean  @default(false)
+//   createdAt    DateTime @default(now()) @map("created_at")
+//   updatedAt    DateTime @updatedAt @map("updated_at")
+//
+//   @@index([documentType, documentId])
+//   @@index([indexed])
+//   @@index([createdAt])
+//   @@map("document_embeddings")
+// }
 
 // ============================================================
 // Researcher Network
@@ -521,18 +540,26 @@ model ResearcherProfile {
   id              String   @id @default(uuid())
   slug            String   @unique
   name            String
+  nameBn          String   @default("") @map("name_bn")
   email           String?
   affiliation     String   @default("")
+  affiliationBn   String   @default("") @map("affiliation_bn")
   position        String   @default("")
+  positionBn      String   @default("") @map("position_bn")
   bio             String   @default("")
+  bioBn           String   @default("") @map("bio_bn")
   image           String?
   orcid           String?
   website         String?
   social          String   @default("{}")
   researchAreas   String   @default("[]") @map("research_areas")
+  researchAreasBn String   @default("[]") @map("research_areas_bn")
   expertise       String   @default("[]")
+  expertiseBn     String   @default("[]") @map("expertise_bn")
   education       String   @default("[]")
+  educationBn     String   @default("[]") @map("education_bn")
   languages       String   @default("[]")
+  languagesBn     String   @default("[]") @map("languages_bn")
   totalDownloads  Int      @default(0) @map("total_downloads")
   totalCitations  Int      @default(0) @map("total_citations")
   featured        Boolean  @default(false)
@@ -690,7 +717,7 @@ model MenuItem {
   labelBn     String   @default("") @map("label_bn")
   url         String
   sortOrder   Int      @default(0) @map("sort_order")
-  visible     Boolean  @default(true)
+  visible     Boolean  @default(false)
   target      String   @default("_self") // _self | _blank
   parentId    String?  @map("parent_id")
   dateCreated DateTime @default(now()) @map("created_at")

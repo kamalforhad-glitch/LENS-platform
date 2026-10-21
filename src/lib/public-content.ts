@@ -37,7 +37,9 @@ const PUBLIC_CAREER_STATUS = { not: "draft" } as const;
 export interface BlogCard {
   slug: string;
   title: string;
+  titleBn: string;
   description: string;
+  descriptionBn: string;
   author: string;
   category: string;
   datePublished: Date | null;
@@ -46,14 +48,18 @@ export interface BlogCard {
 export interface ProgramCard {
   slug: string;
   title: string;
+  titleBn: string;
   description: string;
+  descriptionBn: string;
   category: string;
 }
 
 export interface MediaCard {
   slug: string;
   title: string;
+  titleBn: string;
   description: string;
+  descriptionBn: string;
   type: string;
   source: string;
   datePublished: Date | null;
@@ -62,14 +68,18 @@ export interface MediaCard {
 export interface ResourceCard {
   slug: string;
   title: string;
+  titleBn: string;
   description: string;
+  descriptionBn: string;
   category: string;
 }
 
 export interface CareerCard {
   slug: string;
   title: string;
+  titleBn: string;
   description: string;
+  descriptionBn: string;
   department: string;
   location: string;
   type: string;
@@ -79,7 +89,9 @@ export interface CareerCard {
 export interface EventCard {
   slug: string;
   name: string;
+  nameBn: string;
   description: string;
+  descriptionBn: string;
   location: string;
   time: string;
   category: string;
@@ -90,7 +102,9 @@ export interface EventCard {
 export interface ResearchCard {
   slug: string;
   title: string;
+  titleBn: string;
   description: string;
+  descriptionBn: string;
   category: string;
   datePublished: Date | null;
   dateLabel: string;
@@ -99,7 +113,9 @@ export interface ResearchCard {
 export interface PublicationCard {
   slug: string;
   title: string;
+  titleBn: string;
   description: string;
+  descriptionBn: string;
   type: string;
   datePublished: Date | null;
   dateLabel: string;
@@ -108,10 +124,34 @@ export interface PublicationCard {
 export interface TeamCard {
   slug: string;
   name: string;
+  nameBn: string;
   role: string;
+  roleBn: string;
   department: string;
   bio: string;
+  bioBn: string;
   image: string | null;
+}
+
+export interface ResearcherCard {
+  slug: string;
+  name: string;
+  nameBn: string;
+  affiliation: string;
+  affiliationBn: string;
+  position: string;
+  positionBn: string;
+  bio: string;
+  bioBn: string;
+  image: string | null;
+  orcid: string | null;
+  researchAreas: string;
+  researchAreasBn: string;
+  expertise: string;
+  expertiseBn: string;
+  totalDownloads: number;
+  totalCitations: number;
+  featured: boolean;
 }
 
 // ============================================================
@@ -146,7 +186,9 @@ export function getPublicBlogPosts(): Promise<PublicList<BlogCard>> {
       select: {
         slug: true,
         title: true,
+        titleBn: true,
         description: true,
+        descriptionBn: true,
         author: true,
         category: true,
         datePublished: true,
@@ -161,7 +203,7 @@ export function getPublicPrograms(): Promise<PublicList<ProgramCard>> {
       where: { status: "published" },
       orderBy: [{ featured: "desc" }, { sortOrder: "asc" }],
       take: 60,
-      select: { slug: true, title: true, description: true, category: true },
+      select: { slug: true, title: true, titleBn: true, description: true, descriptionBn: true, category: true },
     })
   );
 }
@@ -175,7 +217,9 @@ export function getPublicMediaItems(): Promise<PublicList<MediaCard>> {
       select: {
         slug: true,
         title: true,
+        titleBn: true,
         description: true,
+        descriptionBn: true,
         type: true,
         source: true,
         datePublished: true,
@@ -190,7 +234,7 @@ export function getPublicResources(): Promise<PublicList<ResourceCard>> {
       where: { status: "published" },
       orderBy: [{ category: "asc" }, { dateModified: "desc" }],
       take: 120,
-      select: { slug: true, title: true, description: true, category: true },
+      select: { slug: true, title: true, titleBn: true, description: true, descriptionBn: true, category: true },
     })
   );
 }
@@ -204,7 +248,9 @@ export function getPublicCareerOpenings(): Promise<PublicList<CareerCard>> {
       select: {
         slug: true,
         title: true,
+        titleBn: true,
         description: true,
+        descriptionBn: true,
         department: true,
         location: true,
         type: true,
@@ -223,7 +269,9 @@ export async function getPublicEvents(): Promise<PublicList<EventCard>> {
       select: {
         slug: true,
         name: true,
+        nameBn: true,
         description: true,
+        descriptionBn: true,
         location: true,
         time: true,
         category: true,
@@ -246,7 +294,9 @@ export async function getPublicResearch(): Promise<PublicList<ResearchCard>> {
       select: {
         slug: true,
         title: true,
+        titleBn: true,
         description: true,
+        descriptionBn: true,
         category: true,
         datePublished: true,
       },
@@ -264,7 +314,7 @@ export async function getPublicPublications(): Promise<PublicList<PublicationCar
       where: { status: "published" },
       orderBy: { datePublished: "desc" },
       take: 60,
-      select: { slug: true, title: true, description: true, type: true, datePublished: true },
+      select: { slug: true, title: true, titleBn: true, description: true, descriptionBn: true, type: true, datePublished: true },
     })
   );
   return {
@@ -283,9 +333,15 @@ export function getPublicResearchArticle(slug: string) {
     select: {
       slug: true,
       title: true,
+      titleBn: true,
       description: true,
+      descriptionBn: true,
       content: true,
+      contentBn: true,
       abstract: true,
+      abstractBn: true,
+      methodology: true,
+      methodologyBn: true,
       category: true,
       author: true,
       tags: true,
@@ -305,13 +361,69 @@ export async function getPublicTeamMembers(): Promise<PublicList<TeamCard>> {
       select: {
         slug: true,
         name: true,
+        nameBn: true,
         role: true,
+        roleBn: true,
         department: true,
         bio: true,
+        bioBn: true,
         image: true,
       },
     })
   );
+}
+
+export async function getPublicResearchers(): Promise<PublicList<ResearcherCard>> {
+  return query(() =>
+    db.researcherProfile.findMany({
+      where: { status: "active" },
+      orderBy: [{ featured: "desc" }, { totalDownloads: "desc" }],
+      select: {
+        slug: true,
+        name: true,
+        nameBn: true,
+        affiliation: true,
+        affiliationBn: true,
+        position: true,
+        positionBn: true,
+        bio: true,
+        bioBn: true,
+        image: true,
+        orcid: true,
+        researchAreas: true,
+        researchAreasBn: true,
+        expertise: true,
+        expertiseBn: true,
+        totalDownloads: true,
+        totalCitations: true,
+        featured: true,
+      },
+    })
+  );
+}
+
+export function getPublicResearcher(slug: string) {
+  return db.researcherProfile.findFirst({
+    where: { slug, status: "active" },
+    include: {
+      articleLinks: {
+        where: { article: { status: "published" } },
+        orderBy: { authorOrder: "asc" },
+        include: {
+          article: {
+            select: {
+              id: true,
+              slug: true,
+              title: true,
+              category: true,
+              downloads: true,
+              datePublished: true,
+            },
+          },
+        },
+      },
+    },
+  });
 }
 
 export function getPublicBlogPost(slug: string) {
@@ -320,7 +432,9 @@ export function getPublicBlogPost(slug: string) {
     select: {
       slug: true,
       title: true,
+      titleBn: true,
       description: true,
+      descriptionBn: true,
       content: true,
       contentBn: true,
       author: true,
@@ -342,6 +456,7 @@ export function getPublicProgram(slug: string) {
       title: true,
       titleBn: true,
       description: true,
+      descriptionBn: true,
       content: true,
       contentBn: true,
       category: true,
@@ -359,7 +474,9 @@ export function getPublicMediaItem(slug: string) {
     select: {
       slug: true,
       title: true,
+      titleBn: true,
       description: true,
+      descriptionBn: true,
       content: true,
       contentBn: true,
       type: true,
@@ -379,7 +496,9 @@ export function getPublicResource(slug: string) {
     select: {
       slug: true,
       title: true,
+      titleBn: true,
       description: true,
+      descriptionBn: true,
       content: true,
       contentBn: true,
       category: true,
@@ -401,8 +520,11 @@ export function getPublicCareer(slug: string) {
     select: {
       slug: true,
       title: true,
+      titleBn: true,
       description: true,
+      descriptionBn: true,
       requirements: true,
+      requirementsBn: true,
       department: true,
       location: true,
       type: true,
@@ -422,7 +544,9 @@ export function getPublicEvent(slug: string) {
     select: {
       slug: true,
       name: true,
+      nameBn: true,
       description: true,
+      descriptionBn: true,
       startDate: true,
       endDate: true,
       time: true,
@@ -442,7 +566,9 @@ export function getPublicPublication(slug: string) {
     select: {
       slug: true,
       title: true,
+      titleBn: true,
       description: true,
+      descriptionBn: true,
       type: true,
       author: true,
       tags: true,

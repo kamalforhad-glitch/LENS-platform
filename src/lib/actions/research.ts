@@ -74,8 +74,11 @@ export async function getResearchArticle(idOrSlug: string): Promise<AdminResearc
 
 export async function createResearchArticle(data: {
   title: string;
+  titleBn?: string;
   description: string;
+  descriptionBn?: string;
   content?: string;
+  contentBn?: string;
   category?: string;
   author?: string;
   tags?: string[];
@@ -84,7 +87,9 @@ export async function createResearchArticle(data: {
   status?: ContentStatus;
   featured?: boolean;
   abstract?: string;
+  abstractBn?: string;
   methodology?: string;
+  methodologyBn?: string;
   doi?: string;
   submitterName?: string;
   submitterEmail?: string;
@@ -104,8 +109,11 @@ export async function createResearchArticle(data: {
       id,
       slug,
       title: data.title,
+      titleBn: data.titleBn || "",
       description: data.description,
+      descriptionBn: data.descriptionBn || "",
       content: data.content || "",
+      contentBn: data.contentBn || "",
       category: data.category || "Research Report",
       author: data.author || "LENS Research Team",
       tags: JSON.stringify(data.tags || []),
@@ -114,7 +122,9 @@ export async function createResearchArticle(data: {
       status: data.status || "draft",
       featured: data.featured || false,
       abstract: data.abstract || "",
+      abstractBn: data.abstractBn || "",
       methodology: data.methodology || "",
+      methodologyBn: data.methodologyBn || "",
       doi: data.doi || null,
       submitterName: data.submitterName || null,
       submitterEmail: data.submitterEmail || null,
@@ -130,8 +140,11 @@ export async function updateResearchArticle(
   id: string,
   data: Partial<{
     title: string;
+    titleBn: string;
     description: string;
+    descriptionBn: string;
     content: string;
+    contentBn: string;
     category: string;
     author: string;
     tags: string[];
@@ -140,7 +153,9 @@ export async function updateResearchArticle(
     status: ContentStatus;
     featured: boolean;
     abstract: string;
+    abstractBn: string;
     methodology: string;
+    methodologyBn: string;
     doi: string;
     submitterName: string;
     submitterEmail: string;
@@ -154,8 +169,11 @@ export async function updateResearchArticle(
   const updateData: Record<string, unknown> = {};
 
   if (data.title !== undefined) updateData.title = data.title;
+  if (data.titleBn !== undefined) updateData.titleBn = data.titleBn;
   if (data.description !== undefined) updateData.description = data.description;
+  if (data.descriptionBn !== undefined) updateData.descriptionBn = data.descriptionBn;
   if (data.content !== undefined) updateData.content = data.content;
+  if (data.contentBn !== undefined) updateData.contentBn = data.contentBn;
   if (data.category !== undefined) updateData.category = data.category;
   if (data.author !== undefined) updateData.author = data.author;
   if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags);
@@ -167,7 +185,9 @@ export async function updateResearchArticle(
   }
   if (data.featured !== undefined) updateData.featured = data.featured;
   if (data.abstract !== undefined) updateData.abstract = data.abstract;
+  if (data.abstractBn !== undefined) updateData.abstractBn = data.abstractBn;
   if (data.methodology !== undefined) updateData.methodology = data.methodology;
+  if (data.methodologyBn !== undefined) updateData.methodologyBn = data.methodologyBn;
   if (data.doi !== undefined) updateData.doi = data.doi;
   if (data.submitterName !== undefined) updateData.submitterName = data.submitterName;
   if (data.submitterEmail !== undefined) updateData.submitterEmail = data.submitterEmail;

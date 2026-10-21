@@ -3,20 +3,38 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
+import Breadcrumbs from "@/components/site/Breadcrumbs";
 import { getPublicResource } from "@/lib/public-content";
+import { headers } from "next/headers";
 
 async function getResource(slug: string) {
   return getPublicResource(slug);
+}
+
+async function getLocaleFromHeaders(): Promise<string> {
+  try {
+    const headersList = await headers();
+    const acceptLanguage = headersList.get("accept-language") || "";
+    return acceptLanguage.startsWith("bn") ? "bn" : "en";
+  } catch {
+    return "en";
+  }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const resource = await getResource(slug);
   if (!resource) return { title: "Resource Not Found" };
+
+  const locale = await getLocaleFromHeaders();
+  const title = locale === "bn" && resource.titleBn ? resource.titleBn : resource.title;
+  const description = locale === "bn" && resource.descriptionBn ? resource.descriptionBn : resource.description;
+
   return {
-    title: resource.metaTitle || resource.title,
-    description: resource.metaDescription || resource.description,
-    openGraph: { title: resource.title, description: resource.description },
+    title: title,
+    description: description,
+    openGraph: { title: title, description: description },
+    alternates: { languages: { en: `/resources/${slug}`, bn: `/resources/${slug}` } },
   };
 }
 
@@ -24,6 +42,13 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
   const { slug } = await params;
   const resource = await getResource(slug);
   if (!resource) notFound();
+
+  const locale = await getLocaleFromHeaders();
+  const bn = locale === "bn";
+
+  const title = bn && resource.titleBn ? resource.titleBn : resource.title;
+  const description = bn && resource.descriptionBn ? resource.descriptionBn : resource.description;
+  const content = bn && resource.contentBn ? resource.contentBn : (resource.content || resource.description);
 
   return (
     <>
@@ -33,24 +58,24 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,rgba(8,145,178,0.08)_0%,transparent_50%)]" />
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <nav className="text-sm text-slate-400 mb-6">
-              <Link href="/" className="hover:text-teal-400">Home</Link>
+              <Link href="/" className="hover:text-teal-400">{bn ? "হোম" : "Home"}</Link>
               <span className="mx-2">/</span>
-              <Link href="/resources" className="hover:text-teal-400">Resources</Link>
+              <Link href="/resources" className="hover:text-teal-400">{bn ? "সম্পদ" : "Resources"}</Link>
               <span className="mx-2">/</span>
-              <span className="text-white">{resource.title}</span>
+              <span className="text-white">{title}</span>
             </nav>
             <span className="text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-3 block">{resource.category}</span>
-            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">{resource.title}</h1>
-            <p className="text-lg text-slate-300/80 leading-relaxed max-w-3xl">{resource.description}</p>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">{title}</h1>
+            <p className="text-lg text-slate-300/80 leading-relaxed max-w-3xl">{description}</p>
             <div className="flex gap-3 mt-6">
               {resource.fileUrl && (
                 <a href={resource.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-5 py-2.5 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-full transition-all">
-                  Download
+                  {bn ? "ডাউনলোড" : "Download"}
                 </a>
               )}
               {resource.externalUrl && (
                 <a href={resource.externalUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-5 py-2.5 border border-white/20 text-white text-sm font-semibold rounded-full hover:border-teal-400 hover:text-teal-300 transition-colors">
-                  Visit Resource
+                  {bn ? "সম্পদ দেখুন" : "Visit Resource"}
                 </a>
               )}
             </div>
@@ -59,7 +84,7 @@ export default async function ResourceDetailPage({ params }: { params: Promise<{
         <section className="py-20 bg-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed whitespace-pre-wrap">
-              {resource.content || resource.description}
+              {content}
             </div>
           </div>
         </section>

@@ -167,7 +167,7 @@ export default function AdminMediaPage() {
           ref={fileInputRef}
           type="file"
           className="hidden"
-          accept="image/*,.pdf,.doc,.docx"
+          accept="image/*,.pdf,.doc,.docx,.mp4,.webm"
           onChange={handleFileChange}
         />
       </div>
@@ -186,7 +186,7 @@ export default function AdminMediaPage() {
         </svg>
         <p className="text-sm text-slate-500">Drag & drop a file here, or click Upload above</p>
         <p className="text-xs text-slate-400 mt-1">
-          Images (JPEG, PNG, GIF, WebP, AVIF) up to 10MB | Documents (PDF, DOC, DOCX) up to 50MB. File content is verified by magic bytes on upload.
+          Images (JPEG, PNG, GIF, WebP, AVIF) up to 10MB | Documents (PDF, DOC, DOCX) up to 50MB | Videos (MP4, WebM) up to the configured video limit. File content is verified by magic bytes on upload.
         </p>
       </div>
 

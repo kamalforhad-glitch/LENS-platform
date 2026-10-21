@@ -169,15 +169,15 @@ export default function MediaItemEditor() {
         <div className="flex items-center gap-3">
           <Link
             href="/admin/media-items"
-            className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 shadow-2xs transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold text-slate-900">
               {isNew ? "Create Media Item" : `Edit Item: ${form.title}`}
             </h1>
-            <p className="text-slate-400 text-sm mt-0.5">
+            <p className="text-slate-500 text-sm mt-0.5">
               Press releases, media mentions, interview features, and public notices.
             </p>
           </div>
@@ -186,7 +186,7 @@ export default function MediaItemEditor() {
         {!isNew && (
           <button
             onClick={handleDelete}
-            className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors self-start sm:self-auto"
+            className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-colors self-start sm:self-auto"
             title="Delete media item"
           >
             <Trash2 className="w-5 h-5" />
@@ -196,43 +196,43 @@ export default function MediaItemEditor() {
 
       {/* Notifications */}
       {error && (
-        <div className="p-4 mb-6 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <div className="p-4 mb-6 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
           {error}
         </div>
       )}
       {success && (
-        <div className="p-4 mb-6 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
+        <div className="p-4 mb-6 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">
           {success}
         </div>
       )}
 
       {/* Form */}
       <form onSubmit={handleSave} className="space-y-6">
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
             <Newspaper className="w-4 h-4 text-teal-400" />
             Media Coverage Details
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Headline (EN) *</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Headline (EN) *</label>
               <input
                 type="text"
                 required
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="LENS Releases National Youth Survey"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Headline (বাংলা)</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Headline (বাংলা)</label>
               <input
                 type="text"
                 value={form.titleBn}
                 onChange={(e) => setForm({ ...form, titleBn: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 font-bangla"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors font-bangla"
                 placeholder="লেন্স এর জাতীয় যুব জরিপ প্রকাশ"
               />
             </div>
@@ -240,73 +240,73 @@ export default function MediaItemEditor() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">URL Slug</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">URL Slug</label>
               <input
                 type="text"
                 value={form.slug}
                 onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-") })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="lens-releases-national-youth-survey"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Media Type</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Media Type</label>
               <select
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               >
-                <option value="press_release" className="bg-[#0b121e]">Press Release</option>
-                <option value="interview" className="bg-[#0b121e]">Interview</option>
-                <option value="report" className="bg-[#0b121e]">Media Report</option>
-                <option value="statement" className="bg-[#0b121e]">Official Statement</option>
+                <option value="press_release" >Press Release</option>
+                <option value="interview" >Interview</option>
+                <option value="report" >Media Report</option>
+                <option value="statement" >Official Statement</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Status</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as "draft" | "published" })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               >
-                <option value="draft" className="bg-[#0b121e]">Draft</option>
-                <option value="published" className="bg-[#0b121e]">Published</option>
+                <option value="draft" >Draft</option>
+                <option value="published" >Published</option>
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Source Outlet Name</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Source Outlet Name</label>
               <input
                 type="text"
                 value={form.source}
                 onChange={(e) => setForm({ ...form, source: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="The Daily Star, Prothom Alo"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Source URL</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Source URL</label>
               <input
                 type="url"
                 value={form.sourceUrl}
                 onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="https://thedailystar.net/..."
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Published Date</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Published Date</label>
               <input
                 type="date"
                 value={form.datePublished}
                 onChange={(e) => setForm({ ...form, datePublished: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               />
             </div>
           </div>
@@ -328,15 +328,15 @@ export default function MediaItemEditor() {
         </div>
 
         {/* Media Thumbnail */}
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
             <ImageIcon className="w-4 h-4 text-teal-400" />
             Media Image / Clipping
           </h2>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {form.image ? (
-              <div className="relative group w-40 h-24 rounded-lg overflow-hidden bg-black/40 border border-white/10">
+              <div className="relative group w-40 h-24 rounded-lg overflow-hidden bg-black/40 border border-slate-200">
                 <img src={form.image} alt="Media cover" className="w-full h-full object-cover" />
                 <button
                   type="button"
@@ -347,7 +347,7 @@ export default function MediaItemEditor() {
                 </button>
               </div>
             ) : (
-              <div className="w-40 h-24 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-slate-500 text-xs">
+              <div className="w-40 h-24 rounded-lg bg-slate-50 border border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 text-xs">
                 <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
                 No image
               </div>
@@ -360,12 +360,12 @@ export default function MediaItemEditor() {
                   value={form.image}
                   onChange={(e) => setForm({ ...form, image: e.target.value })}
                   placeholder="https://... or choose from media"
-                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                  className="flex-1 px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowMediaPicker(true)}
-                  className="px-3 py-2 bg-white/10 border border-white/10 text-white text-sm rounded-lg hover:bg-white/15 transition-colors whitespace-nowrap"
+                  className="px-3.5 py-2.5 bg-slate-100 border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors whitespace-nowrap"
                 >
                   Choose Media
                 </button>
@@ -375,27 +375,27 @@ export default function MediaItemEditor() {
         </div>
 
         {/* Short Summary */}
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h2 className="text-base font-semibold text-white">Summary</h2>
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-base font-semibold text-slate-900">Summary</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Summary (EN) *</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Summary (EN) *</label>
               <textarea
                 rows={3}
                 required
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors resize-none"
                 placeholder="Press release lead paragraph..."
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Summary (বাংলা)</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Summary (বাংলা)</label>
               <textarea
                 rows={3}
                 value={form.descriptionBn}
                 onChange={(e) => setForm({ ...form, descriptionBn: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none font-bangla"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors resize-none font-bangla"
                 placeholder="সংক্ষিপ্ত সারসংক্ষেপ বাংলায়..."
               />
             </div>
@@ -406,14 +406,14 @@ export default function MediaItemEditor() {
         <div className="flex justify-end gap-3 pt-4">
           <Link
             href="/admin/media-items"
-            className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 rounded-lg text-sm hover:bg-white/10 transition-colors"
+            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-2xs transition-colors"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2 bg-teal-500 text-white rounded-lg text-sm font-semibold hover:bg-teal-400 transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="px-5 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors shadow-xs transition-colors flex items-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? "Saving..." : isNew ? "Create Media Item" : "Save Changes"}

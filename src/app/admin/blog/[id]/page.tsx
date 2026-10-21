@@ -186,15 +186,15 @@ export default function BlogPostEditor() {
         <div className="flex items-center gap-3">
           <Link
             href="/admin/blog"
-            className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors"
+            className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 shadow-2xs transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold text-slate-900">
               {isNew ? "Create Blog Post" : `Edit Post: ${form.title}`}
             </h1>
-            <p className="text-slate-400 text-sm mt-0.5">
+            <p className="text-slate-500 text-sm mt-0.5">
               Articles, policy commentary, and youth research releases.
             </p>
           </div>
@@ -203,7 +203,7 @@ export default function BlogPostEditor() {
         {!isNew && (
           <button
             onClick={handleDelete}
-            className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors self-start sm:self-auto"
+            className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-colors self-start sm:self-auto"
             title="Delete post"
           >
             <Trash2 className="w-5 h-5" />
@@ -213,12 +213,12 @@ export default function BlogPostEditor() {
 
       {/* Notifications */}
       {error && (
-        <div className="p-4 mb-6 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <div className="p-4 mb-6 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
           {error}
         </div>
       )}
       {success && (
-        <div className="p-4 mb-6 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
+        <div className="p-4 mb-6 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">
           {success}
         </div>
       )}
@@ -226,28 +226,28 @@ export default function BlogPostEditor() {
       {/* Form */}
       <form onSubmit={handleSave} className="space-y-6">
         {/* Basic Info */}
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h2 className="text-base font-semibold text-white">Article Details</h2>
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-base font-semibold text-slate-900">Article Details</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Title (EN) *</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Title (EN) *</label>
               <input
                 type="text"
                 required
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="Post title in English"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Title (বাংলা)</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Title (বাংলা)</label>
               <input
                 type="text"
                 value={form.titleBn}
                 onChange={(e) => setForm({ ...form, titleBn: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 font-bangla"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors font-bangla"
                 placeholder="পোস্টের শিরোনাম বাংলায়"
               />
             </div>
@@ -255,34 +255,34 @@ export default function BlogPostEditor() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">URL Slug</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">URL Slug</label>
               <input
                 type="text"
                 value={form.slug}
                 onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-") })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="auto-generated-if-empty"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Author</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Author</label>
               <input
                 type="text"
                 value={form.author}
                 onChange={(e) => setForm({ ...form, author: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="LENS Research Team"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Category</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Category</label>
               <input
                 type="text"
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 placeholder="Analysis, Policy, Insight"
               />
             </div>
@@ -290,12 +290,12 @@ export default function BlogPostEditor() {
 
           {/* Tags */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Tags</label>
-            <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Tags</label>
+            <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 rounded-lg">
               {formTags.map((tag, i) => (
-                <span key={`${tag}-${i}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-300 text-xs">
+                <span key={`${tag}-${i}`} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-medium">
                   {tag}
-                  <button type="button" onClick={() => setFormTags(formTags.filter((_, j) => j !== i))} className="text-teal-400 hover:text-white" title="Remove tag">✕</button>
+                  <button type="button" onClick={() => setFormTags(formTags.filter((_, j) => j !== i))} className="text-teal-600 hover:text-teal-900" title="Remove tag">✕</button>
                 </span>
               ))}
               <input
@@ -315,7 +315,7 @@ export default function BlogPostEditor() {
                   }
                 }}
                 placeholder={formTags.length === 0 ? "Type a tag and press Enter…" : "Add another…"}
-                className="flex-1 min-w-32 bg-transparent text-white text-sm placeholder-slate-500 focus:outline-none"
+                className="flex-1 min-w-32 bg-transparent text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none"
               />
             </div>
             <p className="text-[11px] text-slate-500 mt-1">Enter or comma separates tags. Stored with the post as a JSON array.</p>
@@ -323,24 +323,24 @@ export default function BlogPostEditor() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Status</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as "draft" | "published" })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               >
-                <option value="draft" className="bg-[#0b121e]">Draft</option>
-                <option value="published" className="bg-[#0b121e]">Published</option>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Publication Date</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Publication Date</label>
               <input
                 type="date"
                 value={form.datePublished}
                 onChange={(e) => setForm({ ...form, datePublished: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               />
             </div>
 
@@ -350,10 +350,10 @@ export default function BlogPostEditor() {
                   type="checkbox"
                   checked={form.featured}
                   onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-                  className="rounded border-white/20 text-teal-500 focus:ring-teal-500/30"
+                  className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
                 />
-                <span className="text-sm text-slate-300 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-sm text-slate-700 font-medium flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   Featured Post
                 </span>
               </label>
@@ -362,15 +362,15 @@ export default function BlogPostEditor() {
         </div>
 
         {/* Featured Image */}
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <ImageIcon className="w-4 h-4 text-teal-400" />
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+            <ImageIcon className="w-4 h-4 text-teal-600" />
             Cover Image
           </h2>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {form.image ? (
-              <div className="relative group w-40 h-24 rounded-lg overflow-hidden bg-black/40 border border-white/10">
+              <div className="relative group w-40 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
                 <img src={form.image} alt="Post cover" className="w-full h-full object-cover" />
                 <button
                   type="button"
@@ -381,7 +381,7 @@ export default function BlogPostEditor() {
                 </button>
               </div>
             ) : (
-              <div className="w-40 h-24 rounded-lg bg-white/5 border border-dashed border-white/20 flex flex-col items-center justify-center text-slate-500 text-xs">
+              <div className="w-40 h-24 rounded-lg bg-slate-50 border border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 text-xs">
                 <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
                 No image
               </div>
@@ -394,12 +394,12 @@ export default function BlogPostEditor() {
                   value={form.image}
                   onChange={(e) => setForm({ ...form, image: e.target.value })}
                   placeholder="https://... or choose from media"
-                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                  className="flex-1 px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowMediaPicker(true)}
-                  className="px-3 py-2 bg-white/10 border border-white/10 text-white text-sm rounded-lg hover:bg-white/15 transition-colors whitespace-nowrap"
+                  className="px-4 py-2.5 bg-slate-100 border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors whitespace-nowrap"
                 >
                   Choose Media
                 </button>
@@ -410,27 +410,27 @@ export default function BlogPostEditor() {
         </div>
 
         {/* Excerpt / Summary */}
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h2 className="text-base font-semibold text-white">Summary / Excerpt</h2>
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-base font-semibold text-slate-900">Summary / Excerpt</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Short Description (EN) *</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Short Description (EN) *</label>
               <textarea
                 rows={3}
                 required
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors resize-none"
                 placeholder="Brief summary shown on listing cards..."
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Short Description (বাংলা)</label>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Short Description (বাংলা)</label>
               <textarea
                 rows={3}
                 value={form.descriptionBn}
                 onChange={(e) => setForm({ ...form, descriptionBn: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none font-bangla"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors resize-none font-bangla"
                 placeholder="সংক্ষিপ্ত বিবরণ বাংলায়..."
               />
             </div>
@@ -438,50 +438,50 @@ export default function BlogPostEditor() {
         </div>
 
         {/* Content Body */}
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h2 className="text-base font-semibold text-white">Article Content (Markdown / HTML)</h2>
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-base font-semibold text-slate-900">Article Content (Markdown / HTML)</h2>
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Content Body (EN)</label>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Content Body (EN)</label>
             <textarea
               rows={8}
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 font-mono text-xs"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors font-mono text-xs"
               placeholder="Full article content in Markdown format..."
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Content Body (বাংলা)</label>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Content Body (বাংলা)</label>
             <textarea
               rows={6}
               value={form.contentBn}
               onChange={(e) => setForm({ ...form, contentBn: e.target.value })}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 font-bangla text-sm"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors font-bangla text-sm"
               placeholder="মূল নিবন্ধের বিষয়বস্তু বাংলায়..."
             />
           </div>
         </div>
 
         {/* SEO Meta */}
-        <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-4">
-          <h2 className="text-base font-semibold text-white">SEO Settings</h2>
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-base font-semibold text-slate-900">SEO Settings</h2>
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Meta Title</label>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Meta Title</label>
             <input
               type="text"
               value={form.metaTitle}
               onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               placeholder="Defaults to post title | LENS"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Meta Description</label>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Meta Description</label>
             <input
               type="text"
               value={form.metaDescription}
               onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
               placeholder="Search engine summary..."
             />
           </div>
@@ -491,14 +491,14 @@ export default function BlogPostEditor() {
         <div className="flex justify-end gap-3 pt-4">
           <Link
             href="/admin/blog"
-            className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 rounded-lg text-sm hover:bg-white/10 transition-colors"
+            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-2xs"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2 bg-teal-500 text-white rounded-lg text-sm font-semibold hover:bg-teal-400 transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="px-5 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors flex items-center gap-2 shadow-xs disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? "Saving..." : isNew ? "Publish Article" : "Save Changes"}

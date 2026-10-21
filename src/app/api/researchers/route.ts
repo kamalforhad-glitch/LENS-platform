@@ -10,8 +10,43 @@ function authErrorResponse(error: unknown) {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Single-profile lookup used by /researchers/[slug]. Without ?slug= the
+    // caller gets the full active list (existing behavior, unchanged shape).
+    const slug = request.nextUrl.searchParams.get("slug");
+    if (slug) {
+      const researcher = await db.researcherProfile.findFirst({
+        where: { slug, status: "active" },
+        include: {
+          articleLinks: {
+            where: { article: { status: "published" } },
+            orderBy: { authorOrder: "asc" },
+            include: {
+              article: {
+                select: {
+                  id: true,
+                  slug: true,
+                  title: true,
+                  category: true,
+                  downloads: true,
+                  datePublished: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!researcher) return NextResponse.json({ researcher: null });
+
+      // The profile UI expects a numeric articleCount; derive it from the
+      // included published-article links instead of adding a schema field.
+      const { articleLinks, ...profile } = researcher;
+      return NextResponse.json({
+        researcher: { ...profile, articleCount: articleLinks.length, articleLinks },
+      });
+    }
+
     const researchers = await db.researcherProfile.findMany({
       where: { status: "active" },
       orderBy: [{ featured: "desc" }, { totalDownloads: "desc" }],

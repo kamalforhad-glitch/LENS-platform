@@ -3,6 +3,10 @@ import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageHero from "@/components/site/PageHero";
+import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
+import { resolveSectionItems } from "@/components/page/resolveSectionItems";
+import type { SectionWithResolved } from "@/components/page/PageSectionsView";
+import CmsPageView from "@/components/page/CmsPageView";
 
 export const metadata: Metadata = {
   title: "Our Vision",
@@ -10,11 +14,22 @@ export const metadata: Metadata = {
     "The LENS vision for Bangladesh's narrative ecosystem, alongside our verified mission and values.",
 };
 
-// NOTE: No approved vision statement exists in the repository (verified
-// during the Phase B evidence review). The panel below is an explicitly
-// marked editorial placeholder — it must be replaced with approved
-// organizational copy, never presented as an official statement.
-export default function VisionPage() {
+async function resolveCmsSections(sections: PublicSectionData[]) {
+  return Promise.all(
+    sections.map(async (s) => ({
+      ...s,
+      resolved: await resolveSectionItems(s.type, s.content).catch(() => ({ items: [] })),
+    }))
+  );
+}
+
+export default async function VisionPage() {
+  const cms = await getPublicPage("about/vision");
+  if (cms) {
+    const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
+    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+  }
+  // Hardcoded fallback — shown until a CMS page at this slug is published.
   return (
     <>
       <SiteHeader />

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { OrganizationSchema } from "@/components/SchemaOrg";
+import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -11,7 +12,8 @@ export default function AboutContent() {
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       // Hero text reveal
       gsap.fromTo(
         ".about-hero-label",
@@ -71,7 +73,7 @@ export default function AboutContent() {
       );
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => mm.revert();
   }, []);
 
   const values = [
@@ -98,13 +100,13 @@ export default function AboutContent() {
         <div className="about-bg-orb absolute top-0 right-0 w-[400px] h-[400px] bg-teal-400 rounded-full blur-3xl opacity-0 pointer-events-none" />
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <span className="about-hero-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-4 block opacity-0">
+          <span className="about-hero-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-4 block">
             About LENS
           </span>
-          <h1 className="about-hero-title text-4xl lg:text-5xl font-bold text-white mb-6 opacity-0">
+          <h1 className="about-hero-title text-4xl lg:text-5xl font-bold text-white mb-6">
             Lighthouse for Evolving Narrative Systems
           </h1>
-          <p className="about-hero-desc text-lg text-slate-300/80 leading-relaxed opacity-0">
+          <p className="about-hero-desc text-lg text-slate-300/80 leading-relaxed">
             A research-driven think tank working to strengthen Bangladesh&apos;s
             narrative ecosystem through evidence, media literacy, strategic
             communication and policy engagement.
@@ -115,14 +117,14 @@ export default function AboutContent() {
       {/* Mission */}
       <section className="about-mission py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="about-mission-title text-3xl font-bold text-slate-900 mb-6 opacity-0">Our Mission</h2>
-          <p className="about-mission-text text-slate-600 leading-relaxed mb-6 opacity-0">
+          <h2 className="about-mission-title text-3xl font-bold text-slate-900 mb-6">Our Mission</h2>
+          <p className="about-mission-text text-slate-600 leading-relaxed mb-6">
             LENS exists at the intersection of research, capacity building,
             communication and policy. We work to build a more informed, inclusive
             and resilient public sphere in Bangladesh through rigorous evidence
             and strategic engagement.
           </p>
-          <p className="about-mission-text text-slate-600 leading-relaxed opacity-0">
+          <p className="about-mission-text text-slate-600 leading-relaxed">
             Our team of researchers, media professionals and policy analysts
             collaborate to produce high-quality research, train journalists
             and youth, advocate for press freedom, and engage with policymakers
@@ -158,7 +160,7 @@ export default function AboutContent() {
           <h2 className="text-3xl font-bold text-slate-900 mb-10">Our Values</h2>
           <div className="grid sm:grid-cols-2 gap-8">
             {values.map((v) => (
-              <div key={v.title} className="about-value-card p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-white border border-slate-100 opacity-0" style={{ perspective: "600px" }}>
+              <div key={v.title} className="about-value-card p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-white border border-slate-100" style={{ perspective: "600px" }}>
                 <h3 className="text-lg font-bold text-slate-900 mb-2">{v.title}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">{v.desc}</p>
               </div>
@@ -170,18 +172,18 @@ export default function AboutContent() {
       {/* Team */}
       <section className="about-team py-20 bg-navy-950">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="about-team-title text-3xl font-bold text-white mb-6 opacity-0">Our Team</h2>
-          <p className="about-team-desc text-slate-300/70 leading-relaxed mb-8 max-w-2xl mx-auto opacity-0">
+          <h2 className="about-team-title text-3xl font-bold text-white mb-6">Our Team</h2>
+          <p className="about-team-desc text-slate-300/70 leading-relaxed mb-8 max-w-2xl mx-auto">
             LENS brings together researchers, journalists, policy analysts and
             media professionals with deep expertise in Bangladesh&apos;s
             information ecosystem.
           </p>
-          <a
+          <Link
             href="/contact"
             className="inline-flex items-center px-6 py-3 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-full transition-colors shadow-lg shadow-teal-500/25"
           >
             Get in Touch
-          </a>
+          </Link>
         </div>
       </section>
     </div>

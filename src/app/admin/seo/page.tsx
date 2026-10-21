@@ -101,18 +101,18 @@ export default function SEOAdmin() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <Globe className="w-6 h-6 text-teal-400" />
             SEO & Metadata Control Center
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-500 text-sm mt-1">
             Configure global search engine rankings, Open Graph cards, and social sharing previews.
           </p>
         </div>
         <button
           onClick={saveAll}
           disabled={savingKey === "all"}
-          className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-semibold hover:bg-teal-400 transition-colors flex items-center gap-2 self-start sm:self-auto disabled:opacity-50"
+          className="px-5 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 shadow-xs transition-colors flex items-center gap-2 self-start sm:self-auto disabled:opacity-50"
         >
           {savedKey === "all" ? (
             <>
@@ -131,8 +131,8 @@ export default function SEOAdmin() {
       {/* Visual Live Previews */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Google SERP Preview */}
-        <div className="p-5 rounded-2xl bg-[#0b121e] border border-white/10 shadow-lg">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
+        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 mb-3 uppercase tracking-wider">
             <Search className="w-4 h-4 text-blue-400" />
             Google Search Snippet Preview
           </div>
@@ -156,8 +156,8 @@ export default function SEOAdmin() {
         </div>
 
         {/* Social Card Preview */}
-        <div className="p-5 rounded-2xl bg-[#0b121e] border border-white/10 shadow-lg">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
+        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 mb-3 uppercase tracking-wider">
             <Share2 className="w-4 h-4 text-teal-400" />
             Social Media Card Preview (Facebook/Twitter/LinkedIn)
           </div>
@@ -173,7 +173,7 @@ export default function SEOAdmin() {
             </div>
             <div className="p-3">
               <span className="text-[10px] text-slate-400 uppercase tracking-wider">lensbd.org</span>
-              <h4 className="text-sm font-semibold text-white truncate mt-0.5">{metaTitle}</h4>
+              <h4 className="text-sm font-semibold text-slate-900 truncate mt-0.5">{metaTitle}</h4>
               <p className="text-xs text-slate-300 line-clamp-2 mt-1">{metaDescription}</p>
             </div>
           </div>
@@ -182,12 +182,12 @@ export default function SEOAdmin() {
 
       {/* Structured SEO Settings Form */}
       <div className="space-y-4">
-        <h2 className="text-lg font-bold text-white">Global SEO Configuration</h2>
+        <h2 className="text-lg font-bold text-slate-900">Global SEO Configuration</h2>
 
         {settings.map((s) => (
           <div
             key={s.key}
-            className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-all space-y-3"
+            className="p-5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition-all shadow-xs space-y-3"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -204,7 +204,7 @@ export default function SEOAdmin() {
                 <button
                   type="button"
                   onClick={() => saveSetting(s)}
-                  className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs font-medium transition-colors"
+                  className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded text-xs font-medium transition-colors"
                 >
                   Save
                 </button>
@@ -217,13 +217,13 @@ export default function SEOAdmin() {
                   type="text"
                   value={s.value}
                   onChange={(e) => updateVal(s.key, e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                  className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
                   placeholder="https://www.lensbd.org/og-image.png"
                 />
                 <button
                   type="button"
                   onClick={() => setShowMediaPicker(true)}
-                  className="px-3 py-2 bg-teal-500/10 border border-teal-500/30 text-teal-400 rounded-lg text-sm hover:bg-teal-500/20 transition-colors flex items-center gap-1.5"
+                  className="px-3 py-2 bg-teal-50 border border-teal-200 text-teal-700 rounded-lg text-sm hover:bg-teal-100 transition-colors flex items-center gap-1.5 font-medium"
                 >
                   <ImageIcon className="w-4 h-4" />
                   Media Library
@@ -232,42 +232,42 @@ export default function SEOAdmin() {
             ) : s.key.includes("description") ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">English Value</span>
+                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1.5">English Value</span>
                   <textarea
                     rows={2}
                     value={s.value}
                     onChange={(e) => updateVal(s.key, e.target.value)}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 resize-none"
                   />
                 </div>
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">Bangla Value (বাংলা)</span>
+                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1.5">Bangla Value (বাংলা)</span>
                   <textarea
                     rows={2}
                     value={s.valueBn}
                     onChange={(e) => updateVal(s.key, e.target.value, true)}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none font-bangla"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 resize-none font-bangla"
                   />
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">English Value</span>
+                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1.5">English Value</span>
                   <input
                     type="text"
                     value={s.value}
                     onChange={(e) => updateVal(s.key, e.target.value)}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
                   />
                 </div>
                 <div>
-                  <span className="text-[11px] text-slate-400 block mb-1">Bangla Value (বাংলা)</span>
+                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1.5">Bangla Value (বাংলা)</span>
                   <input
                     type="text"
                     value={s.valueBn}
                     onChange={(e) => updateVal(s.key, e.target.value, true)}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 font-bangla"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 font-bangla"
                   />
                 </div>
               </div>

@@ -68,6 +68,8 @@ export const AUDIT_ACTIONS = {
   MEDIA_DELETED: "media_deleted",
   MEDIA_DELETED_BLOCKED: "media_delete_blocked",
   MEDIA_REPLACED: "media_replaced",
+  CONTENT_CREATED: "content_created",
+  CONTENT_UPDATED: "content_updated",
   CONTENT_STATUS_CHANGED: "content_status_changed",
   CONTENT_DELETED: "content_deleted",
   VERSION_RESTORED: "version_restored",

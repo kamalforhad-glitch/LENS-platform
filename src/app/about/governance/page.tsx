@@ -3,6 +3,10 @@ import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageHero from "@/components/site/PageHero";
+import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
+import { resolveSectionItems } from "@/components/page/resolveSectionItems";
+import type { SectionWithResolved } from "@/components/page/PageSectionsView";
+import CmsPageView from "@/components/page/CmsPageView";
 
 export const metadata: Metadata = {
   title: "Governance",
@@ -13,7 +17,22 @@ export const metadata: Metadata = {
 // NOTE: No governance roster exists in the repository (no board/advisory
 // data in any model, seed, or page). This page is an explicitly marked
 // CMS-ready placeholder: no names, roles, or structures are stated.
-export default function GovernancePage() {
+async function resolveCmsSections(sections: PublicSectionData[]) {
+  return Promise.all(
+    sections.map(async (s) => ({
+      ...s,
+      resolved: await resolveSectionItems(s.type, s.content).catch(() => ({ items: [] })),
+    }))
+  );
+}
+
+export default async function GovernancePage() {
+  const cms = await getPublicPage("about/governance");
+  if (cms) {
+    const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
+    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+  }
+
   return (
     <>
       <SiteHeader />

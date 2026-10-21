@@ -1,75 +1,50 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { use } from "react";
 
 interface Researcher {
-  id: string;
   slug: string;
   name: string;
+  nameBn: string;
   email: string | null;
   affiliation: string;
+  affiliationBn: string;
   position: string;
+  positionBn: string;
   bio: string;
+  bioBn: string;
   image: string | null;
   orcid: string | null;
   website: string | null;
   social: string;
   researchAreas: string;
+  researchAreasBn: string;
   expertise: string;
+  expertiseBn: string;
   education: string;
+  educationBn: string;
   languages: string;
-  articleCount: number;
+  languagesBn: string;
   totalDownloads: number;
   totalCitations: number;
   featured: boolean;
-  articleLinks: { article: { id: string; slug: string; title: string; category: string; downloads: number; datePublished: string | null } }[];
+  articleLinks: { article: { id: string; slug: string; title: string; category: string; downloads: number; datePublished: Date | string | null } }[];
 }
 
-export default function ResearcherProfilePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params);
-  const [researcher, setResearcher] = useState<Researcher | null>(null);
-  const [loading, setLoading] = useState(true);
+interface ResearcherProfileContentProps {
+  researcher: Researcher;
+}
 
-  useEffect(() => {
-    fetch(`/api/researchers?slug=${slug}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setResearcher(data.researcher || null);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [slug]);
+const parseJson = (str: string): string[] => {
+  try { return JSON.parse(str); } catch { return []; }
+};
 
-  const parseJson = (str: string): string[] => {
-    try { return JSON.parse(str); } catch { return []; }
-  };
+const parseSocial = (str: string): Record<string, string> => {
+  try { return JSON.parse(str); } catch { return {}; }
+};
 
-  const parseSocial = (str: string): Record<string, string> => {
-    try { return JSON.parse(str); } catch { return {}; }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-navy-950 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!researcher) {
-    return (
-      <div className="min-h-screen bg-navy-950 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Researcher Not Found</h1>
-          <Link href="/researchers" className="text-teal-400 hover:underline">Back to Researchers</Link>
-        </div>
-      </div>
-    );
-  }
-
+export default function ResearcherProfileContent({ researcher }: ResearcherProfileContentProps) {
   const areas = parseJson(researcher.researchAreas);
   const expert = parseJson(researcher.expertise);
   const social = parseSocial(researcher.social);
@@ -108,7 +83,7 @@ export default function ResearcherProfilePage({ params }: { params: Promise<{ sl
         {/* Metrics */}
         <div className="grid grid-cols-3 gap-4 mb-10">
           <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-center">
-            <p className="text-2xl font-bold text-teal-400">{researcher.articleCount}</p>
+            <p className="text-2xl font-bold text-teal-400">{researcher.articleLinks.length}</p>
             <p className="text-xs text-slate-400 mt-1">Publications</p>
           </div>
           <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-center">

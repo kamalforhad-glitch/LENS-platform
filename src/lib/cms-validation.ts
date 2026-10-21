@@ -48,6 +48,47 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
 
 export const RESERVED_SLUG_FOR_MESSAGES = "home, api, admin, about, blog, careers, clubs, contact, courses, donate, events, impact, indexing, library, media, og, partnerships, privacy, programs, publications, research, researchers, resources, terms, theme";
 
+/**
+ * Reserved application-route slugs that a CMS page MAY take over through an
+ * explicit, admin-only migration (slugs below). Every other reserved slug
+ * stays protected forever: `home` (homepage editor), `admin`/`api`/`og`
+ * (app areas), and the DB-backed list routes (blog, careers, events, impact,
+ * library, media, programs, publications, research, researchers, resources).
+ *
+ * Migration of one of these slugs means: an admin creates a draft CMS page at
+ * that slug via /api/admin/cms-migrate (dry-run first), reviews it, publishes
+ * it, and only then does the hardcoded page shell defer to the CMS view.
+ * Unmigrated slugs keep their hardcoded pages untouched.
+ *
+ * Deliberately NOT migratable:
+ *  - `contact`   — the live contact form has no CMS section equivalent yet
+ *  - `courses`   — mixes hardcoded prose with the live Programs collection
+ *  - `indexing`  — mixes hardcoded prose with the live research "Latest Findings"
+ *  - `partnerships` — 308-redirects to the nested /about/partnerships route,
+ *                     which single-level CMS routing cannot address
+ */
+export const CMS_MIGRATABLE_SLUGS: ReadonlySet<string> = new Set([
+  "about",
+  "privacy",
+  "terms",
+  "donate",
+  "theme",
+  "clubs",
+  "research",
+  "publications",
+  "events",
+  "blog",
+  "media",
+  "resources",
+  "programs",
+  "researchers",
+  "impact",
+  "courses",
+  "library",
+  "careers",
+  "indexing",
+]);
+
 export interface SlugCheck {
   valid: boolean;
   error?: string;
@@ -66,10 +107,14 @@ export function normalizeSlug(input: string): string {
 }
 
 /**
- * Validate a CMS page slug: URL-safe, not reserved, not a bare number
- * (avoids ambiguity with potential numeric routes).
+ * Validate a CMS page slug: URL-safe, not reserved (unless explicitly
+ * allowed for migration), not a bare number.
+ *
+ * @param allowMigratableReserved when true, a slug in CMS_MIGRATABLE_SLUGS
+ *   is accepted so an admin can migrate a hardcoded route to CMS. Callers
+ *   must still check that no published app route will be shadowed.
  */
-export function validateSlug(slug: string): SlugCheck {
+export function validateSlug(slug: string, options?: { allowMigratableReserved?: boolean }): SlugCheck {
   const s = (slug || "").trim();
   if (!s) return { valid: false, error: "Slug is required" };
   if (s.length > 80) return { valid: false, error: "Slug must be 80 characters or fewer" };
@@ -80,7 +125,7 @@ export function validateSlug(slug: string): SlugCheck {
       error: "Slug may only contain lowercase letters, digits, and single hyphens",
     };
   }
-  if (RESERVED_SLUGS.has(s)) {
+  if (RESERVED_SLUGS.has(s) && !(options?.allowMigratableReserved && CMS_MIGRATABLE_SLUGS.has(s))) {
     return { valid: false, error: `"${s}" is a reserved route and cannot be used as a page slug (reserved: ${RESERVED_SLUG_FOR_MESSAGES.split(", ").slice(0, 6).join(", ")}…)`.replace(/"reserved:.*"$/, "") };
   }
   if (/^\d+$/.test(s)) return { valid: false, error: "Slug cannot be only digits" };
@@ -181,6 +226,7 @@ export const SECTION_TYPES = [
   "clubs",
   "team",
   "embed",
+  "video",
   // homepage-machine sections (managed by /admin/pages/home):
   "focus",
   "featured_research",

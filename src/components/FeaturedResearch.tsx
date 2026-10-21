@@ -7,6 +7,15 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Download, ArrowRight, ExternalLink } from "lucide-react";
 import MagneticButton from "./MagneticButton";
 import { formatReadingTime } from "@/lib/i18n/format";
+import { resolveCmsValue } from "@/lib/cms-content";
+
+function asString(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+function asCard(v: unknown): Record<string, unknown> | undefined {
+  return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined;
+}
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -130,9 +139,35 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
   const cEn = parseJsonSafe(cmsData?.content);
   const cBn = parseJsonSafe(cmsData?.contentBn);
 
-  const sectionLabel = (isBn ? (cBn.badge || cEn.badge) : cEn.badge) || t("research.section_label");
-  const sectionTitle = (isBn ? (cBn.title || cmsData?.titleBn || cEn.title) : (cEn.title || cmsData?.title)) || t("research.section_title");
-  const sectionDesc = (isBn ? (cBn.description || cmsData?.descriptionBn || cEn.description) : (cEn.description || cmsData?.description)) || t("research.section_description");
+  // Key-compatibility resolution (see lib/cms-content.ts): the Landing
+  // Page Editor writes `sectionLabel`, `latestPublicationsHeading`,
+  // `viewAllText`/`viewAllUrl` and a `featuredCard` object; older saved
+  // sections used the legacy keys `badge`, `featured_title`, etc.
+  // Editor keys take precedence; legacy keys keep previously saved
+  // content rendering; i18n is the final fallback.
+  const featuredLabel =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionLabel", "badge"])) || t("research.featured_label");
+
+  // The featured card: the editor payload's object first, then the
+  // legacy flat keys, then the text defaults.
+  const card = asCard(resolveCmsValue(isBn, cEn, cBn, ["featuredCard"]));
+  const featuredTitle =
+    asString(card?.title) || asString(resolveCmsValue(isBn, cEn, cBn, ["featured_title"])) || (locale === "bn" ? "ডিজিটাল যুগের বর্ণনা" : "Narratives in the Digital Age");
+  const featuredDesc =
+    asString(card?.description) ||
+    asString(resolveCmsValue(isBn, cEn, cBn, ["featured_desc"])) ||
+    (locale === "bn"
+      ? "বাংলাদেশের তথ্য বাস্তবতায় প্রবণতা, ঝুঁকি এবং সুযোগ ম্যাপিং।"
+      : "Mapping trends, risks and opportunities in Bangladesh's information ecosystem.");
+  const featuredTag1 =
+    asString(card?.tag1) || asString(resolveCmsValue(isBn, cEn, cBn, ["featured_tag1"])) || (locale === "bn" ? "গবেষণা রিপোর্ট" : "Research Report");
+  const featuredTag2 =
+    asString(card?.tag2) || asString(resolveCmsValue(isBn, cEn, cBn, ["featured_tag2"])) || (locale === "bn" ? "মিডিয়া ও সমাজ" : "Media & Society");
+
+  const latestHeading =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["latestPublicationsHeading"])) || t("research.latest_publications");
+  const viewAllText = asString(resolveCmsValue(isBn, cEn, cBn, ["viewAllText"])) || t("research.view_all");
+  const viewAllUrl = asString(resolveCmsValue(false, cEn, cBn, ["viewAllUrl"])) || "/publications";
 
   const defaultPublications: PubItem[] = [
     {
@@ -187,15 +222,9 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
       })
     : defaultPublications;
 
-  const featuredTitle = (isBn ? (cBn.featured_title || cEn.featured_title) : cEn.featured_title) || (locale === "bn" ? "ডিজিটাল যুগের বর্ণনা" : "Narratives in the Digital Age");
-  const featuredDesc = (isBn ? (cBn.featured_desc || cEn.featured_desc) : cEn.featured_desc) || (locale === "bn"
-    ? "বাংলাদেশের তথ্য বাস্তবতায় প্রবণতা, ঝুঁকি এবং সুযোগ ম্যাপিং।"
-    : "Mapping trends, risks and opportunities in Bangladesh's information ecosystem.");
-  const featuredTag1 = (isBn ? (cBn.featured_tag1 || cEn.featured_tag1) : cEn.featured_tag1) || (locale === "bn" ? "গবেষণা রিপোর্ট" : "Research Report");
-  const featuredTag2 = (isBn ? (cBn.featured_tag2 || cEn.featured_tag2) : cEn.featured_tag2) || (locale === "bn" ? "মিডিয়া ও সমাজ" : "Media & Society");
-
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       gsap.fromTo(
         ".featured-card",
         { clipPath: "inset(0 100% 0 0)" },
@@ -286,7 +315,7 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
       );
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => mm.revert();
   }, []);
 
   return (
@@ -319,20 +348,20 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
             <div className="absolute bottom-10 left-10 w-24 h-24 bg-gold-500/10 rounded-full blur-2xl animate-float" style={{ animationDelay: "1s" }} />
 
             <div className="relative z-10">
-              <div className="featured-tag flex items-center gap-3 mb-4 opacity-0">
+              <div className="featured-tag flex items-center gap-3 mb-4">
                 <span className="text-xs font-semibold tracking-[0.2em] uppercase text-teal-400">
-                  {t("research.featured_label")}
+                  {featuredLabel}
                 </span>
                 <span className="text-[10px] text-slate-400">·</span>
                 <span className="text-[10px] text-slate-400">{formatReadingTime(12, locale)}</span>
               </div>
-              <h3 className="featured-title text-2xl lg:text-3xl font-bold text-white leading-tight mb-4 opacity-0">
+              <h3 className="featured-title text-2xl lg:text-3xl font-bold text-white leading-tight mb-4">
                 {featuredTitle}
               </h3>
-              <p className="featured-desc text-slate-300/80 mb-6 max-w-md opacity-0">
+              <p className="featured-desc text-slate-300/80 mb-6 max-w-md">
                 {featuredDesc}
               </p>
-              <div className="featured-meta flex flex-wrap gap-2 mb-6 opacity-0">
+              <div className="featured-meta flex flex-wrap gap-2 mb-6">
                 <span className="px-3 py-1 text-xs font-medium bg-white/10 text-white/80 rounded-full border border-white/10 backdrop-blur-sm">
                   {featuredTag1}
                 </span>
@@ -342,7 +371,7 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
               </div>
             </div>
 
-            <div className="featured-meta relative z-10 flex items-center justify-between opacity-0">
+            <div className="featured-meta relative z-10 flex items-center justify-between">
               <span className="text-sm text-slate-400">May 2025</span>
               <div className="flex gap-2">
                 <MagneticButton className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-full border border-white/10 transition-all backdrop-blur-sm">
@@ -360,13 +389,13 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
           <div className="flex flex-col">
             <div className="pub-header flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-slate-900">
-                {t("research.latest_publications")}
+                {latestHeading}
               </h3>
               <a
-                href="/publications"
+                href={viewAllUrl}
                 className="text-sm font-semibold text-teal-600 hover:text-teal-500 transition-colors inline-flex items-center gap-1 group"
               >
-                {t("research.view_all")}
+                {viewAllText}
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </a>
             </div>

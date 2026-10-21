@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
 import { sanitizeUrl, clampText } from "@/lib/cms-validation";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
+import { assertValidMenuParent, assertValidMenuParentInput } from "@/lib/menu-validation";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -46,6 +47,21 @@ function buildMenuData(raw: unknown, selfId?: string): Record<string, unknown> {
   return data;
 }
 
+/**
+ * Referential validation for parents (the MenuItem parent reference has
+ * no database foreign key). Throws with a readable message when the
+ * referenced parent is missing, lives in another location, or would
+ * create a parent cycle.
+ */
+async function validateMenuParent(
+  rawParentId: unknown,
+  location: string,
+  selfId?: string,
+): Promise<void> {
+  const parentId = assertValidMenuParentInput(rawParentId, selfId);
+  if (parentId) await assertValidMenuParent(parentId, location, selfId);
+}
+
 export async function GET(req: NextRequest) {
   try {
     requireAuth(await getCurrentUser());
@@ -73,6 +89,12 @@ export async function POST(req: NextRequest) {
     if (!data.location) data.location = "header";
     if (!["header", "footer"].includes(String(data.location))) {
       return NextResponse.json({ error: "Invalid location" }, { status: 400 });
+    }
+    try {
+      await validateMenuParent(data.parentId, String(data.location));
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Invalid parent";
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
     const maxOrder = await db.menuItem.findFirst({
       where: { location: String(data.location) },
@@ -111,6 +133,19 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
     const data = buildMenuData(payload, id);
+    const existing = await db.menuItem.findUnique({ where: { id }, select: { location: true } });
+    if (!existing) return NextResponse.json({ error: "Menu item not found" }, { status: 404 });
+    const effectiveLocation =
+      data.location !== undefined ? String(data.location) : existing.location;
+    if (!["header", "footer"].includes(effectiveLocation)) {
+      return NextResponse.json({ error: "Invalid location" }, { status: 400 });
+    }
+    try {
+      await validateMenuParent(data.parentId, effectiveLocation, id);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Invalid parent";
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
     const item = await db.menuItem.update({ where: { id }, data: data as never });
     await logAudit({
       action: AUDIT_ACTIONS.MENU_UPDATED,

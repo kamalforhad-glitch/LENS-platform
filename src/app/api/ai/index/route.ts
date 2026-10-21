@@ -88,23 +88,14 @@ export async function GET() {
   }
 
   try {
-    const totalEmbeddings = await db.documentEmbedding.count();
-    const indexedCount = await db.documentEmbedding.count({ where: { indexed: true } });
-    const documentTypes = await db.documentEmbedding.groupBy({
-      by: ["documentType"],
-      _count: { id: true },
-      where: { indexed: true },
-    });
-
+    // documentEmbedding model is disabled (pgvector not available)
     return NextResponse.json({
-      totalEmbeddings,
-      indexedCount,
-      documentTypes: documentTypes.map((d: { documentType: string; _count: { id: number } }) => ({
-        type: d.documentType,
-        count: d._count.id,
-      })),
+      totalEmbeddings: 0,
+      indexedCount: 0,
+      documentTypes: [],
+      note: "Vector embeddings disabled - pgvector extension not available",
     });
-    } catch {
-      return NextResponse.json({ error: "Failed to fetch index status" }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch index status" }, { status: 500 });
   }
 }

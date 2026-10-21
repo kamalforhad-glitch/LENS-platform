@@ -7,7 +7,7 @@ export async function GET() {
   const checks: Record<string, "ok" | "degraded" | "down"> = {
     app: "ok",
     database: "down",
-    storage: process.env.S3_ACCESS_KEY_ID ? "ok" : "degraded",
+    storage: process.env.R2_ACCESS_KEY_ID ? "ok" : "degraded",
     email: process.env.RESEND_API_KEY ? "ok" : "degraded",
     ai: process.env.OPENAI_API_KEY ? "ok" : "degraded",
     cron: process.env.CRON_SECRET ? "ok" : "down",

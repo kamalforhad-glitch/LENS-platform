@@ -15,7 +15,8 @@ export default function ContactContent() {
   const [statusMessage, setStatusMessage] = useState("");
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       gsap.fromTo(".contact-hero-label", { opacity: 0, y: 20, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out", delay: 0.2 });
       gsap.fromTo(".contact-hero-title", { opacity: 0, y: 30, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, ease: "power3.out", delay: 0.4 });
       gsap.fromTo(".contact-hero-desc", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out", delay: 0.6 });
@@ -26,7 +27,7 @@ export default function ContactContent() {
       gsap.fromTo(".contact-bg-orb", { y: 40, opacity: 0 }, { y: -40, opacity: 0.06, ease: "none", scrollTrigger: { trigger: sectionRef.current, start: "top bottom", end: "bottom top", scrub: 2 } });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => mm.revert();
   }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -97,13 +98,13 @@ export default function ContactContent() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_40%,rgba(8,145,178,0.08)_0%,transparent_50%)]" />
         <div className="contact-bg-orb absolute top-1/2 left-1/4 w-[500px] h-[500px] bg-teal-400 rounded-full blur-3xl opacity-0 pointer-events-none" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <span className="contact-hero-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-4 block opacity-0">
+          <span className="contact-hero-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-4 block">
             Contact
           </span>
-          <h1 className="contact-hero-title text-4xl lg:text-5xl font-bold text-white mb-6 opacity-0">
+          <h1 className="contact-hero-title text-4xl lg:text-5xl font-bold text-white mb-6">
             Get in Touch
           </h1>
-          <p className="contact-hero-desc text-lg text-slate-300/80 leading-relaxed max-w-2xl mx-auto opacity-0">
+          <p className="contact-hero-desc text-lg text-slate-300/80 leading-relaxed max-w-2xl mx-auto">
             Have a question, partnership inquiry, or media request? We&apos;d
             love to hear from you.
           </p>
@@ -114,7 +115,7 @@ export default function ContactContent() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-12">
             {/* Contact Info */}
-            <div className="contact-info opacity-0">
+            <div className="contact-info">
               <h2 className="text-2xl font-bold text-slate-900 mb-6">
                 Contact Information
               </h2>
@@ -139,7 +140,7 @@ export default function ContactContent() {
             </div>
 
             {/* Contact Form */}
-            <div className="contact-form opacity-0">
+            <div className="contact-form">
               <h2 className="text-2xl font-bold text-slate-900 mb-6">
                 Send a Message
               </h2>

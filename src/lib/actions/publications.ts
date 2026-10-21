@@ -47,7 +47,9 @@ export async function getPublication(idOrSlug: string): Promise<AdminPublication
 
 export async function createPublication(data: {
   title: string;
+  titleBn?: string;
   description: string;
+  descriptionBn?: string;
   type?: string;
   author?: string;
   tags?: string[];
@@ -68,7 +70,9 @@ export async function createPublication(data: {
       id,
       slug,
       title: data.title,
+      titleBn: data.titleBn || "",
       description: data.description,
+      descriptionBn: data.descriptionBn || "",
       type: data.type || "Research Report",
       author: data.author || "LENS Research Team",
       tags: JSON.stringify(data.tags || []),
@@ -86,7 +90,9 @@ export async function updatePublication(
   id: string,
   data: Partial<{
     title: string;
+    titleBn: string;
     description: string;
+    descriptionBn: string;
     type: string;
     author: string;
     tags: string[];
@@ -101,7 +107,9 @@ export async function updatePublication(
   const updateData: Record<string, unknown> = {};
 
   if (data.title !== undefined) updateData.title = data.title;
+  if (data.titleBn !== undefined) updateData.titleBn = data.titleBn;
   if (data.description !== undefined) updateData.description = data.description;
+  if (data.descriptionBn !== undefined) updateData.descriptionBn = data.descriptionBn;
   if (data.type !== undefined) updateData.type = data.type;
   if (data.author !== undefined) updateData.author = data.author;
   if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags);

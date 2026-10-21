@@ -64,32 +64,32 @@ export async function POST(request: Request) {
     const key = generateStorageKey(file.name);
     const publicUrl = getPublicUrl(key);
 
-    // Upload to S3 if configured, otherwise save locally.
-    // In production, require S3 configuration — do not silently persist to
+    // Upload to R2 (S3-compatible API) if configured, otherwise save locally.
+    // In production, require R2 configuration — do not silently persist to
     // ephemeral local disk, which does not survive redeployments.
-    const s3Key = process.env.S3_ACCESS_KEY_ID;
+    const s3Key = process.env.R2_ACCESS_KEY_ID;
 
     if (process.env.NEXT_PUBLIC_NODE_ENV === "production" && !s3Key) {
       throw new Error(
-        "S3 storage is required in production (S3_ACCESS_KEY_ID environment variable missing)."
+        "R2 storage is required in production (R2_ACCESS_KEY_ID environment variable missing)."
       );
     }
 
     if (s3Key) {
       const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
       const config = {
-        region: process.env.S3_REGION || "us-east-1",
-        endpoint: process.env.S3_ENDPOINT,
+        region: process.env.R2_REGION || "auto",
+        endpoint: process.env.R2_ENDPOINT,
         credentials: {
-          accessKeyId: process.env.S3_ACCESS_KEY_ID || "",
-          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
+          accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
+          secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
         },
       };
 
       const client = new S3Client(config);
       await client.send(
         new PutObjectCommand({
-          Bucket: process.env.S3_BUCKET || "lens-media",
+          Bucket: process.env.R2_BUCKET || "lens-media",
           Key: key,
           Body: buffer,
           ContentType: effectiveType,

@@ -47,7 +47,9 @@ export async function getEvent(idOrSlug: string): Promise<AdminEvent | null> {
 
 export async function createEvent(data: {
   name: string;
+  nameBn?: string;
   description: string;
+  descriptionBn?: string;
   start_date: string;
   end_date: string;
   time?: string;
@@ -76,7 +78,9 @@ export async function createEvent(data: {
       id,
       slug,
       name: data.name,
+      nameBn: data.nameBn || "",
       description: data.description,
+      descriptionBn: data.descriptionBn || "",
       startDate,
       endDate,
       time: data.time || "",
@@ -97,7 +101,9 @@ export async function updateEvent(
   id: string,
   data: Partial<{
     name: string;
+    nameBn: string;
     description: string;
+    descriptionBn: string;
     start_date: string;
     end_date: string;
     time: string;
@@ -116,7 +122,9 @@ export async function updateEvent(
   const updateData: Record<string, unknown> = {};
 
   if (data.name !== undefined) updateData.name = data.name;
+  if (data.nameBn !== undefined) updateData.nameBn = data.nameBn;
   if (data.description !== undefined) updateData.description = data.description;
+  if (data.descriptionBn !== undefined) updateData.descriptionBn = data.descriptionBn;
   if (data.start_date !== undefined) {
     const d = new Date(data.start_date);
     if (Number.isNaN(d.getTime())) throw new Error("Invalid start_date");

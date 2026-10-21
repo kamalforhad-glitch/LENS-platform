@@ -61,3 +61,51 @@ describe("magic-byte content sniffing", () => {
     expect(dims.height).toBe(9);
   });
 });
+
+describe("video upload validation", () => {
+  const MP4 = Buffer.concat([
+    Buffer.from([0, 0, 0, 32, 0x66, 0x74, 0x79, 0x70]), // ftyp box at offset 4
+    Buffer.from([0x69, 0x73, 0x6f, 0x6d]), // isom brand
+    Buffer.alloc(64),
+  ]);
+  const WEBM = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]); // EBML header
+  const HTML = Buffer.from('<html><script>alert(1)</script></html>', "utf8");
+
+  it("allows mp4/webm MIME types", () => {
+    expect(validateFileType("video/mp4")).toBe(true);
+    expect(validateFileType("video/webm")).toBe(true);
+  });
+
+  it("rejects other video container types", () => {
+    expect(validateFileType("video/quicktime")).toBe(false);
+    expect(validateFileType("video/mkv")).toBe(false);
+    expect(validateFileType("video/x-matroska")).toBe(false);
+  });
+
+  it("enforces video size quota", () => {
+    const limit = 100 * 1024 * 1024;
+    expect(validateFileSize("video/mp4", limit + 1).valid).toBe(false);
+    expect(validateFileSize("video/webm", limit).valid).toBe(true);
+  });
+
+  it("detects mp4/webm magic bytes", () => {
+    expect(sniffMimeType(MP4)).toBe("video/mp4");
+    expect(sniffMimeType(WEBM)).toBe("video/webm");
+  });
+
+  it("rejects an HTML file renamed to .mp4", () => {
+    const res = verifyUploadContent("video/mp4", HTML);
+    expect(res.ok).toBe(false);
+    expect(res.error).toBeDefined();
+  });
+
+  it("accepts genuine mp4/webm with matching declarations", () => {
+    expect(verifyUploadContent("video/mp4", MP4).ok).toBe(true);
+    expect(verifyUploadContent("video/webm", WEBM).ok).toBe(true);
+  });
+
+  it("rejects declared image whose bytes are video", () => {
+    const res = verifyUploadContent("image/png", MP4);
+    expect(res.ok).toBe(false);
+  });
+});

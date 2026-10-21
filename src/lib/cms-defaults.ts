@@ -547,3 +547,661 @@ export const DEFAULT_HOME_SECTIONS: DefaultSection[] = [
     },
   },
 ];
+
+// ============================================================
+// Default sections for major listing pages
+// ============================================================
+
+export const DEFAULT_RESEARCH_SECTIONS: DefaultSection[] = [
+  {
+    type: "hero",
+    title: "Research Hero",
+    titleBn: "গবেষণা হিরো",
+    description: "Research landing hero section",
+    descriptionBn: "গবেষণা ল্যান্ডিং হিরো সেকশন",
+    sortOrder: 0,
+    visible: true,
+    settings: { background: "navy" },
+    content: {
+      eyebrow: "Research & Insights",
+      eyebrowBn: "গবেষণা ও অন্তর্দৃষ্টি",
+      title: "Evidence-Based Research for Bangladesh's Narrative Ecosystem",
+      titleBn: "বাংলাদেশের ন্যারেটিভ ইকোসিস্টেমের জন্য তথ্যপ্রমাণভিত্তিক গবেষণা",
+      subtitle: "Explore our research on media literacy, press freedom, narrative analysis, policy advocacy and cybersecurity.",
+      subtitleBn: "মিডিয়া সাক্ষরতা, প্রেস স্বাধীনতা, ন্যারেটিভ বিশ্লেষণ, নীতি অ্যাডভোকেসি ও সাইবার নিরাপত্তার ওপর আমাদের গবেষণা অন্বেষণ করুন।",
+      ctaLabel: "View All Research",
+      ctaLabelBn: "সর্ব গবেষণা দেখুন",
+      ctaUrl: "/research",
+    },
+    contentBn: {},
+  },
+  {
+    type: "research_list",
+    title: "Research Listing",
+    titleBn: "গবেষণা তালিকা",
+    description: "Dynamic research article listing from database",
+    descriptionBn: "ডেটাবেস থেকে ডাইনামিক গবেষণা নিবন্ধের তালিকা",
+    sortOrder: 1,
+    visible: true,
+    settings: { layout: "grid", showDate: true, showMeta: true, columns: 3 },
+    content: {
+      collection: "research",
+      limit: 12,
+      title: "Latest Research",
+      titleBn: "সাম্প্রতিক গবেষণা",
+      description: "Our most recent published research articles and reports.",
+      descriptionBn: "আমাদের সবচেয়ে সাম্প্রতিক প্রকাশিত গবেষণা নিবন্ধ ও প্রতিবেদন।",
+    },
+    contentBn: {},
+  },
+  {
+    type: "featured",
+    title: "Featured Research",
+    titleBn: "নির্বাচিত গবেষণা",
+    description: "Highlighted featured research article",
+    descriptionBn: "উল্লিখ্য বিশিষ্ট গবেষণা নিবন্ধ",
+    sortOrder: 2,
+    visible: true,
+    settings: {},
+    content: {
+      collection: "research",
+      limit: 1,
+    },
+    contentBn: {},
+  },
+  {
+    type: "cta",
+    title: "Research CTA",
+    titleBn: "গবেষণা সিটিএ",
+    description: "Call to action for research library",
+    descriptionBn: "গবেষণা লাইব্রেরির জন্য কল টু অ্যাকশন",
+    sortOrder: 3,
+    visible: true,
+    settings: { variant: "outline", background: "navy" },
+    content: {
+      title: "Need Deeper Analysis?",
+      titleBn: "আরও গভীর বিশ্লেষণ দরকার?",
+      description: "Access our advanced research library with search, filters, and downloadable reports.",
+      descriptionBn: "অনুসন্ধান, ফিল্টার এবং ডাউনলোডযোগ্য রিপোর্টসহ আমাদের উন্নত গবেষণা লাইব্রেরি অ্যাক্সেস করুন।",
+      buttonLabel: "Explore Research Library",
+      buttonLabelBn: "গবেষণা লাইব্রেরি অন্বেষণ করুন",
+      buttonUrl: "/library",
+    },
+    contentBn: {},
+  },
+];
+
+export const DEFAULT_PUBLICATIONS_SECTIONS: DefaultSection[] = [
+  {
+    type: "hero",
+    title: "Publications Hero",
+    titleBn: "প্রকাশনা হিরো",
+    description: "Publications landing hero section",
+    descriptionBn: "প্রকাশনা ল্যান্ডিং হিরো সেকশন",
+    sortOrder: 0,
+    visible: true,
+    settings: { background: "navy" },
+    content: {
+      eyebrow: "Publications",
+      eyebrowBn: "প্রকাশনা",
+      title: "Policy Briefs, Working Papers & Research Reports",
+      titleBn: "নীতি বিবরণী, ওয়ার্কিং পেপার এবং গবেষণা প্রতিবেদন",
+      subtitle: "Browse our published policy briefs, working papers, and research reports from the LENS research team.",
+      subtitleBn: "LENS গবেষণা দল থেকে প্রকাশিত নীতি বিবরণী, ওয়ার্কিং পেপার এবং গবেষণা প্রতিবেদন ব্রাউজ করুন।",
+      ctaLabel: "View All Publications",
+      ctaLabelBn: "সর্ব প্রকাশনা দেখুন",
+      ctaUrl: "/publications",
+    },
+    contentBn: {},
+  },
+  {
+    type: "publication_list",
+    title: "Publications Listing",
+    titleBn: "প্রকাশনা তালিকা",
+    description: "Dynamic publication listing from database",
+    descriptionBn: "ডেটাবেস থেকে ডাইনামিক প্রকাশনার তালিকা",
+    sortOrder: 1,
+    visible: true,
+    settings: { layout: "grid", showDate: true, showMeta: true, columns: 3 },
+    content: {
+      collection: "publications",
+      limit: 12,
+      title: "All Publications",
+      titleBn: "সমস্ত প্রকাশনা",
+      description: "Complete listing of all published policy briefs, working papers, and reports.",
+      descriptionBn: "সমস্ত প্রকাশিত নীতি বিবরণী, ওয়ার্কিং পেপার এবং রিপোর্টের সম্পূর্ণ তালিকা।",
+    },
+    contentBn: {},
+  },
+];
+
+export const DEFAULT_EVENTS_SECTIONS: DefaultSection[] = [
+  {
+    type: "hero",
+    title: "Events Hero",
+    titleBn: "ইভেন্ট হিরো",
+    description: "Events landing hero section",
+    descriptionBn: "ইভেন্ট ল্যান্ডিং হিরো সেকশন",
+    sortOrder: 0,
+    visible: true,
+    settings: { background: "navy" },
+    content: {
+      eyebrow: "Events & Workshops",
+      eyebrowBn: "ইভেন্ট ও কর্মশালা",
+      title: "Join Our Events to Strengthen the Narrative Ecosystem",
+      titleBn: "ন্যারেটিভ ইকোসিস্টেম শক্তিশালী করতে আমাদের ইভেন্টে যোগ দিন",
+      subtitle: "Workshops, summits, conferences and community events by LENS for media literacy, digital rights, and narrative research.",
+      subtitleBn: "মিডিয়া সাক্ষরতা, ডিজিটাল অধিকার এবং ন্যারেটিভ গবেষণার জন্য LENS-এর কর্মশালা, সাবমিট, সম্মেলন ও কমিউনিটি ইভেন্ট।",
+      ctaLabel: "View All Events",
+      ctaLabelBn: "সর্ব ইভেন্ট দেখুন",
+      ctaUrl: "/events",
+    },
+    contentBn: {},
+  },
+  {
+    type: "event_list",
+    title: "Upcoming Events",
+    titleBn: "আসন্ন ইভেন্ট",
+    description: "Dynamic upcoming events listing",
+    descriptionBn: "ডাইনামিক আসন্ন ইভেন্টের তালিকা",
+    sortOrder: 1,
+    visible: true,
+    settings: { layout: "list", showDate: true, showMeta: true },
+    content: {
+      collection: "events",
+      limit: 10,
+      showPast: false,
+      title: "Upcoming Events",
+      titleBn: "আসন্ন ইভেন্ট",
+      description: "Join our upcoming workshops, conferences and community gatherings.",
+      descriptionBn: "আমাদের আসন্ন কর্মশালা, সম্মেলন এবং কমিউনিটি সভায় অংশ নিন।",
+    },
+    contentBn: {},
+  },
+  {
+    type: "event_list",
+    title: "Past Events",
+    titleBn: "গত ইভেন্ট",
+    description: "Dynamic past events listing",
+    descriptionBn: "ডাইনামিক গত ইভেন্টের তালিকা",
+    sortOrder: 2,
+    visible: true,
+    settings: { layout: "grid", showDate: true, showMeta: true, columns: 3 },
+    content: {
+      collection: "events",
+      limit: 6,
+      showPast: true,
+      title: "Past Events",
+      titleBn: "গত ইভেন্ট",
+      description: "Highlights from our previous events and workshops.",
+      descriptionBn: "আমাদের আগের ইভেন্ট ও কর্মশালার হাইলাইট।",
+    },
+    contentBn: {},
+  },
+  {
+    type: "newsletter",
+    title: "Events Newsletter",
+    titleBn: "ইভেন্ট নিউজলেটার",
+    description: "Newsletter signup for event updates",
+    descriptionBn: "ইভেন্ট আপডেটের জন্য নিউজলেটার সাইনআপ",
+    sortOrder: 3,
+    visible: true,
+    settings: { background: "muted" },
+    content: {
+      title: "Never Miss an Event",
+      titleBn: "কোনো ইভেন্ট মিস করবেন না",
+      description: "Subscribe to get event announcements, research updates and policy insights delivered to your inbox.",
+      descriptionBn: "ইভেন্ট ঘোষণা, গবেষণা আপডেট এবং নীতি অন্তর্দৃষ্টি আপনার ইনবক্সে পেতে সাবস্ক্রাইব করুন।",
+      placeholder: "Your email address",
+      placeholderBn: "আপনার ইমেইল ঠিকানা",
+      buttonLabel: "Subscribe",
+      buttonLabelBn: "সাবস্ক্রাইব",
+      disclaimer: "We respect your privacy. Unsubscribe at any time.",
+      disclaimerBn: "আমরা আপনার গোপনীয়তাকে সম্মান করি। যেকোনো সময় আনসাবস্ক্রাইব করতে পারেন।",
+    },
+    contentBn: {},
+  },
+];
+
+export const DEFAULT_BLOG_SECTIONS: DefaultSection[] = [
+  {
+    type: "hero",
+    title: "Blog Hero",
+    titleBn: "ব্লগ হিরো",
+    description: "Blog landing hero section",
+    descriptionBn: "ব্লগ ল্যান্ডিং হিরো সেকশন",
+    sortOrder: 0,
+    visible: true,
+    settings: { background: "navy" },
+    content: {
+      eyebrow: "Blog & Analysis",
+      eyebrowBn: "ব্লগ ও বিশ্লেষণ",
+      title: "Insights & Commentary on Bangladesh's Media Landscape",
+      titleBn: "বাংলাদেশের মিডিয়া ল্যান্ডস্কেপে অন্তর্দৃষ্টি ও মন্তব্য",
+      subtitle: "Research insights, expert commentary, and analysis on media literacy, digital rights, narrative ecosystems, and press freedom.",
+      subtitleBn: "মিডিয়া সাক্ষরতা, ডিজিটাল অধিকার, ন্যারেটিভ ইকোসিস্টেম এবং প্রেস স্বাধীনতার ওপর গবেষণা অন্তর্দৃষ্টি, বিশেষজ্ঞ মন্তব্য ও বিশ্লেষণ।",
+      ctaLabel: "Read Latest Posts",
+      ctaLabelBn: "সাম্প্রতিক পোস্ট পড়ুন",
+      ctaUrl: "/blog",
+    },
+    contentBn: {},
+  },
+  {
+    type: "blog_list",
+    title: "Blog Posts Listing",
+    titleBn: "ব্লগ পোস্ট তালিকা",
+    description: "Dynamic blog posts listing from database",
+    descriptionBn: "ডেটাবেস থেকে ডাইনামিক ব্লগ পোস্টের তালিকা",
+    sortOrder: 1,
+    visible: true,
+    settings: { layout: "grid", showDate: true, showMeta: true, columns: 3 },
+    content: {
+      collection: "blog",
+      limit: 12,
+      title: "Latest Posts",
+      titleBn: "সাম্প্রতিক পোস্ট",
+      description: "Our most recent blog posts and commentary pieces.",
+      descriptionBn: "আমাদের সবচেয়ে সাম্প্রতিক ব্লগ পোস্ট ও মন্তব্যের টুকরো।",
+    },
+    contentBn: {},
+  },
+];
+
+export const DEFAULT_MEDIA_SECTIONS: DefaultSection[] = [
+  {
+    type: "hero",
+    title: "Media Hero",
+    titleBn: "মিডিয়া হিরো",
+    description: "Media landing hero section",
+    descriptionBn: "মিডিয়া ল্যান্ডিং হিরো সেকশন",
+    sortOrder: 0,
+    visible: true,
+    settings: { background: "navy" },
+    content: {
+      eyebrow: "Media & Press",
+      eyebrowBn: "মিডিয়া ও প্রেস",
+      title: "Media Coverage, Press Releases & Interviews",
+      titleBn: "মিডিয়া কভারেজ, প্রেস রিলিজ ও সাক্ষাত্কার",
+      subtitle: "Press releases, interviews, op-eds, and media resources from LENS. Access our media kit and stay updated on our latest coverage.",
+      subtitleBn: "LENS-এর প্রেস রিলিজ, সাক্ষাত্কার, ওপ-এড এবং মিডিয়া সম্পদ। আমাদের মিডিয়া কিট অ্যাক্সেস করুন এবং সাম্প্রতিক কভারেজ নিয়ে আপডেট থাকুন।",
+      ctaLabel: "View All Media",
+      ctaLabelBn: "সর্ব মিডিয়া দেখুন",
+      ctaUrl: "/media",
+    },
+    contentBn: {},
+  },
+  {
+    type: "media_list",
+    title: "Media Coverage Listing",
+    titleBn: "মিডিয়া কভারেজ তালিকা",
+    description: "Dynamic media items listing from database",
+    descriptionBn: "ডেটাবেস থেকে ডাইনামিক মিডিয়া আইটেমের তালিকা",
+    sortOrder: 1,
+    visible: true,
+    settings: { layout: "list", showDate: true, showMeta: true },
+    content: {
+      collection: "media",
+      limit: 12,
+      title: "All Media Coverage",
+      titleBn: "সমস্ত মিডিয়া কভারেজ",
+      description: "Complete listing of press releases, interviews, and media mentions.",
+      descriptionBn: "প্রেস রিলিজ, সাক্ষাত্কার এবং মিডিয়া উল্লেখের সম্পূর্ণ তালিকা।",
+    },
+    contentBn: {},
+  },
+];
+
+export const DEFAULT_RESOURCES_SECTIONS: DefaultSection[] = [
+  {
+    type: "hero",
+    title: "Resources Hero",
+    titleBn: "রিসোর্স হিরো",
+    description: "Resources landing hero section",
+    descriptionBn: "রিসোর্স ল্যান্ডিং হিরো সেকশন",
+    sortOrder: 0,
+    visible: true,
+    settings: { background: "navy" },
+    content: {
+      eyebrow: "Resources & Tools",
+      eyebrowBn: "রিসোর্স ও টুলস",
+      title: "Research Tools, Datasets & Educational Materials",
+      titleBn: "গবেষণা টুলস, ডেটাসেট ও শিক্ষামূলক উপাদান",
+      subtitle: "Access our research tools, datasets, educational materials, and methodological guides for media studies and policy analysis.",
+      subtitleBn: "মিডিয়া স্টাডিজ ও নীতি বিশ্লেষণের জন্য আমাদের গবেষণা টুলস, ডেটাসেট, শিক্ষামূলক উপাদান ও মেথডোলজিক্যাল গাইড অ্যাক্সেস করুন।",
+      ctaLabel: "Browse All Resources",
+      ctaLabelBn: "সর্ব রিসোর্স ব্রাউজ করুন",
+      ctaUrl: "/resources",
+    },
+    contentBn: {},
+  },
+  {
+    type: "resource_list",
+    title: "Resources by Category",
+    titleBn: "বিভাগ অনুযায়ী রিসোর্স",
+    description: "Dynamic resources listing with category filter",
+    descriptionBn: "বিভাগ ফিল্টারসহ ডাইনামিক রিসোর্স তালিকা",
+    sortOrder: 1,
+    visible: true,
+    settings: { layout: "grid", showMeta: true, columns: 3 },
+    content: {
+      collection: "resources",
+      limit: 12,
+      title: "All Resources",
+      titleBn: "সমস্ত রিসোর্স",
+      description: "Browse our complete collection of research tools, datasets, guides and documents.",
+      descriptionBn: "আমাদের গবেষণা টুলস, ডেটাসেট, গাইড এবং নথির সম্পূর্ণ সংগ্রহ ব্রাউজ করুন।",
+    },
+    contentBn: {},
+  },
+];
+
+export const DEFAULT_PROGRAMS_SECTIONS: DefaultSection[] = [
+  {
+    type: "hero",
+    title: "Programs Hero",
+    titleBn: "প্রোগ্রাম হিরো",
+    description: "Programs landing hero section",
+    descriptionBn: "প্রোগ্রাম ল্যান্ডিং হিরো সেকশন",
+    sortOrder: 0,
+    visible: true,
+    settings: { background: "navy" },
+    content: {
+      eyebrow: "Training & Capacity Building",
+      eyebrowBn: "প্রশিক্ষণ ও সক্ষমতা বৃদ্ধি",
+      title: "Programs for Media Literacy, Digital Rights & Narrative Research",
+      titleBn: "মিডিয়া সাক্ষরতা, ডিজিটাল অধিকার ও ন্যারেটিভ গবেষণার জন্য প্রোগ্রাম",
+      subtitle: "Equipping journalists, researchers, and civil society with skills to navigate Bangladesh's evolving narrative landscape.",
+      subtitleBn: "বাংলাদেশের পরিবর্তনশীল ন্যারেটিভ ল্যান্ডস্কেপে নেভিগেট করার দক্ষতা দিয়ে সাংবাদিক, গবেষক ও সুশীল সমাজকে সусজ্জিত করা।",
+      ctaLabel: "View All Programs",
+      ctaLabelBn: "সর্ব প্রোগ্রাম দেখুন",
+      ctaUrl: "/programs",
+    },
+    contentBn: {},
+  },
+  {
+    type: "program_list",
+    title: "Programs Listing",
+    titleBn: "প্রোগ্রাম তালিকা",
+    description: "Dynamic programs listing from database",
+    descriptionBn: "ডেটাবেস থেকে ডাইনামিক প্রোগ্রামের তালিকা",
+    sortOrder: 1,
+    visible: true,
+    settings: { layout: "grid", showMeta: true, columns: 3 },
+    content: {
+      collection: "programs",
+      limit: 12,
+      title: "All Programs",
+      titleBn: "সমস্ত প্রোগ্রাম",
+      description: "Browse our training programs, workshops, and capacity building initiatives.",
+      descriptionBn: "আমাদের প্রশিক্ষণ প্রোগ্রাম, কর্মশালা এবং সক্ষমতা বৃদ্ধির উদ্যোগ ব্রাউজ করুন।",
+    },
+    contentBn: {},
+  },
+];
+
+export const DEFAULT_LIBRARY_SECTIONS: DefaultSection[] = [
+  {
+    type: "hero",
+    title: "Library Hero",
+    titleBn: "লাইব্রেরি হিরো",
+    description: "Library landing hero section",
+    descriptionBn: "লাইব্রেরি ল্যান্ডিং হিরো সেকশন",
+    sortOrder: 0,
+    visible: true,
+    settings: { background: "navy" },
+    content: {
+      eyebrow: "Research Library",
+      eyebrowBn: "গবেষণা লাইব্রেরি",
+      title: "Advanced Digital Knowledge Archive",
+      titleBn: "উন্নত ডিজিটাল জ্ঞান আর্কাইভ",
+      subtitle: "Search, filter, and explore research reports, policy briefs, and working papers on media literacy, press freedom, and narrative ecosystems.",
+      subtitleBn: "মিডিয়া সাক্ষরতা, প্রেস স্বাধীনতা এবং ন্যারেটিভ ইকোসিস্টেম সম্পর্কে গবেষণা রিপোর্ট, নীতি বিবরণী এবং ওয়ার্কিং পেপার অনুসন্ধান, ফিল্টার ও এক্সপ্লোর করুন।",
+      ctaLabel: "Search Library",
+      ctaLabelBn: "লাইব্রেরি অনুসন্ধান করুন",
+      ctaUrl: "#search",
+    },
+    contentBn: {},
+  },
+  {
+    type: "library_search",
+    title: "Library Search & Filter",
+    titleBn: "লাইব্রেরি অনুসন্ধান ও ফিল্টার",
+    description: "Full-featured library search and filter interface",
+    descriptionBn: "পূর্ণ-ফিচারযুক্ত লাইব্রেরি অনুসন্ধান এবং ফিল্টার ইন্টারফেস",
+    sortOrder: 1,
+    visible: true,
+    settings: {},
+    content: {
+      placeholder: "Search research, topics, authors...",
+      placeholderBn: "গবেষণা, বিষয়, লেখক খুঁজুন...",
+      showCategoryFilter: true,
+      showYearFilter: true,
+      showTopicFilter: true,
+      showAuthorFilter: true,
+      showSortControl: true,
+      showViewToggle: true,
+      defaultSort: "newest",
+      autocompleteEnabled: true,
+    },
+    contentBn: {},
+  },
+  {
+    type: "cta",
+    title: "Library CTA",
+    titleBn: "লাইব্রেরি সিটিএ",
+    description: "Call to action for research submission",
+    descriptionBn: "গবেষণা জমা দেওয়ার জন্য কল টু অ্যাকশন",
+    sortOrder: 2,
+    visible: true,
+    settings: { variant: "outline", background: "navy" },
+    content: {
+      title: "Have Research to Share?",
+      titleBn: "গবেষণা শেয়ার করতে চান?",
+      description: "Submit your research for inclusion in the LENS Digital Knowledge Archive.",
+      descriptionBn: "LENS ডিজিটাল জ্ঞান আর্কাইভে অন্তর্ভুক্ত করার জন্য আপনার গবেষণা জমা দিন।",
+      buttonLabel: "Submit Research",
+      buttonLabelBn: "গবেষণা জমা দিন",
+      buttonUrl: "/contact",
+    },
+    contentBn: {},
+  },
+];
+
+// Fallback sections for known slugs that don't have a CMS page yet
+export function getDefaultSectionsForSlug(slug: string): DefaultSection[] | null {
+  const lowerSlug = slug.toLowerCase();
+  switch (lowerSlug) {
+    case "research":
+      return DEFAULT_RESEARCH_SECTIONS;
+    case "publications":
+      return DEFAULT_PUBLICATIONS_SECTIONS;
+    case "events":
+      return DEFAULT_EVENTS_SECTIONS;
+    case "blog":
+      return DEFAULT_BLOG_SECTIONS;
+    case "media":
+      return DEFAULT_MEDIA_SECTIONS;
+    case "resources":
+      return DEFAULT_RESOURCES_SECTIONS;
+    case "programs":
+      return DEFAULT_PROGRAMS_SECTIONS;
+    case "library":
+      return DEFAULT_LIBRARY_SECTIONS;
+    case "about":
+      return [
+        {
+          type: "hero",
+          title: "About Hero",
+          titleBn: "আমাদের সম্পর্কে হিরো",
+          description: "About page hero section",
+          descriptionBn: "আমাদের সম্পর্কে পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "About LENS",
+            eyebrowBn: "লেন্স সম্পর্কে",
+            title: "A Research-Driven Think Tank for Bangladesh's Narrative Ecosystem",
+            titleBn: "বাংলাদেশের ন্যারেটিভ ইকোসিস্টেমের জন্য একটি গবেষণাভিত্তিক থিংক ট্যাংক",
+            subtitle: "LENS works at the intersection of research, capacity building, communication and policy to build a more informed, inclusive and resilient public sphere.",
+            subtitleBn: "লেন্স গবেষণা, সক্ষমতা বৃদ্ধি, যোগাযোগ ও নীতির সমন্বয়ে কাজ করে একটি আরও তথ্যপ্রামাণিক, অন্তর্ভুক্তিমূলক ও স্থিতিস্থাপক পাবলিক স্ফিয়ার গড়ে তোলার জন্য।",
+            ctaLabel: "Meet Our Team",
+            ctaLabelBn: "আমাদের দলকে সাক্ষাৎ করুন",
+            ctaUrl: "/about/team",
+            cta2Label: "Our Vision",
+            cta2LabelBn: "আমাদের দৃষ্টিভঙ্গি",
+            cta2Url: "/about/vision",
+          },
+          contentBn: {},
+        },
+        {
+          type: "rich_text",
+          title: "Mission Statement",
+          titleBn: "মিশন স্টেটমেন্ট",
+          description: "Our mission and values",
+          descriptionBn: "আমাদের মিশন ও মূল্যবোধ",
+          sortOrder: 1,
+          visible: true,
+          settings: {},
+          content: {
+            paragraphs: [
+              "LENS exists at the intersection of research, capacity building, communication and policy. We work to build a more informed, inclusive and resilient public sphere in Bangladesh through rigorous evidence and strategic engagement.",
+              "Our team of researchers, media professionals and policy analysts collaborate to produce high-quality research, train journalists and youth, advocate for press freedom, and engage with policymakers on critical issues affecting Bangladesh's information ecosystem.",
+            ],
+          },
+          contentBn: {
+            paragraphs: [
+              "লেন্স গবেষণা, সক্ষমতা বৃদ্ধি, যোগাযোগ ও নীতির সমন্বয়ে কাজ করে। আমরা কঠোর তথ্যপ্রমাণ ও কৌশলগত সম্পৃক্ততার মাধ্যমে বাংলাদেশে একটি আরও তথ্যপ্রামাণিক, অন্তর্ভুক্তিমূলক ও স্থিতিস্থাপক পাবলিক স্ফিয়ার গড়ে তুলতে কাজ করি।",
+              "গবেষক, মিডিয়া পেশাজীবী ও নীতি বিশ্লেষক নিয়ে আমাদের দল high-quality গবেষণা তৈরি করে, সাংবাদিক ও তরুণকে প্রশিক্ষণ দেয়, প্রেস স্বাধীনতার পক্ষে অ্যাডভোকেসি করে এবং বাংলাদেশের তথ্য ইকোসিস্টেমকে প্রভাবিত করা জরুরি বিষয়গুলো নিয়ে নীতিনির্মাতাদের সাথে যোগাযোগ করে।",
+            ],
+          },
+        },
+      ];
+    case "donate":
+      return [
+        {
+          type: "hero",
+          title: "Donate Hero",
+          titleBn: "দান হিরো",
+          description: "Donate page hero section",
+          descriptionBn: "দান পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Support LENS",
+            eyebrowBn: "লেন্সকে সহযোগিতা করুন",
+            title: "Support Evidence-Based Research in Bangladesh",
+            titleBn: "বাংলাদেশে তথ্যপ্রমাণভিত্তিক গবেষণাকে সমর্থন করুন",
+            subtitle: "Your contribution helps sustain independent research, media literacy training, and policy advocacy for a stronger narrative ecosystem.",
+            subtitleBn: "আপনার অবদান স্বাধীন গবেষণা, মিডিয়া সাক্ষরতা প্রশিক্ষণ এবং একটি শক্তিশালী ন্যারেটিভ ইকোসিস্টেমের জন্য নীতি অ্যাডভোকেসি চালিয়ে রাখতে সাহায্য করে।",
+            ctaLabel: "Contact Us to Donate",
+            ctaLabelBn: "দানের জন্য যোগাযোগ করুন",
+            ctaUrl: "/contact",
+          },
+          contentBn: {},
+        },
+      ];
+    case "partnerships":
+      return [
+        {
+          type: "hero",
+          title: "Partnerships Hero",
+          titleBn: "অংশীদারিত্ব হিরো",
+          description: "Partnerships page hero section",
+          descriptionBn: "অংশীদারিত্ব পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Partnerships & Collaboration",
+            eyebrowBn: "অংশীদারিতা ও সহযোগিতা",
+            title: "Partner with LENS for Research, Training & Advocacy",
+            titleBn: "গবেষণা, প্রশিক্ষণ ও অ্যাডভোকেসির জন্য LENS-এর সাথে অংশীদারিত্ব করুন",
+            subtitle: "We collaborate with universities, NGOs, media organizations, government agencies and international partners to amplify impact.",
+            subtitleBn: "বিশ্ববিদ্যালয়, এনজিও, মিডিয়া সংস্থা, সরকারি ഏজেন্সি এবং আন্তর্জাতিক অংশীদারদের সাথে সহযোগিতা করে আমরা প্রভাব বিস্তার করি।",
+            ctaLabel: "Get in Touch",
+            ctaLabelBn: "যোগাযোগ করুন",
+            ctaUrl: "/contact",
+          },
+          contentBn: {},
+        },
+      ];
+    case "contact":
+      return [
+        {
+          type: "hero",
+          title: "Contact Hero",
+          titleBn: "যোগাযোগ হিরো",
+          description: "Contact page hero section",
+          descriptionBn: "যোগাযোগ পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Contact",
+            eyebrowBn: "যোগাযোগ",
+            title: "Get in Touch",
+            titleBn: "যোগাযোগ করুন",
+            subtitle: "Have a question, partnership inquiry, or media request? We'd love to hear from you.",
+            subtitleBn: "প্রশ্ন, অংশীদারিত্ব খোঁজা বা মিডিয়া অনুসন্ধান থাকলে আমাদের সাথে যোগাযোগ করুন।",
+          },
+          contentBn: {},
+        },
+        {
+          type: "rich_text",
+          title: "Contact Information",
+          titleBn: "যোগাযোগের তথ্য",
+          description: "Contact details for different inquiry types",
+          descriptionBn: "বিভিন্ন অনুসন্ধানের জন্য যোগাযোগের বিবরণ",
+          sortOrder: 1,
+          visible: true,
+          settings: {},
+          content: {
+            paragraphs: [
+              "**Email:** info@lensbd.org",
+              "**Media Queries:** media@lensbd.org",
+              "**Address:** Dhaka, Bangladesh",
+            ],
+          },
+          contentBn: {
+            paragraphs: [
+              "**ইমেইল:** info@lensbd.org",
+              "**মিডিয়া অনুসন্ধান:** media@lensbd.org",
+              "**ঠিকানা:** ঢাকা, বাংলাদেশ",
+            ],
+          },
+        },
+        {
+          type: "contact_form",
+          title: "Contact Form",
+          titleBn: "যোগাযোগ ফর্ম",
+          description: "Contact form for submitting inquiries",
+          descriptionBn: "অনুসন্ধান জমা দেওয়ার জন্য যোগাযোগ ফর্ম",
+          sortOrder: 2,
+          visible: true,
+          settings: {},
+          content: {
+            title: "Send a Message",
+            titleBn: "বার্তা পাঠান",
+            description: "Fill out the form below and we'll get back to you as soon as possible.",
+            descriptionBn: "নিচের ফর্মটি পূরণ করুন, আমরা দ্রুত আপনার কাছে ফিরে যাব।",
+            submitLabel: "Send Message",
+            submitLabelBn: "বার্তা পাঠান",
+            fields: [
+              { name: "name", label: "Full Name", labelBn: "পুরো নাম", type: "text", placeholder: "Your name", placeholderBn: "আপনার নাম", required: "true" },
+              { name: "email", label: "Email", labelBn: "ইমেইল", type: "email", placeholder: "your@email.com", required: "true" },
+              { name: "subject", label: "Subject", labelBn: "বিষয়", type: "text", placeholder: "How can we help?", placeholderBn: "আমরা কীভাবে সাহায্য করতে পারি?", required: "true" },
+              { name: "message", label: "Message", labelBn: "বার্তা", type: "textarea", placeholder: "Your message...", placeholderBn: "আপনার বার্তা...", required: "true" },
+            ],
+          },
+          contentBn: {},
+        },
+      ];
+    case "privacy":
+    case "terms":
+      return null; // Legal pages use hardcoded content
+    default:
+      return null;
+  }
+}

@@ -15,7 +15,9 @@ export default function PublicationEditorPage() {
   const [saving, setSaving] = useState(false);
   const [id, setId] = useState("");
   const [title, setTitle] = useState("");
+  const [titleBn, setTitleBn] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionBn, setDescriptionBn] = useState("");
   const [type, setType] = useState("Research Report");
   const [author, setAuthor] = useState("LENS Research Team");
   const [tags, setTags] = useState("");
@@ -29,7 +31,9 @@ export default function PublicationEditorPage() {
         if (item) {
           setId(item.id);
           setTitle(item.title);
+          setTitleBn(item.titleBn || "");
           setDescription(item.description);
+          setDescriptionBn(item.descriptionBn || "");
           setType(item.type);
           setAuthor(item.author);
           try { setTags(JSON.parse(item.tags).join(", ")); } catch { setTags(""); }
@@ -47,7 +51,7 @@ export default function PublicationEditorPage() {
     try {
       const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean);
       const data = {
-        title, description, type, author, tags: tagList,
+        title, titleBn, description, descriptionBn, type, author, tags: tagList,
         pdf_url: pdfUrl || undefined,
         pages: pages ? parseInt(pages) : undefined,
         status: (publishStatus || status) as "draft" | "published",
@@ -74,8 +78,10 @@ export default function PublicationEditorPage() {
         </div>
       </div>
       <div className="space-y-5">
-        <div><label className="block text-sm font-medium text-slate-700 mb-1">Title *</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" /></div>
-        <div><label className="block text-sm font-medium text-slate-700 mb-1">Description *</label><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Title (EN) *</label><input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Title (বাংলা)</label><input value={titleBn} onChange={(e) => setTitleBn(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla" placeholder="প্রকাশনার শিরোনাম বাংলায়" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Description (EN) *</label><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Description (বাংলা)</label><textarea value={descriptionBn} onChange={(e) => setDescriptionBn(e.target.value)} rows={3} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla" placeholder="বিবরণ বাংলায়" /></div>
         <div className="grid grid-cols-2 gap-4">
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Type</label><select value={type} onChange={(e) => setType(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg">{TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Status</label><select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg">{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>

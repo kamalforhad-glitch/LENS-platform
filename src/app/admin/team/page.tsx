@@ -8,18 +8,18 @@ import type { AdminTeamMember, PaginatedResult } from "@/lib/admin-types";
 
 function SkeletonCard() {
   return (
-    <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+    <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
       <div className="flex items-start gap-3">
-        <div className="w-12 h-12 rounded-xl bg-white/5 animate-pulse shrink-0" />
+        <div className="w-12 h-12 rounded-xl bg-slate-100 animate-pulse shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="h-4 w-28 rounded bg-white/5 animate-pulse" />
-          <div className="h-3 w-20 rounded bg-white/5 animate-pulse mt-2" />
-          <div className="h-3 w-24 rounded bg-white/5 animate-pulse mt-1.5" />
+          <div className="h-4 w-28 rounded bg-slate-100 animate-pulse" />
+          <div className="h-3 w-20 rounded bg-slate-100 animate-pulse mt-2" />
+          <div className="h-3 w-24 rounded bg-slate-100 animate-pulse mt-1.5" />
         </div>
       </div>
       <div className="flex gap-2 mt-3">
-        <div className="h-6 w-12 rounded bg-white/5 animate-pulse" />
-        <div className="h-6 w-14 rounded bg-white/5 animate-pulse" />
+        <div className="h-6 w-12 rounded bg-slate-100 animate-pulse" />
+        <div className="h-6 w-14 rounded bg-slate-100 animate-pulse" />
       </div>
     </div>
   );
@@ -44,10 +44,10 @@ export default function AdminTeamPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Team Members</h1>
-          <p className="text-sm text-slate-400 mt-1">Manage your organization&apos;s team.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Team Members</h1>
+          <p className="text-sm text-slate-500 mt-1">Manage your organization&apos;s team.</p>
         </div>
-        <Link href="/admin/team/new" className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm text-center">
+        <Link href="/admin/team/new" className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white shadow-xs text-sm font-semibold rounded-lg transition-colors shadow-sm text-center">
           + Add Member
         </Link>
       </div>
@@ -57,11 +57,11 @@ export default function AdminTeamPage() {
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input type="text" placeholder="Search team..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 w-60" />
+          <input type="text" placeholder="Search team..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 pr-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 w-60" />
         </div>
       </div>
 
-      <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           {loading ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
@@ -87,20 +87,20 @@ export default function AdminTeamPage() {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
               {data.items.map((member) => (
-                <div key={member.id} className="p-4 rounded-xl border border-white/10 hover:border-white/20 bg-white/[0.02] transition-colors group">
+                <div key={member.id} className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-white shadow-xs transition-colors group">
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg shrink-0">
                       {member.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-white text-sm">{member.name}</h3>
-                      <p className="text-xs text-teal-400">{member.role}</p>
+                      <h3 className="font-bold text-slate-900 text-sm">{member.name}</h3>
+                      <p className="text-xs font-medium text-teal-700">{member.role}</p>
                       <p className="text-xs text-slate-500">{member.department}</p>
                     </div>
                   </div>
                   <div className="flex gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => router.push(`/admin/team/${member.id}`)} className="px-2 py-1 text-xs text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded transition-colors">Edit</button>
-                    <button onClick={async () => { if (confirm("Delete?")) { await deleteTeamMember(member.id); load(); } }} className="px-2 py-1 text-xs text-red-400 hover:bg-red-500/10 rounded transition-colors">Delete</button>
+                    <button onClick={() => router.push(`/admin/team/${member.id}`)} className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors">Edit</button>
+                    <button onClick={async () => { if (confirm("Delete?")) { await deleteTeamMember(member.id); load(); } }} className="px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded transition-colors">Delete</button>
                   </div>
                 </div>
               ))}

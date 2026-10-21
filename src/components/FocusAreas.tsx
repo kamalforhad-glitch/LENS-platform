@@ -15,6 +15,11 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { requestIndexScan } from "./IndexingScanner";
+import { resolveCmsValue } from "@/lib/cms-content";
+
+function asString(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -233,9 +238,26 @@ export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
   const cEn = parseJsonSafe(cmsData?.content);
   const cBn = parseJsonSafe(cmsData?.contentBn);
 
-  const sectionLabel = (isBn ? (cBn.label || cEn.label) : cEn.label) || t("focus.section_label");
-  const sectionTitle = (isBn ? (cBn.title || cmsData?.titleBn || cEn.title) : (cEn.title || cmsData?.title)) || t("focus.section_title");
-  const sectionDesc = (isBn ? (cBn.description || cmsData?.descriptionBn || cEn.description) : (cEn.description || cmsData?.description)) || t("focus.section_description");
+  // Key-compatibility resolution (see lib/cms-content.ts): the Landing
+  // Page Editor writes `sectionLabel`/`sectionTitle`/`sectionDescription`,
+  // while older saved sections used the legacy renderer keys `label`,
+  // `title`, `description`. Editor keys take precedence; legacy keys
+  // keep previously saved content rendering; the section's row title
+  // (an internal label such as "Focus Areas") and then i18n follow.
+  const sectionLabel = asString(resolveCmsValue(isBn, cEn, cBn, ["sectionLabel", "label"])) || t("focus.section_label");
+
+  const rowTitle = asString(isBn ? (cmsData?.titleBn || cmsData?.title) : cmsData?.title);
+  const sectionTitle =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionTitle", "title"])) || rowTitle || t("focus.section_title");
+
+  const rowDesc = asString(isBn ? (cmsData?.descriptionBn || cmsData?.description) : cmsData?.description);
+  const sectionDesc =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionDescription", "description"])) || rowDesc || t("focus.section_description");
+
+  // Saved CTA for the "About LENS" link; falls back to the previous
+  // hardcoded destination when no link was saved.
+  const aboutLinkText = asString(resolveCmsValue(isBn, cEn, cBn, ["aboutLinkText"])) || t("focus.about_lens");
+  const aboutLinkUrl = asString(resolveCmsValue(false, cEn, cBn, ["aboutLinkUrl"])) || "/about";
 
   const cardsMapEn: Record<string, any> = Array.isArray(cEn.cards)
     ? Object.fromEntries(cEn.cards.map((c: any) => [c.key || c.id, c]))
@@ -245,7 +267,8 @@ export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
     : (cBn.cards || {});
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       gsap.fromTo(
         ".focus-label",
         { opacity: 0, y: 15, filter: "blur(6px)" },
@@ -326,7 +349,7 @@ export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
       );
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => mm.revert();
   }, []);
 
   return (
@@ -341,20 +364,20 @@ export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="grid lg:grid-cols-[340px_1fr] gap-12 lg:gap-16">
           <div>
-            <span className="focus-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-600 mb-3 block opacity-0">
+            <span className="focus-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-600 mb-3 block">
               {sectionLabel}
             </span>
-            <h2 className="focus-title text-3xl lg:text-4xl font-bold text-slate-900 leading-tight mb-5 opacity-0">
+            <h2 className="focus-title text-3xl lg:text-4xl font-bold text-slate-900 leading-tight mb-5">
               {sectionTitle}
             </h2>
-            <p className="focus-desc text-slate-500 leading-relaxed mb-6 opacity-0">
+            <p className="focus-desc text-slate-500 leading-relaxed mb-6">
               {sectionDesc}
             </p>
             <a
-              href="/about"
-              className="focus-link inline-flex items-center gap-2 text-teal-600 font-semibold hover:text-teal-500 transition-colors group opacity-0"
+              href={aboutLinkUrl}
+              className="focus-link inline-flex items-center gap-2 text-teal-600 font-semibold hover:text-teal-500 transition-colors group"
             >
-              {t("focus.about_lens")}
+              {aboutLinkText}
               <span className="group-hover:translate-x-1 transition-transform">→</span>
             </a>
           </div>

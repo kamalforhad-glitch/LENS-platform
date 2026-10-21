@@ -5,6 +5,11 @@ import { useTranslation } from "react-i18next";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { FileText, Users, Globe, Handshake } from "lucide-react";
+import { resolveCmsValue } from "@/lib/cms-content";
+
+function asString(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -163,12 +168,60 @@ export default function ImpactStats({ cmsData }: { cmsData?: CmsSectionData }) {
   const cEn = parseJsonSafe(cmsData?.content);
   const cBn = parseJsonSafe(cmsData?.contentBn);
 
-  const sectionLabel = (isBn ? (cBn.badge || cEn.badge) : cEn.badge) || t("impact.section_label");
-  const sectionTitle = (isBn ? (cBn.title || cmsData?.titleBn || cEn.title) : (cEn.title || cmsData?.title)) || t("impact.section_title");
-  const sectionDesc = (isBn ? (cBn.description || cmsData?.descriptionBn || cEn.description) : (cEn.description || cmsData?.description)) || t("impact.section_description");
+  // Key-compatibility resolution (see lib/cms-content.ts): the Landing
+  // Page Editor writes `sectionLabel`/`sectionTitle`/`sectionDescription`
+  // and a `stats[]` array; older saved sections used the legacy keys
+  // `badge`, `title`, `description` and flat `stat_*_value` /
+  // `stat_*_label` overrides. Editor keys take precedence; legacy keys
+  // keep previously saved content rendering; section row then i18n.
+  const sectionLabel = asString(resolveCmsValue(isBn, cEn, cBn, ["sectionLabel", "badge"])) || t("impact.section_label");
+
+  const rowTitle = asString(isBn ? (cmsData?.titleBn || cmsData?.title) : cmsData?.title);
+  const sectionTitle =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionTitle", "title"])) || rowTitle || t("impact.section_title");
+
+  const rowDesc = asString(isBn ? (cmsData?.descriptionBn || cmsData?.description) : cmsData?.description);
+  const sectionDesc =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionDescription", "description"])) || rowDesc || t("impact.section_description");
+
+  // Editor's stats[] overrides, keyed by stat key (EN payload carries
+  // value/suffix/label-EN; the BN payload carries label-BN).
+  const statsByKey = new Map<string, { value?: number; suffix?: string; labelEn?: string; labelBn?: string }>();
+  const ingestStats = (list: unknown, labelField: "labelEn" | "labelBn") => {
+    if (!Array.isArray(list)) return;
+    list.forEach((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) return;
+      const st = entry as Record<string, unknown>;
+      const k = asString(st.key);
+      if (!k) return;
+      const agg = statsByKey.get(k) ?? {};
+      if (typeof st.value === "number" && Number.isFinite(st.value)) agg.value = st.value;
+      if (asString(st.suffix)) agg.suffix = asString(st.suffix);
+      if (asString(st.label)) agg[labelField] = asString(st.label);
+      statsByKey.set(k, agg);
+    });
+  };
+  ingestStats(cEn.stats, "labelEn");
+  ingestStats(cBn.stats, "labelBn");
+
+  // Resolve one stat's override triple: editor stats[] first, then the
+  // legacy flat keys (`stat_<key>_value` / `stat_<key>` /
+  // `stat_<key>_label`), then the hardcoded config/i18n.
+  const statOverride = (key: string): { value?: number; suffix?: string; label?: string } => {
+    const legacyValue = cEn[key + "_value"];
+    const legacyLabel = isBn ? (cBn[key] || cBn[key + "_label"]) : (cEn[key] || cEn[key + "_label"]);
+    const ov = statsByKey.get(key) ?? undefined;
+    return {
+      value:
+        ov?.value !== undefined ? ov.value : typeof legacyValue === "number" && Number.isFinite(legacyValue) ? legacyValue : undefined,
+      suffix: ov?.suffix,
+      label: (isBn ? ov?.labelBn : ov?.labelEn) || (asString(legacyLabel) || undefined),
+    };
+  };
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       gsap.fromTo(
         ".stats-bg-orb-1",
         { y: 50, opacity: 0 },
@@ -262,7 +315,7 @@ export default function ImpactStats({ cmsData }: { cmsData?: CmsSectionData }) {
       );
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => mm.revert();
   }, []);
 
   return (
@@ -318,29 +371,28 @@ export default function ImpactStats({ cmsData }: { cmsData?: CmsSectionData }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-[1fr_2fr] gap-12 items-center">
           <div>
-            <span className="stats-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-3 block opacity-0">
+            <span className="stats-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-3 block">
               {sectionLabel}
             </span>
-            <h2 className="stats-title text-3xl lg:text-4xl font-bold text-white leading-tight mb-4 opacity-0">
+            <h2 className="stats-title text-3xl lg:text-4xl font-bold text-white leading-tight mb-4">
               {sectionTitle}
             </h2>
-            <p className="stats-desc text-slate-300/70 leading-relaxed opacity-0">
+            <p className="stats-desc text-slate-300/70 leading-relaxed">
               {sectionDesc}
             </p>
           </div>
 
           <div className="stats-grid grid grid-cols-2 lg:grid-cols-4 gap-8">
             {statConfig.map((stat, i) => {
-              const ovVal = cEn[stat.key + "_value"] !== undefined ? Number(cEn[stat.key + "_value"]) : undefined;
-              const ovLbl = isBn ? (cBn[stat.key] || cBn[stat.key + "_label"]) : (cEn[stat.key] || cEn[stat.key + "_label"]);
+              const ov = statOverride(stat.key);
               return (
                 <StatItem
                   key={stat.key}
-                  stat={stat}
+                  stat={{ ...stat, suffix: ov.suffix ?? stat.suffix }}
                   index={i}
                   t={t}
-                  overrideValue={ovVal}
-                  overrideLabel={ovLbl}
+                  overrideValue={ov.value}
+                  overrideLabel={ov.label}
                 />
               );
             })}

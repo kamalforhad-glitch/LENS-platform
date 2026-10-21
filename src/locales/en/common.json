@@ -137,14 +137,17 @@
     "featured_title": "Narratives in the Digital Age",
     "featured_desc": "Mapping trends, risks and opportunities in Bangladesh's information ecosystem.",
     "featured_tag1": "Research Report",
-    "featured_tag2": "Media & Society"
+    "featured_tag2": "Media & Society",
+    "emptyMessage": "No research has been published yet."
   },
   "publications": {
     "title": "Publications",
     "label": "Publications",
     "subtitle": "Our published reports and policy briefs",
     "hero_title": "Our Publications",
-    "hero_description": "Policy briefs, working papers, research reports, and other publications from LENS."
+    "hero_description": "Policy briefs, working papers, research reports, and other publications from LENS.",
+    "emptyMessage": "No publications have been released yet.",
+    "readMore": "Read More"
   },
   "events": {
     "title": "Events",
@@ -164,7 +167,8 @@
     "event2_desc": "Interactive training on identifying misinformation.",
     "event3_title": "Policy Dialogue: Digital Rights",
     "event3_location": "LSO, Dhaka",
-    "event3_desc": "Stakeholder dialogue on digital governance frameworks."
+    "event3_desc": "Stakeholder dialogue on digital governance frameworks.",
+    "emptyMessage": "No events have been announced yet."
   },
   "team": {
     "title": "Our Team",

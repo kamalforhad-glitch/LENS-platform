@@ -155,7 +155,7 @@ export async function logMediaUpload(
       filename: originalName,
       mimeType,
       size,
-      storage: process.env.S3_ACCESS_KEY_ID ? "s3" : "local",
+      storage: process.env.R2_ACCESS_KEY_ID ? "r2" : "local",
     },
   });
 

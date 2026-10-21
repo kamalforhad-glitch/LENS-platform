@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import ContentListState from "@/components/ContentListState";
 import type { PublicationCard } from "@/lib/public-content";
+import { useTranslation } from "react-i18next";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -16,9 +17,13 @@ type Props = {
 
 export default function PublicationsContent({ publications, error = false }: Props) {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const { i18n, t } = useTranslation();
+  const lang = String(i18n.language || "en").toLowerCase();
+  const bn = lang.startsWith("bn");
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       gsap.fromTo(".pub-hero-label", { opacity: 0, y: 20, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out", delay: 0.2 });
       gsap.fromTo(".pub-hero-title", { opacity: 0, y: 30, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, ease: "power3.out", delay: 0.4 });
       gsap.fromTo(".pub-hero-desc", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out", delay: 0.6 });
@@ -31,7 +36,7 @@ export default function PublicationsContent({ publications, error = false }: Pro
       gsap.fromTo(".pub-bg-orb", { y: 40, opacity: 0 }, { y: -40, opacity: 0.05, ease: "none", scrollTrigger: { trigger: sectionRef.current, start: "top bottom", end: "bottom top", scrub: 2 } });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => mm.revert();
   }, []);
 
   return (
@@ -40,15 +45,14 @@ export default function PublicationsContent({ publications, error = false }: Pro
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_30%,rgba(212,168,67,0.06)_0%,transparent_40%)]" />
         <div className="pub-bg-orb absolute top-0 right-1/4 w-[400px] h-[400px] bg-gold-500 rounded-full blur-3xl opacity-0 pointer-events-none" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <span className="pub-hero-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-4 block opacity-0">
-            Publications
+          <span className="pub-hero-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-4 block">
+            {t("publications.label")}
           </span>
-          <h1 className="pub-hero-title text-4xl lg:text-5xl font-bold text-white mb-6 opacity-0">
-            Our Publications
+          <h1 className="pub-hero-title text-4xl lg:text-5xl font-bold text-white mb-6">
+            {t("publications.hero_title")}
           </h1>
-          <p className="pub-hero-desc text-lg text-slate-300/80 leading-relaxed max-w-2xl mx-auto opacity-0">
-            Policy briefs, working papers, research reports and analysis from
-            the LENS research team.
+          <p className="pub-hero-desc text-lg text-slate-300/80 leading-relaxed max-w-2xl mx-auto">
+            {t("publications.hero_description")}
           </p>
         </div>
       </section>
@@ -58,7 +62,7 @@ export default function PublicationsContent({ publications, error = false }: Pro
           {publications.length === 0 ? (
             <ContentListState
               variant={error ? "error" : "empty"}
-              emptyMessage="No publications have been released yet."
+              emptyMessage={t("publications.emptyMessage") || "No publications have been released yet."}
             />
           ) : (
             <div className="grid sm:grid-cols-2 gap-6">
@@ -66,21 +70,21 @@ export default function PublicationsContent({ publications, error = false }: Pro
                 <Link
                   key={pub.slug}
                   href={`/publications/${pub.slug}`}
-                  className="pub-card group block p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300 cursor-pointer opacity-0"
+                  className="pub-card group block p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300 cursor-pointer"
                 >
                   <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-teal-600">
                     {pub.type}
                   </span>
                   <h2 className="text-lg font-bold text-slate-900 mt-1 mb-2 group-hover:text-teal-600 transition-colors">
-                    {pub.title}
+                    {bn && pub.titleBn ? pub.titleBn : pub.title}
                   </h2>
                   <p className="text-sm text-slate-500 leading-relaxed mb-3">
-                    {pub.description}
+                    {bn && pub.descriptionBn ? pub.descriptionBn : pub.description}
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-slate-400">{pub.dateLabel}</span>
                     <span className="text-xs font-medium text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Read More
+                      {t("publications.readMore") || "Read More"}
                     </span>
                   </div>
                 </Link>

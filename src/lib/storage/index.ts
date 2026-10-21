@@ -11,12 +11,12 @@ export interface StorageConfig {
 
 function getConfig(): StorageConfig {
   return {
-    bucket: process.env.S3_BUCKET || "lens-media",
-    region: process.env.S3_REGION || "us-east-1",
-    endpoint: process.env.S3_ENDPOINT,
-    accessKeyId: process.env.S3_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
-    cdnUrl: process.env.CDN_URL,
+    bucket: process.env.R2_BUCKET || "lens-media",
+    region: process.env.R2_REGION || "auto",
+    endpoint: process.env.R2_ENDPOINT,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
+    cdnUrl: process.env.R2_PUBLIC_URL,
   };
 }
 
@@ -232,7 +232,7 @@ export function getPublicUrl(key: string): string {
 
 export async function deleteFromStorage(key: string): Promise<void> {
   // For local storage, this would delete the file
-  // For S3, this would call DeleteObjectCommand
+  // For R2 (S3-compatible), this would call DeleteObjectCommand
   // Implementation depends on storage backend
   console.log(`[Storage] Would delete: ${key}`);
 }
@@ -242,16 +242,16 @@ export async function getSignedUploadUrl(
   contentType: string,
   expiresIn: number = 3600
 ): Promise<string> {
-  // For S3, generate presigned PUT URL
+  // For R2 (S3-compatible), generate presigned PUT URL
   const config = getConfig();
 
   if (!config.accessKeyId) {
-    // In production, fail clearly if S3 is not configured rather than silently
+    // In production, fail clearly if R2 is not configured rather than silently
     // falling back to ephemeral local storage. In development, allow the
     // local fallback so the UI remains functional without credentials.
     if (process.env.NEXT_PUBLIC_NODE_ENV === "production") {
       throw new Error(
-        "S3 storage is not configured (S3_ACCESS_KEY_ID missing) and is required in production."
+        "R2 storage is not configured (R2_ACCESS_KEY_ID missing) and is required in production."
       );
     }
     // Local storage fallback for development
@@ -261,6 +261,7 @@ export async function getSignedUploadUrl(
   const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
   const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
 
+  // Cloudflare R2 is S3-compatible; the SDK works with the R2 endpoint.
   const client = new S3Client({
     region: config.region,
     endpoint: config.endpoint,

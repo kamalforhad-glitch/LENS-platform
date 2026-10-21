@@ -15,7 +15,9 @@ export default function EventEditorPage() {
   const [saving, setSaving] = useState(false);
   const [id, setId] = useState("");
   const [name, setName] = useState("");
+  const [nameBn, setNameBn] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionBn, setDescriptionBn] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [time, setTime] = useState("");
@@ -32,7 +34,9 @@ export default function EventEditorPage() {
         if (item) {
           setId(item.id);
           setName(item.name);
+          setNameBn(item.nameBn || "");
           setDescription(item.description);
+          setDescriptionBn(item.descriptionBn || "");
           setStartDate(item.startDate instanceof Date ? item.startDate.toISOString().split("T")[0] : String(item.startDate));
           setEndDate(item.endDate instanceof Date ? item.endDate.toISOString().split("T")[0] : String(item.endDate));
           setTime(item.time);
@@ -52,7 +56,7 @@ export default function EventEditorPage() {
     setSaving(true);
     try {
       const data = {
-        name, description, start_date: startDate, end_date: endDate,
+        name, nameBn, description, descriptionBn, start_date: startDate, end_date: endDate,
         time, location, location_url: locationUrl || undefined,
         registration_url: registrationUrl || undefined, category,
         capacity: capacity ? parseInt(capacity) : undefined,
@@ -80,8 +84,10 @@ export default function EventEditorPage() {
         </div>
       </div>
       <div className="space-y-5">
-        <div><label className="block text-sm font-medium text-slate-700 mb-1">Event Name *</label><input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" /></div>
-        <div><label className="block text-sm font-medium text-slate-700 mb-1">Description *</label><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Event Name (EN) *</label><input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Event Name (বাংলা)</label><input value={nameBn} onChange={(e) => setNameBn(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla" placeholder="অনুষ্ঠানের নাম বাংলায়" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Description (EN) *</label><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Description (বাংলা)</label><textarea value={descriptionBn} onChange={(e) => setDescriptionBn(e.target.value)} rows={4} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla" placeholder="বিবরণ বাংলায়" /></div>
         <div className="grid grid-cols-2 gap-4">
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Start Date *</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" /></div>
           <div><label className="block text-sm font-medium text-slate-700 mb-1">End Date *</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" /></div>

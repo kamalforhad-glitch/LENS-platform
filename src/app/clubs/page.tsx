@@ -4,6 +4,10 @@ import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageHero from "@/components/site/PageHero";
 import { CLUBS } from "@/lib/clubs";
+import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
+import { resolveSectionItems } from "@/components/page/resolveSectionItems";
+import type { SectionWithResolved } from "@/components/page/PageSectionsView";
+import CmsPageView from "@/components/page/CmsPageView";
 
 export const metadata: Metadata = {
   title: "Clubs",
@@ -14,7 +18,22 @@ export const metadata: Metadata = {
 // Hub lists the five approved clubs by name only — no descriptions,
 // imagery, or claims are stated. Card CTAs are plain navigation links
 // (keyboard-accessible, visible focus via the global focus ring).
-export default function ClubsPage() {
+async function resolveCmsSections(sections: PublicSectionData[]) {
+  return Promise.all(
+    sections.map(async (s) => ({
+      ...s,
+      resolved: await resolveSectionItems(s.type, s.content).catch(() => ({ items: [] })),
+    }))
+  );
+}
+
+export default async function ClubsPage() {
+  const cms = await getPublicPage("clubs");
+  if (cms) {
+    const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
+    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+  }
+  // Hardcoded fallback — shown until a CMS page at this slug is published.
   return (
     <>
       <SiteHeader />

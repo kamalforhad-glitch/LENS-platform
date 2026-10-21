@@ -14,9 +14,12 @@ export default function TeamEditorPage() {
   const [saving, setSaving] = useState(false);
   const [id, setId] = useState("");
   const [name, setName] = useState("");
+  const [nameBn, setNameBn] = useState("");
   const [role, setRole] = useState("");
+  const [roleBn, setRoleBn] = useState("");
   const [department, setDepartment] = useState("General");
   const [bio, setBio] = useState("");
+  const [bioBn, setBioBn] = useState("");
   const [image, setImage] = useState("");
   const [email, setEmail] = useState("");
   const [linkedin, setLinkedin] = useState("");
@@ -29,9 +32,12 @@ export default function TeamEditorPage() {
         if (item) {
           setId(item.id);
           setName(item.name);
+          setNameBn(item.nameBn || "");
           setRole(item.role);
+          setRoleBn(item.roleBn || "");
           setDepartment(item.department);
           setBio(item.bio);
+          setBioBn(item.bioBn || "");
           setImage(item.image || "");
           setEmail(item.email || "");
           try {
@@ -50,7 +56,7 @@ export default function TeamEditorPage() {
     setSaving(true);
     try {
       const data = {
-        name, role, department, bio,
+        name, nameBn, role, roleBn, department, bio, bioBn,
         image: image || undefined,
         email: email || undefined,
         social: { linkedin, twitter },
@@ -76,14 +82,19 @@ export default function TeamEditorPage() {
       </div>
       <div className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
-          <div><label className="block text-sm font-medium text-slate-700 mb-1">Name *</label><input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" /></div>
-          <div><label className="block text-sm font-medium text-slate-700 mb-1">Role *</label><input value={role} onChange={(e) => setRole(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" placeholder="Senior Researcher" /></div>
+          <div><label className="block text-sm font-medium text-slate-700 mb-1">Name (EN) *</label><input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" /></div>
+          <div><label className="block text-sm font-medium text-slate-700 mb-1">Name (বাংলা)</label><input value={nameBn} onChange={(e) => setNameBn(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg font-bangla" placeholder="নাম বাংলায়" /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div><label className="block text-sm font-medium text-slate-700 mb-1">Role (EN) *</label><input value={role} onChange={(e) => setRole(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" placeholder="Senior Researcher" /></div>
+          <div><label className="block text-sm font-medium text-slate-700 mb-1">Role (বাংলা)</label><input value={roleBn} onChange={(e) => setRoleBn(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg font-bangla" placeholder="ভূমিকা বাংলায়" /></div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Department</label><select value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg">{DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}</select></div>
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Sort Order</label><input type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" /></div>
         </div>
-        <div><label className="block text-sm font-medium text-slate-700 mb-1">Bio</label><textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Bio (EN)</label><textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Bio (বাংলা)</label><textarea value={bioBn} onChange={(e) => setBioBn(e.target.value)} rows={4} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg font-bangla" placeholder="জীবনী বাংলায়" /></div>
         <div><label className="block text-sm font-medium text-slate-700 mb-1">Photo URL</label><input value={image} onChange={(e) => setImage(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" placeholder="https://..." /></div>
         <div><label className="block text-sm font-medium text-slate-700 mb-1">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" /></div>
         <div className="grid grid-cols-2 gap-4">

@@ -47,9 +47,12 @@ export async function getTeamMember(idOrSlug: string): Promise<AdminTeamMember |
 
 export async function createTeamMember(data: {
   name: string;
+  nameBn?: string;
   role: string;
+  roleBn?: string;
   department?: string;
   bio?: string;
+  bioBn?: string;
   image?: string;
   email?: string;
   social?: Record<string, string>;
@@ -68,9 +71,12 @@ export async function createTeamMember(data: {
       id,
       slug,
       name: data.name,
+      nameBn: data.nameBn || "",
       role: data.role,
+      roleBn: data.roleBn || "",
       department: data.department || "General",
       bio: data.bio || "",
+      bioBn: data.bioBn || "",
       image: data.image || null,
       email: data.email || null,
       social: JSON.stringify(data.social || {}),
@@ -86,9 +92,12 @@ export async function updateTeamMember(
   id: string,
   data: Partial<{
     name: string;
+    nameBn: string;
     role: string;
+    roleBn: string;
     department: string;
     bio: string;
+    bioBn: string;
     image: string;
     email: string;
     social: Record<string, string>;
@@ -102,9 +111,12 @@ export async function updateTeamMember(
   const updateData: Record<string, unknown> = {};
 
   if (data.name !== undefined) updateData.name = data.name;
+  if (data.nameBn !== undefined) updateData.nameBn = data.nameBn;
   if (data.role !== undefined) updateData.role = data.role;
+  if (data.roleBn !== undefined) updateData.roleBn = data.roleBn;
   if (data.department !== undefined) updateData.department = data.department;
   if (data.bio !== undefined) updateData.bio = data.bio;
+  if (data.bioBn !== undefined) updateData.bioBn = data.bioBn;
   if (data.image !== undefined) updateData.image = data.image;
   if (data.email !== undefined) updateData.email = data.email;
   if (data.social !== undefined) updateData.social = JSON.stringify(data.social);

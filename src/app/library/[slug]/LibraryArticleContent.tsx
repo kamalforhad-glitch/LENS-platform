@@ -25,15 +25,20 @@ interface Citation {
 
 export default function LibraryArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language;
+  const { t } = useTranslation();
+  // Use a locale state that syncs with the server-side locale detection
+  // For now, we'll use a simple approach: check if the article has BN fields and the user prefers BN
+  const [locale, setLocale] = useState<string>("en");
   const [data, setData] = useState<{
     article: {
       id: string;
       slug: string;
       title: string;
+      titleBn?: string;
       description: string;
+      descriptionBn?: string;
       content: string;
+      contentBn?: string;
       category: string;
       author: string;
       tags: string;
@@ -50,6 +55,14 @@ export default function LibraryArticlePage({ params }: { params: Promise<{ slug:
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Load locale from a cookie or localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("lens-locale");
+      if (saved) setLocale(saved);
+    }
+  }, []);
+
   useEffect(() => {
     getLibraryArticle(slug).then((result) => {
       setData(result);
@@ -62,6 +75,8 @@ export default function LibraryArticlePage({ params }: { params: Promise<{ slug:
       await trackDownload("research", data.article.id);
     }
   };
+
+  const bn = locale === "bn";
 
   if (loading) {
     return (
@@ -83,6 +98,10 @@ export default function LibraryArticlePage({ params }: { params: Promise<{ slug:
   }
 
   const { article, related, tags, citations } = data;
+
+  const title = bn && article.titleBn ? article.titleBn : article.title;
+  const description = bn && article.descriptionBn ? article.descriptionBn : article.description;
+  const content = bn && article.contentBn ? article.contentBn : article.content;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-navy-950 via-[#061224] to-navy-950">
@@ -107,11 +126,11 @@ export default function LibraryArticlePage({ params }: { params: Promise<{ slug:
           </div>
 
           <h1 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-4">
-            {article.title}
+            {title}
           </h1>
 
           <p className="text-lg text-slate-300/70 mb-6 max-w-3xl">
-            {article.description}
+            {description}
           </p>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -147,10 +166,10 @@ export default function LibraryArticlePage({ params }: { params: Promise<{ slug:
         <div className="grid lg:grid-cols-[1fr_280px] gap-10">
           {/* Main content */}
           <div>
-            {article.content ? (
+            {content ? (
               <div className="prose prose-invert max-w-none">
                 <div className="p-8 rounded-2xl bg-white/[0.03] border border-white/[0.06] whitespace-pre-wrap text-slate-300/80 leading-relaxed">
-                  {article.content}
+                  {content}
                 </div>
               </div>
             ) : (
@@ -204,10 +223,10 @@ export default function LibraryArticlePage({ params }: { params: Promise<{ slug:
             <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
               <h3 className="text-xs font-bold tracking-[0.15em] uppercase text-slate-400 mb-3">{t("library.cite_this")}</h3>
               <div className="p-3 rounded-lg bg-white/5 text-xs text-slate-400 font-mono leading-relaxed">
-                {article.author}. ({article.datePublished ? new Date(article.datePublished).getFullYear() : "n.d."}). {article.title}. LENS.
+                {article.author}. ({article.datePublished ? new Date(article.datePublished).getFullYear() : "n.d."}). {title}. LENS.
               </div>
               <button
-                onClick={() => navigator.clipboard?.writeText(`${article.author}. (${article.datePublished ? new Date(article.datePublished).getFullYear() : "n.d."}). ${article.title}. LENS.`)}
+                onClick={() => navigator.clipboard?.writeText(`${article.author}. (${article.datePublished ? new Date(article.datePublished).getFullYear() : "n.d."}). ${title}. LENS.`)}
                 className="mt-2 text-xs text-teal-400 hover:underline"
               >
                 {t("library.copy_citation")}

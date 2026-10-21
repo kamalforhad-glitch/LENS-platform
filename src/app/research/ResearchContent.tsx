@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import ContentListState from "@/components/ContentListState";
 import type { ResearchCard } from "@/lib/public-content";
+import { useTranslation } from "react-i18next";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -16,9 +17,13 @@ type Props = {
 
 export default function ResearchContent({ research, error = false }: Props) {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const { i18n, t } = useTranslation();
+  const lang = String(i18n.language || "en").toLowerCase();
+  const bn = lang.startsWith("bn");
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       gsap.fromTo(".research-hero-label", { opacity: 0, y: 20, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out", delay: 0.2 });
       gsap.fromTo(".research-hero-title", { opacity: 0, y: 30, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, ease: "power3.out", delay: 0.4 });
       gsap.fromTo(".research-hero-desc", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out", delay: 0.6 });
@@ -31,7 +36,7 @@ export default function ResearchContent({ research, error = false }: Props) {
       gsap.fromTo(".research-bg-orb", { y: 60, opacity: 0 }, { y: -60, opacity: 0.06, ease: "none", scrollTrigger: { trigger: sectionRef.current, start: "top bottom", end: "bottom top", scrub: 2 } });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => mm.revert();
   }, []);
 
   return (
@@ -40,16 +45,14 @@ export default function ResearchContent({ research, error = false }: Props) {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,rgba(8,145,178,0.08)_0%,transparent_50%)]" />
         <div className="research-bg-orb absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-teal-400 rounded-full blur-3xl opacity-0 pointer-events-none" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <span className="research-hero-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-4 block opacity-0">
-            Research & Insights
+          <span className="research-hero-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-4 block">
+            {t("research.label")}
           </span>
-          <h1 className="research-hero-title text-4xl lg:text-5xl font-bold text-white mb-6 opacity-0">
-            Evidence-Based Analysis
+          <h1 className="research-hero-title text-4xl lg:text-5xl font-bold text-white mb-6">
+            {t("research.hero_title")}
           </h1>
-          <p className="research-hero-desc text-lg text-slate-300/80 leading-relaxed max-w-2xl mx-auto opacity-0">
-            Our research covers media literacy, press freedom, narrative
-            analysis, policy advocacy and cybersecurity - providing actionable
-            insights for Bangladesh&apos;s information ecosystem.
+          <p className="research-hero-desc text-lg text-slate-300/80 leading-relaxed max-w-2xl mx-auto">
+            {t("research.hero_description")}
           </p>
         </div>
       </section>
@@ -59,7 +62,7 @@ export default function ResearchContent({ research, error = false }: Props) {
           {research.length === 0 ? (
             <ContentListState
               variant={error ? "error" : "empty"}
-              emptyMessage="No research has been published yet."
+              emptyMessage={t("research.no_results")}
             />
           ) : (
             <div className="grid gap-6">
@@ -67,7 +70,7 @@ export default function ResearchContent({ research, error = false }: Props) {
                 <Link
                   key={area.slug}
                   href={`/library/${area.slug}`}
-                  className="research-card group block p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300 cursor-pointer opacity-0"
+                  className="research-card group block p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300 cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -75,10 +78,10 @@ export default function ResearchContent({ research, error = false }: Props) {
                         {area.category}
                       </span>
                       <h2 className="text-xl font-bold text-slate-900 mt-1 mb-2 group-hover:text-teal-600 transition-colors">
-                        {area.title}
+                        {bn && area.titleBn ? area.titleBn : area.title}
                       </h2>
                       <p className="text-sm text-slate-500 leading-relaxed max-w-2xl">
-                        {area.description}
+                        {bn && area.descriptionBn ? area.descriptionBn : area.description}
                       </p>
                     </div>
                     <span className="text-xs text-slate-400 shrink-0">{area.dateLabel}</span>

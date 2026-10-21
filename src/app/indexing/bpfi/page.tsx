@@ -3,6 +3,10 @@ import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageHero from "@/components/site/PageHero";
+import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
+import { resolveSectionItems } from "@/components/page/resolveSectionItems";
+import type { SectionWithResolved } from "@/components/page/PageSectionsView";
+import CmsPageView from "@/components/page/CmsPageView";
 
 export const metadata: Metadata = {
   title: "BPFI — Bangladesh Press Freedom Index",
@@ -17,7 +21,22 @@ export const metadata: Metadata = {
 // Dhaka Press Club, Launch). No scores, rankings, methodology, or
 // additional editions are stated. Future editions render an explicitly
 // marked placeholder, never invented reports.
-export default function BpfiPage() {
+async function resolveCmsSections(sections: PublicSectionData[]) {
+  return Promise.all(
+    sections.map(async (s) => ({
+      ...s,
+      resolved: await resolveSectionItems(s.type, s.content).catch(() => ({ items: [] })),
+    }))
+  );
+}
+
+export default async function BpfiPage() {
+  const cms = await getPublicPage("indexing/bpfi");
+  if (cms) {
+    const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
+    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+  }
+
   return (
     <>
       <SiteHeader />

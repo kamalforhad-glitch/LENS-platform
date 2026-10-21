@@ -7,6 +7,11 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { MapPin, Clock, ArrowRight, Mail } from "lucide-react";
 import MagneticButton from "./MagneticButton";
 import { isValidEmail } from "@/lib/validation";
+import { resolveCmsValue } from "@/lib/cms-content";
+
+function asString(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -125,10 +130,25 @@ export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData
   const cEn = parseJsonSafe(cmsData?.content);
   const cBn = parseJsonSafe(cmsData?.contentBn);
 
-  const sectionLabel = (isBn ? (cBn.badge || cEn.badge) : cEn.badge) || t("events.section_label");
-  const sectionTitle = (isBn ? (cBn.title || cmsData?.titleBn || cEn.title) : (cEn.title || cmsData?.title)) || t("events.section_title");
-  const newsletterTitle = (isBn ? (cBn.newsletter_title || cEn.newsletter_title) : cEn.newsletter_title) || t("newsletter.title");
-  const newsletterSubtitle = (isBn ? (cBn.newsletter_subtitle || cEn.newsletter_subtitle) : cEn.newsletter_subtitle) || t("newsletter.subtitle");
+  // Key-compatibility resolution (see lib/cms-content.ts): the Landing
+  // Page Editor writes `sectionTitle`, `newsletterTitle` and
+  // `newsletterDescription`; older saved sections used the legacy keys
+  // `title` (content) and `newsletter_title`/`newsletter_subtitle`.
+  // Editor keys take precedence; legacy keys keep previously saved
+  // content rendering; the section row title and i18n follow.
+  const sectionLabel = asString(resolveCmsValue(isBn, cEn, cBn, ["sectionLabel", "badge"])) || t("events.section_label");
+
+  const rowTitle = asString(isBn ? (cmsData?.titleBn || cmsData?.title) : cmsData?.title);
+  const sectionTitle =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionTitle", "title"])) || rowTitle || t("events.section_title");
+
+  const newsletterTitle =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["newsletterTitle", "newsletter_title"])) || t("newsletter.title");
+  const newsletterSubtitle =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["newsletterDescription", "newsletter_subtitle"])) || t("newsletter.subtitle");
+
+  const viewAllText = asString(resolveCmsValue(isBn, cEn, cBn, ["viewAllText"])) || t("events.view_all");
+  const viewAllUrl = asString(resolveCmsValue(false, cEn, cBn, ["viewAllUrl"])) || "/events";
 
   async function handleSubscribe(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -174,7 +194,8 @@ export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData
   }
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       gsap.fromTo(
         ".events-label",
         { opacity: 0, y: 15, filter: "blur(4px)" },
@@ -264,7 +285,7 @@ export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData
       );
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => mm.revert();
   }, []);
 
   return (
@@ -279,17 +300,17 @@ export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData
         <div className="grid lg:grid-cols-[1fr_1fr] gap-12">
           {/* Left: Events with timeline */}
           <div>
-            <span className="events-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-600 mb-3 block opacity-0">
+            <span className="events-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-600 mb-3 block">
               {sectionLabel}
             </span>
-            <h2 className="events-title text-3xl font-bold text-slate-900 mb-2 opacity-0">
+            <h2 className="events-title text-3xl font-bold text-slate-900 mb-2">
               {sectionTitle}
             </h2>
             <a
-              href="/events"
-              className="events-viewall inline-flex items-center gap-2 text-teal-600 font-semibold hover:text-teal-500 transition-colors mb-8 group opacity-0"
+              href={viewAllUrl}
+              className="events-viewall inline-flex items-center gap-2 text-teal-600 font-semibold hover:text-teal-500 transition-colors mb-8 group"
             >
-              {t("events.view_all")}
+              {viewAllText}
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </a>
 

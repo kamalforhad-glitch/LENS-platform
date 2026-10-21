@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "ops-recover-admin.tmp.ts", "update_draft_pages.ts", "create_nested_pages.ts", "update_menus_settings.ts", "check_pages.ts", "check_sections.ts", "apply_bn_migration.ts"]
 }

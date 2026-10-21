@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Utility scripts using CommonJS require()
+    "db_setup.cjs",
+    "pg_probe.cjs",
+    "prisma/seed.js",
+    "seed_local_content.cjs",
   ]),
 ]);
 

@@ -21,8 +21,11 @@ export default function ResearchEditorPage() {
   const [id, setId] = useState("");
   const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
+  const [titleBn, setTitleBn] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionBn, setDescriptionBn] = useState("");
   const [content, setContent] = useState("");
+  const [contentBn, setContentBn] = useState("");
   const [category, setCategory] = useState("Research Report");
   const [author, setAuthor] = useState("LENS Research Team");
   const [tags, setTags] = useState("");
@@ -31,7 +34,9 @@ export default function ResearchEditorPage() {
   const [status, setStatus] = useState("draft");
   const [featured, setFeatured] = useState(false);
   const [abstract, setAbstract] = useState("");
+  const [abstractBn, setAbstractBn] = useState("");
   const [methodology, setMethodology] = useState("");
+  const [methodologyBn, setMethodologyBn] = useState("");
   const [doi, setDoi] = useState("");
   const [submitterName, setSubmitterName] = useState("");
   const [submitterEmail, setSubmitterEmail] = useState("");
@@ -74,8 +79,11 @@ export default function ResearchEditorPage() {
           setId(item.id);
           setSlug(item.slug);
           setTitle(item.title);
+          setTitleBn(item.titleBn || "");
           setDescription(item.description);
+          setDescriptionBn(item.descriptionBn || "");
           setContent(item.content);
+          setContentBn(item.contentBn || "");
           setCategory(item.category);
           setAuthor(item.author);
           try { setTags(JSON.parse(item.tags).join(", ")); } catch { setTags(""); }
@@ -84,7 +92,9 @@ export default function ResearchEditorPage() {
           setStatus(item.status);
           setFeatured(!!item.featured);
           setAbstract(item.abstract || "");
+          setAbstractBn(item.abstractBn || "");
           setMethodology(item.methodology || "");
+          setMethodologyBn(item.methodologyBn || "");
           setDoi(item.doi || "");
           setVersion(item.version);
           setSubmitterName(item.submitterName || "");
@@ -105,10 +115,10 @@ export default function ResearchEditorPage() {
     try {
       const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean);
       const data = {
-        title, description, content, category, author,
+        title, titleBn, description, descriptionBn, content, contentBn, category, author,
         tags: tagList, image: image || undefined, pdf_url: pdfUrl || undefined,
         status: (publishStatus || status) as "draft" | "published",
-        featured, abstract, methodology, doi: doi || undefined,
+        featured, abstract, abstractBn, methodology, methodologyBn, doi: doi || undefined,
         submitterName: submitterName || undefined, submitterEmail: submitterEmail || undefined,
         submitterAffiliation: submitterAffiliation || undefined,
       };
@@ -249,16 +259,28 @@ export default function ResearchEditorPage() {
       {activeTab === "details" && (
         <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Title *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Title (EN) *</label>
             <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Description *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Title (বাংলা)</label>
+            <input value={titleBn} onChange={(e) => setTitleBn(e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla" placeholder="গবেষণা নিবন্ধের শিরোনাম বাংলায়" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Description (EN) *</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Content</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Description (বাংলা)</label>
+            <textarea value={descriptionBn} onChange={(e) => setDescriptionBn(e.target.value)} rows={3} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla" placeholder="বিবরণ বাংলায়" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Content (EN)</label>
             <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={12} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-mono text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Content (বাংলা)</label>
+            <textarea value={contentBn} onChange={(e) => setContentBn(e.target.value)} rows={12} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla text-sm" placeholder="বিষয়বস্তু বাংলায়" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -353,12 +375,20 @@ export default function ResearchEditorPage() {
             <input value={doi} onChange={(e) => setDoi(e.target.value)} placeholder="10.1234/example.doi" className="w-full px-4 py-2.5 border border-slate-200 rounded-lg font-mono text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Abstract</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Abstract (EN)</label>
             <textarea value={abstract} onChange={(e) => setAbstract(e.target.value)} rows={5} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Methodology</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Abstract (বাংলা)</label>
+            <textarea value={abstractBn} onChange={(e) => setAbstractBn(e.target.value)} rows={5} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg font-bangla" placeholder="সারসংক্ষেপ বাংলায়" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Methodology (EN)</label>
             <textarea value={methodology} onChange={(e) => setMethodology(e.target.value)} rows={4} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Methodology (বাংলা)</label>
+            <textarea value={methodologyBn} onChange={(e) => setMethodologyBn(e.target.value)} rows={4} className="w-full px-4 py-2.5 border border-slate-200 rounded-lg font-bangla" placeholder="পদ্ধতি বাংলায়" />
           </div>
 
           {/* Citation Export */}

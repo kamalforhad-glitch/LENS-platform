@@ -49,11 +49,15 @@ export async function getAuthorProfile(idOrSlug: string): Promise<AdminAuthorPro
 
 export async function createAuthorProfile(data: {
   name: string;
+  nameBn?: string;
   email?: string;
   affiliation?: string;
+  affiliationBn?: string;
   orcid?: string;
   bio?: string;
+  bioBn?: string;
   expertise?: string[];
+  expertiseBn?: string[];
   image?: string;
   website?: string;
   social?: Record<string, string>;
@@ -71,11 +75,15 @@ export async function createAuthorProfile(data: {
       id,
       slug,
       name: data.name,
+      nameBn: data.nameBn || "",
       email: data.email || null,
       affiliation: data.affiliation || "",
+      affiliationBn: data.affiliationBn || "",
       orcid: data.orcid || null,
       bio: data.bio || "",
+      bioBn: data.bioBn || "",
       expertise: JSON.stringify(data.expertise || []),
+      expertiseBn: JSON.stringify(data.expertiseBn || []),
       image: data.image || null,
       website: data.website || null,
       social: JSON.stringify(data.social || {}),
@@ -89,11 +97,15 @@ export async function updateAuthorProfile(
   id: string,
   data: Partial<{
     name: string;
+    nameBn: string;
     email: string;
     affiliation: string;
+    affiliationBn: string;
     orcid: string;
     bio: string;
+    bioBn: string;
     expertise: string[];
+    expertiseBn: string[];
     image: string;
     website: string;
     social: Record<string, string>;
@@ -104,11 +116,15 @@ export async function updateAuthorProfile(
 
   const updateData: Record<string, unknown> = {};
   if (data.name !== undefined) updateData.name = data.name;
+  if (data.nameBn !== undefined) updateData.nameBn = data.nameBn;
   if (data.email !== undefined) updateData.email = data.email;
   if (data.affiliation !== undefined) updateData.affiliation = data.affiliation;
+  if (data.affiliationBn !== undefined) updateData.affiliationBn = data.affiliationBn;
   if (data.orcid !== undefined) updateData.orcid = data.orcid;
   if (data.bio !== undefined) updateData.bio = data.bio;
+  if (data.bioBn !== undefined) updateData.bioBn = data.bioBn;
   if (data.expertise !== undefined) updateData.expertise = JSON.stringify(data.expertise);
+  if (data.expertiseBn !== undefined) updateData.expertiseBn = JSON.stringify(data.expertiseBn);
   if (data.image !== undefined) updateData.image = data.image;
   if (data.website !== undefined) updateData.website = data.website;
   if (data.social !== undefined) updateData.social = JSON.stringify(data.social);
