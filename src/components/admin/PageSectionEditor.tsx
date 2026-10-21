@@ -1026,6 +1026,30 @@ function TypeField({ field, value, onChange, openPicker }: {
     );
   }
 
+  if (field.kind === "url") {
+    return (
+      <div>
+        <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+        <input
+          type="text"
+          value={s}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://… or /path"
+          className={inputCls}
+        />
+      </div>
+    );
+  }
+
+  if (field.kind === "paragraphs") {
+    return (
+      <div>
+        <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
+        <textarea rows={3} value={s} onChange={(e) => onChange(e.target.value)} className={`${inputCls} resize-y`} placeholder="Blank line = new paragraph" />
+      </div>
+    );
+  }
+
   return (
     <div>
       <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
@@ -1033,7 +1057,7 @@ function TypeField({ field, value, onChange, openPicker }: {
         type="text"
         value={s}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={field.kind === "text" ? field.label : field.kind === "textarea" ? field.label : undefined}
+        placeholder={undefined}
         className={inputCls}
       />
       {field.help && <p className="text-[11px] text-slate-500 mt-1">{field.help}</p>}
