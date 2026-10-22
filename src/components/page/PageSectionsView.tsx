@@ -7,6 +7,7 @@ import { extractMarkdownLinkUrl } from "@/lib/cms-validation";
 import { pickLocale } from "@/lib/cms-content";
 import type { ResolvedItems } from "./resolveSectionItems";
 import ContactFormBlock from "./ContactFormBlock";
+import TabsSection from "./TabsSection";
 
 // ============================================================
 // PageSectionsView — renders structured CMS page sections.
@@ -141,6 +142,15 @@ function SectionContent({ section, bn }: { section: SectionWithResolved; bn: boo
       return <LogoCloud content={content} />;
     case "accordion":
       return <AccordionBlock content={content} />;
+    case "tabs":
+    case "nested_tabs":
+      return (
+        <TabsSection
+          content={typeof section.content === "object" ? (section.content as Record<string, unknown>) : {}}
+          contentBn={typeof section.contentBn === "object" ? (section.contentBn as Record<string, unknown>) : {}}
+          bn={bn}
+        />
+      );
     default:
       // Homepage machine sections are rendered by HomeClient; unknown types render nothing here.
       if (["focus", "featured_research", "impact", "events_newsletter", "indexing_scanner"].includes(section.type)) {

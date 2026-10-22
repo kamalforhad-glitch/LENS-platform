@@ -55,7 +55,7 @@ describe("CMS System Tests", () => {
     });
 
     it("provides full default home sections with bilingual contents", () => {
-      expect(DEFAULT_HOME_SECTIONS.length).toBe(5);
+      expect(DEFAULT_HOME_SECTIONS.length).toBe(6);
 
       const sectionTypes = DEFAULT_HOME_SECTIONS.map((s) => s.type);
       expect(sectionTypes).toContain("hero");
@@ -63,11 +63,17 @@ describe("CMS System Tests", () => {
       expect(sectionTypes).toContain("featured_research");
       expect(sectionTypes).toContain("impact");
       expect(sectionTypes).toContain("events_newsletter");
+      expect(sectionTypes).toContain("tabs");
 
       const hero = DEFAULT_HOME_SECTIONS.find((s) => s.type === "hero");
       expect(hero).toBeDefined();
       expect(hero!.content).toBeDefined();
       expect(hero!.contentBn).toBeDefined();
+
+      const tabsSection = DEFAULT_HOME_SECTIONS.find((s) => s.type === "tabs");
+      expect(tabsSection).toBeDefined();
+      expect(tabsSection!.title).toBe("Research-Driven Think Tank");
+      expect(tabsSection!.content).toBeDefined();
     });
   });
 
@@ -133,7 +139,7 @@ describe("CMS System Tests", () => {
       const page = await getPublicPage("home");
       expect(page).toBeDefined();
       expect(page!.slug).toBe("home");
-      expect(page!.sections.length).toBe(5);
+      expect(page!.sections.length).toBe(6);
       expect(page!.id).toBe("default-home");
     });
 
@@ -143,7 +149,7 @@ describe("CMS System Tests", () => {
       const page = await getPublicPage("home");
       expect(page).toBeDefined();
       expect(page!.slug).toBe("home");
-      expect(page!.sections.length).toBe(5);
+      expect(page!.sections.length).toBe(6);
       expect(page!.id).toBe("fallback-home");
     });
   });

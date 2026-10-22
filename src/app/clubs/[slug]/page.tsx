@@ -6,13 +6,35 @@ import SiteFooter from "@/components/site/SiteFooter";
 import PageHero from "@/components/site/PageHero";
 import ContentListState from "@/components/ContentListState";
 import { CLUBS, getClub } from "@/lib/clubs";
+import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
+import { resolveSectionItems } from "@/components/page/resolveSectionItems";
+import type { SectionWithResolved } from "@/components/page/PageSectionsView";
+import CmsPageView from "@/components/page/CmsPageView";
+
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return CLUBS.map((c) => ({ slug: c.slug }));
 }
 
+async function resolveCmsSections(sections: PublicSectionData[]) {
+  return Promise.all(
+    sections.map(async (s) => ({
+      ...s,
+      resolved: await resolveSectionItems(s.type, s.content).catch(() => ({ items: [] })),
+    }))
+  );
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
+  const cms = await getPublicPage(`clubs/${slug}`);
+  if (cms) {
+    return {
+      title: cms.metaTitle || cms.title,
+      description: cms.metaDescription || cms.description || undefined,
+    };
+  }
   const club = getClub(slug);
   if (!club) return { title: "Club Not Found" };
   return {
@@ -21,11 +43,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-// Editorial placeholder page: no verified club content exists yet, so
-// nothing is stated beyond the approved name. No descriptions, people,
-// events, forms, images, or contact details are included.
 export default async function ClubDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const cms = await getPublicPage(`clubs/${slug}`);
+  if (cms) {
+    const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
+    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+  }
+
   const club = getClub(slug);
   if (!club) notFound();
 

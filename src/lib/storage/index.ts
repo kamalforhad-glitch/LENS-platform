@@ -1,5 +1,3 @@
-import { db } from "@/lib/db";
-
 export interface StorageConfig {
   bucket: string;
   region: string;
@@ -231,10 +229,67 @@ export function getPublicUrl(key: string): string {
 }
 
 export async function deleteFromStorage(key: string): Promise<void> {
-  // For local storage, this would delete the file
-  // For R2 (S3-compatible), this would call DeleteObjectCommand
-  // Implementation depends on storage backend
-  console.log(`[Storage] Would delete: ${key}`);
+  const config = getConfig();
+
+  if (config.accessKeyId) {
+    const { S3Client, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+    const client = new S3Client({
+      region: config.region,
+      endpoint: config.endpoint,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+    });
+
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket: config.bucket,
+        Key: key,
+      })
+    );
+  } else {
+    // Local storage fallback for development
+    try {
+      const { join } = await import("path");
+      const { unlink } = await import("fs/promises");
+      const localPath = join(process.cwd(), "public", key);
+      await unlink(localPath);
+    } catch {
+      // Best-effort if file already deleted or missing on disk
+    }
+  }
+}
+
+export async function verifyR2StorageObject(key: string): Promise<boolean> {
+  const config = getConfig();
+  if (config.accessKeyId) {
+    const { S3Client, HeadObjectCommand } = await import("@aws-sdk/client-s3");
+    const client = new S3Client({
+      region: config.region,
+      endpoint: config.endpoint,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+    });
+    try {
+      await client.send(new HeadObjectCommand({ Bucket: config.bucket, Key: key }));
+      return true;
+    } catch {
+      return false;
+    }
+  } else {
+    try {
+      const { join } = await import("path");
+      const { access } = await import("fs/promises");
+      const localPath = join(process.cwd(), "public", key);
+      await access(localPath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
 
 export async function getSignedUploadUrl(

@@ -17,6 +17,7 @@ import {
   reorderSections,
 } from "@/lib/actions/cms";
 import MediaPickerModal from "./MediaPickerModal";
+import TabsHierarchyEditor from "./TabsHierarchyEditor";
 
 export interface SectionRow {
   id: string;
@@ -183,6 +184,15 @@ export const SECTION_TYPE_DEFS: SectionTypeDef[] = [
         ] },
       { key: "ctaLabel", label: "Button label", kind: "text", target: "content" },
       { key: "ctaUrl", label: "Button URL", kind: "url", target: "content" },
+    ],
+  },
+  {
+    type: "tabs",
+    label: "Tabs & Nested Tabs",
+    description: "Hierarchical tabs and sub-tabs with rich text, media, cards, lists, downloads and CTAs.",
+    fields: [
+      { key: "eyebrow", label: "Eyebrow / Badge", kind: "text", target: "content" },
+      { key: "subtitle", label: "Section Subtitle", kind: "textarea", target: "content" },
     ],
   },
   {
@@ -1053,6 +1063,21 @@ function SectionForm(props: RowProps) {
         />
         Visible on public page
       </label>
+
+      {/* Tabs and Nested Tabs Hierarchy Builder */}
+      {(draft.type === "tabs" || draft.type === "nested_tabs") && (
+        <div className="pt-2">
+          <TabsHierarchyEditor
+            value={Array.isArray(content.tabs) ? (content.tabs as any) : []}
+            valueBn={Array.isArray(contentBn.tabs) ? (contentBn.tabs as any) : []}
+            activeLanguage={activeLang}
+            onChange={(newEn, newBn) => {
+              setJson("content", { ...content, tabs: newEn });
+              setJson("contentBn", { ...contentBn, tabs: newBn });
+            }}
+          />
+        </div>
+      )}
 
       {/* Dynamic Type Fields */}
       {fields.length > 0 && (

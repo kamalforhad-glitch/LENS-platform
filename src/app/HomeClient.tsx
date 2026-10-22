@@ -111,6 +111,30 @@ export default function HomeClient({
           </div>
         );
 
+      case "tabs":
+      case "nested_tabs":
+        return (
+          <div key={sec.id || `tabs-${index}`}>
+            <SectionSeparator />
+            <section id="tabs" className="relative">
+              <PageSectionsView sections={[{
+                ...sec,
+                id: sec.id,
+                type: sec.type,
+                title: sec.title || "",
+                titleBn: sec.titleBn || "",
+                description: sec.description || "",
+                descriptionBn: sec.descriptionBn || "",
+                sortOrder: sec.sortOrder ?? index,
+                visible: true,
+                settings: typeof sec.settings === "object" ? sec.settings : {},
+                content: typeof sec.content === "object" ? sec.content : {},
+                contentBn: typeof sec.contentBn === "object" ? sec.contentBn : {},
+              } as any]} />
+            </section>
+          </div>
+        );
+
       default:
         // Render any reusable block added from the CMS library
         return (

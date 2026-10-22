@@ -7,6 +7,10 @@ import PageHero from "@/components/site/PageHero";
 import ContentListState from "@/components/ContentListState";
 import { getPublicPrograms } from "@/lib/public-content";
 import { COURSE_SUBJECTS, getCourseSubject } from "@/lib/course-subjects";
+import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
+import { resolveSectionItems } from "@/components/page/resolveSectionItems";
+import type { SectionWithResolved } from "@/components/page/PageSectionsView";
+import CmsPageView from "@/components/page/CmsPageView";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +18,24 @@ export function generateStaticParams() {
   return COURSE_SUBJECTS.map((s) => ({ subject: s.slug }));
 }
 
+async function resolveCmsSections(sections: PublicSectionData[]) {
+  return Promise.all(
+    sections.map(async (s) => ({
+      ...s,
+      resolved: await resolveSectionItems(s.type, s.content).catch(() => ({ items: [] })),
+    }))
+  );
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ subject: string }> }): Promise<Metadata> {
   const { subject } = await params;
+  const cms = await getPublicPage(`courses/${subject}`);
+  if (cms) {
+    return {
+      title: cms.metaTitle || cms.title,
+      description: cms.metaDescription || cms.description || undefined,
+    };
+  }
   const known = getCourseSubject(subject);
   if (!known) return { title: "Course Not Found" };
   return {
@@ -24,12 +44,17 @@ export async function generateMetadata({ params }: { params: Promise<{ subject: 
   };
 }
 
-// CMS-ready subject view: when editors publish Program rows whose
-// category matches the subject name, they appear here automatically.
-// Until then the page renders an honest empty state — no syllabus,
-// schedule, or course content is invented.
+// CMS-ready subject view: when editors publish a CMS page for courses/[subject],
+// it renders full custom CMS sections. Otherwise Program rows whose
+// category matches the subject name appear here automatically.
 export default async function CourseSubjectPage({ params }: { params: Promise<{ subject: string }> }) {
   const { subject } = await params;
+  const cms = await getPublicPage(`courses/${subject}`);
+  if (cms) {
+    const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
+    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+  }
+
   const known = getCourseSubject(subject);
   if (!known) notFound();
 

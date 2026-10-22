@@ -14,6 +14,7 @@ import {
 import { firstUsable } from "@/lib/cms-content";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
 import { SECTION_TYPE_DEFS } from "@/components/admin/PageSectionEditor";
+import TabsHierarchyEditor from "@/components/admin/TabsHierarchyEditor";
 
 interface Section {
   id: string;
@@ -35,6 +36,8 @@ const SECTION_LABELS: Record<string, string> = {
   featured_research: "Featured Research & Highlights",
   impact: "Impact Statistics",
   events_newsletter: "Events & Newsletter",
+  tabs: "Tabs & Nested Tabs",
+  nested_tabs: "Nested Tabs Hierarchy",
   logo_cloud: "Partner Logos",
   testimonial: "Testimonials",
   cards: "Card Grid",
@@ -1569,6 +1572,24 @@ export default function HomepageCMS() {
                           />
                         </div>
                       </div>
+
+                      {/* Tabs Hierarchy Editor when Section is tabs or nested_tabs */}
+                      {(section.type === "tabs" || section.type === "nested_tabs") && (
+                        <div className="pt-3">
+                          <TabsHierarchyEditor
+                            value={Array.isArray(editFormData.content.tabs) ? (editFormData.content.tabs as any) : []}
+                            valueBn={Array.isArray(editFormData.contentBn.tabs) ? (editFormData.contentBn.tabs as any) : []}
+                            activeLanguage={languageMode === "bn" ? "bn" : "en"}
+                            onChange={(tabsEn, tabsBn) => {
+                              setEditFormData({
+                                ...editFormData,
+                                content: { ...editFormData.content, tabs: tabsEn },
+                                contentBn: { ...editFormData.contentBn, tabs: tabsBn },
+                              });
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 

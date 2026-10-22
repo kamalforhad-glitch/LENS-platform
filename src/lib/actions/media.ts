@@ -9,6 +9,7 @@
 import { db } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireEditor } from "@/lib/auth";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
+import { deleteFromStorage } from "@/lib/storage";
 
 export interface MediaReference {
   source: string;
@@ -176,10 +177,17 @@ export async function getMediaReferences(id: string): Promise<MediaReference[]> 
   return refs;
 }
 
-/** Update editorial metadata of a media file. */
+/** Update editorial metadata of a media file (bilingual). */
 export async function updateMediaFile(
   id: string,
-  data: { title?: string; description?: string; alt?: string }
+  data: {
+    title?: string;
+    titleBn?: string;
+    description?: string;
+    descriptionBn?: string;
+    alt?: string;
+    altBn?: string;
+  }
 ): Promise<{ success: boolean; error?: string }> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
@@ -194,8 +202,11 @@ export async function updateMediaFile(
 
   const writable: Record<string, unknown> = {};
   if (typeof data.title === "string") writable.title = data.title.slice(0, 200);
+  if (typeof data.titleBn === "string") writable.titleBn = data.titleBn.slice(0, 200);
   if (typeof data.description === "string") writable.description = data.description.slice(0, 1000);
+  if (typeof data.descriptionBn === "string") writable.descriptionBn = data.descriptionBn.slice(0, 1000);
   if (typeof data.alt === "string") writable.alt = data.alt.slice(0, 300);
+  if (typeof data.altBn === "string") writable.altBn = data.altBn.slice(0, 300);
 
   const updated = await db.mediaFile.update({ where: { id }, data: writable });
 
@@ -244,6 +255,13 @@ export async function deleteMediaFile(
       blocked: true,
       error: `This file is still referenced in ${refs.length} place${refs.length === 1 ? "" : "s"} (${summary}${refs.length > 6 ? "; …" : ""}). Remove those references first.`,
     };
+  }
+
+  // Delete underlying storage object (Cloudflare R2 or local disk)
+  try {
+    await deleteFromStorage(existing.filename);
+  } catch (storageErr) {
+    console.error("[Storage Delete Error]", storageErr);
   }
 
   await db.mediaFile.delete({ where: { id } });

@@ -12,8 +12,11 @@ interface MediaFile {
   size: number;
   url: string;
   alt: string;
+  altBn?: string;
   title?: string;
+  titleBn?: string;
   description?: string;
+  descriptionBn?: string;
   width?: number | null;
   height?: number | null;
   dateCreated: string | Date;
@@ -119,7 +122,17 @@ export default function AdminMediaPage() {
     }
   };
 
-  const saveEdit = async (file: MediaFile, values: { title: string; description: string; alt: string }) => {
+  const saveEdit = async (
+    file: MediaFile,
+    values: {
+      title: string;
+      titleBn: string;
+      description: string;
+      descriptionBn: string;
+      alt: string;
+      altBn: string;
+    }
+  ) => {
     try {
       // Expected failures arrive as values (Server Action throws are redacted
       // across the RSC boundary in production).
@@ -282,27 +295,54 @@ export default function AdminMediaPage() {
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditing(null)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-slate-900 mb-1">Edit file details</h3>
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">Edit media file details</h3>
             <p className="text-xs text-slate-400 mb-4 truncate">{editing.originalName}</p>
-            <form onSubmit={(e) => { e.preventDefault(); saveEdit(editing, {
-              title: (new FormData(e.currentTarget).get("title") as string) || "",
-              description: (new FormData(e.currentTarget).get("description") as string) || "",
-              alt: (new FormData(e.currentTarget).get("alt") as string) || "",
-            }); }} className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Title</label>
-                <input name="title" type="text" defaultValue={editing.title || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              saveEdit(editing, {
+                title: (fd.get("title") as string) || "",
+                titleBn: (fd.get("titleBn") as string) || "",
+                alt: (fd.get("alt") as string) || "",
+                altBn: (fd.get("altBn") as string) || "",
+                description: (fd.get("description") as string) || "",
+                descriptionBn: (fd.get("descriptionBn") as string) || "",
+              });
+            }} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Title (English)</label>
+                  <input name="title" type="text" defaultValue={editing.title || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-teal-800 mb-1">Title (বাংলা)</label>
+                  <input name="titleBn" type="text" defaultValue={editing.titleBn || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Alt text</label>
-                <input name="alt" type="text" defaultValue={editing.alt || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Alt text (English)</label>
+                  <input name="alt" type="text" defaultValue={editing.alt || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-teal-800 mb-1">Alt text (বাংলা)</label>
+                  <input name="altBn" type="text" defaultValue={editing.altBn || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20" />
+                </div>
               </div>
+
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Description</label>
-                <textarea name="description" rows={3} defaultValue={editing.description || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 resize-none" />
+                <label className="block text-xs font-medium text-slate-700 mb-1">Description / Caption (English)</label>
+                <textarea name="description" rows={2} defaultValue={editing.description || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 resize-none" />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+
+              <div>
+                <label className="block text-xs font-medium text-teal-800 mb-1">Description / Caption (বাংলা)</label>
+                <textarea name="descriptionBn" rows={2} defaultValue={editing.descriptionBn || ""} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 resize-none" />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 text-sm border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700">Save</button>
               </div>
