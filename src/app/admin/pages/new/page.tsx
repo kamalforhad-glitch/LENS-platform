@@ -199,6 +199,7 @@ export default function NewPageCreator() {
   const [titleBn, setTitleBn] = useState("");
   const [slug, setSlug] = useState("");
   const [autoSlug, setAutoSlug] = useState(true);
+  const [status, setStatus] = useState<"draft" | "published" | "archived">("draft");
   const [description, setDescription] = useState("");
   const [descriptionBn, setDescriptionBn] = useState("");
   const [creating, setCreating] = useState(false);
@@ -246,7 +247,7 @@ export default function NewPageCreator() {
         description: description.trim(),
         descriptionBn: descriptionBn.trim(),
         template: selectedTemplate,
-        status: "draft",
+        status,
       });
 
       // 2. Initialize default template sections
@@ -267,7 +268,7 @@ export default function NewPageCreator() {
       }
 
       // 3. Navigate to page editor
-      router.push(`/admin/pages/${page.id}`);
+      router.push(`/admin/pages/${page.id}?created=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Page creation failed.");
       setCreating(false);
@@ -355,7 +356,8 @@ export default function NewPageCreator() {
               <input
                 type="text"
                 required
-                placeholder="e.g. Media Literacy Program"
+                name="title"
+                placeholder="e.g. About Us"
                 value={title}
                 onChange={(e) => handleTitleChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20"
@@ -367,7 +369,8 @@ export default function NewPageCreator() {
               </label>
               <input
                 type="text"
-                placeholder="e.g. গণমাধ্যম সাক্ষরতা কর্মসূচি"
+                name="titleBn"
+                placeholder="যেমন: আমাদের সম্পর্কে"
                 value={titleBn}
                 onChange={(e) => setTitleBn(e.target.value)}
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-bangla"
@@ -375,26 +378,47 @@ export default function NewPageCreator() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-              URL Slug *
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200 select-none">
-                lensbd.org/
-              </span>
-              <input
-                type="text"
-                required
-                placeholder="media-literacy-program"
-                value={slug}
-                onChange={(e) => handleSlugChange(e.target.value)}
-                className="flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-mono"
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                URL Slug *
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 bg-slate-100 px-3 py-2.5 rounded-xl border border-slate-200 select-none">
+                  lensbd.org/
+                </span>
+                <input
+                  type="text"
+                  required
+                  name="slug"
+                  placeholder="about"
+                  value={slug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  className="flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-mono"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Permanent public URL path. Use letters, numbers, and hyphens.
+              </p>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Permanent public URL path. Use letters, numbers, and hyphens.
-            </p>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                Publication Status *
+              </label>
+              <select
+                name="status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as "draft" | "published" | "archived")}
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              >
+                <option value="draft">Draft (Private)</option>
+                <option value="published">Published (Live immediately)</option>
+                <option value="archived">Archived</option>
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Choose whether the page should be immediately public or kept as draft.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -404,7 +428,8 @@ export default function NewPageCreator() {
               </label>
               <textarea
                 rows={2}
-                placeholder="Brief summary for search engines and social cards..."
+                name="description"
+                placeholder="Short description shown in page lists and used as meta fallback"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 resize-none"
@@ -416,7 +441,8 @@ export default function NewPageCreator() {
               </label>
               <textarea
                 rows={2}
-                placeholder="সার্চ ইঞ্জিন ও সোশ্যাল কার্ডের জন্য সংক্ষিপ্ত সারসংক্ষেপ..."
+                name="descriptionBn"
+                placeholder="সংক্ষিপ্ত বিবরণ"
                 value={descriptionBn}
                 onChange={(e) => setDescriptionBn(e.target.value)}
                 className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 resize-none font-bangla"

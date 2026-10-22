@@ -20,9 +20,8 @@ async function loginAsAdmin(page: Page) {
   
   // Wait for either redirect to /admin or error message
   await Promise.race([
-    page.waitForURL(/\/admin$/, { timeout: 15000 }).catch(() => null),
-    page.waitForSelector('[role="alert"], .text-red-400, .text-red-600, .bg-red-50, .bg-red-500', { timeout: 15000 }).catch(() => null),
-    page.waitForTimeout(10000)
+    page.waitForURL(/\/admin/, { timeout: 20000 }).catch(() => null),
+    page.waitForSelector('[role="alert"], .text-red-400, .text-red-600, .bg-red-50, .bg-red-500', { timeout: 20000 }).catch(() => null),
   ]);
   
   // Check if there's an error message

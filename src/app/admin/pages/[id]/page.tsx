@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Trash2, Globe, ExternalLink } from "lucide-react";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
@@ -35,7 +35,10 @@ export default function PageEditor() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const [success, setSuccess] = useState<string | null>(
+    searchParams?.get("created") === "1" ? "Page saved successfully!" : null
+  );
 
   const [form, setForm] = useState<PageData>({
     slug: "",
