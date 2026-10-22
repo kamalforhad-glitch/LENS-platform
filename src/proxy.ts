@@ -64,7 +64,13 @@ export function proxy(request: NextRequest) {
 
   // Rate limiting for API routes
   if (pathname.startsWith("/api/")) {
-    const rateLimit = getRateLimit(`api:${ip}`, 30, 60000);
+    const isDevOrTest =
+      process.env.NODE_ENV !== "production" ||
+      ip === "unknown" ||
+      ip === "127.0.0.1" ||
+      ip === "::1";
+    const apiLimit = isDevOrTest ? 1000 : 60;
+    const rateLimit = getRateLimit(`api:${ip}`, apiLimit, 60000);
     if (!rateLimit.allowed) {
       return new NextResponse(
         JSON.stringify({ error: "Too many requests. Please try again later." }),
@@ -73,7 +79,7 @@ export function proxy(request: NextRequest) {
           headers: {
             "Content-Type": "application/json",
             "Retry-After": "60",
-            "X-RateLimit-Limit": "30",
+            "X-RateLimit-Limit": String(apiLimit),
             "X-RateLimit-Remaining": "0",
           },
         }

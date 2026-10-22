@@ -21,7 +21,7 @@ export default function MenusAdmin() {
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [newItem, setNewItem] = useState({ location: "header", label: "", labelBn: "", url: "", visible: false, target: "_self", parentId: "" });
+  const [newItem, setNewItem] = useState({ location: "header", label: "", labelBn: "", url: "", visible: true, target: "_self", parentId: "" });
 
   const [locationFilter, setLocationFilter] = useState<"header" | "footer">("header");
 
@@ -174,10 +174,10 @@ export default function MenusAdmin() {
 
       {/* Add row */}
       <div className="flex flex-wrap gap-2 mt-6 p-3 rounded-lg bg-white border border-slate-200 shadow-2xs">
-        <input placeholder="Label (EN)" value={newItem.label} onChange={(e) => setNewItem({ ...newItem, label: e.target.value })} className="px-3 py-1.5 bg-white border border-slate-200 shadow-2xs rounded-lg text-white text-xs w-36" />
-        <input placeholder="Label (বাংলা)" value={newItem.labelBn} onChange={(e) => setNewItem({ ...newItem, labelBn: e.target.value })} className="px-3 py-1.5 bg-white border border-slate-200 shadow-2xs rounded-lg text-white text-xs w-36 font-bangla" />
-        <input placeholder="URL (/path or https://…)" value={newItem.url} onChange={(e) => setNewItem({ ...newItem, url: e.target.value })} className="px-3 py-1.5 bg-white border border-slate-200 shadow-2xs rounded-lg text-white text-xs flex-1 min-w-40" />
-        <select value={newItem.parentId} onChange={(e) => setNewItem({ ...newItem, parentId: e.target.value })} className="px-2 py-1.5 bg-white border border-slate-200 shadow-2xs rounded-lg text-white text-xs">
+        <input placeholder="Label (EN)" value={newItem.label} onChange={(e) => setNewItem({ ...newItem, label: e.target.value })} className="px-3 py-1.5 bg-white border border-slate-200 shadow-2xs rounded-lg text-slate-900 text-xs w-36" />
+        <input placeholder="Label (বাংলা)" value={newItem.labelBn} onChange={(e) => setNewItem({ ...newItem, labelBn: e.target.value })} className="px-3 py-1.5 bg-white border border-slate-200 shadow-2xs rounded-lg text-slate-900 text-xs w-36 font-bangla" />
+        <input placeholder="URL (/path or https://…)" value={newItem.url} onChange={(e) => setNewItem({ ...newItem, url: e.target.value })} className="px-3 py-1.5 bg-white border border-slate-200 shadow-2xs rounded-lg text-slate-900 text-xs flex-1 min-w-40" />
+        <select value={newItem.parentId} onChange={(e) => setNewItem({ ...newItem, parentId: e.target.value })} className="px-2 py-1.5 bg-white border border-slate-200 shadow-2xs rounded-lg text-slate-900 text-xs">
           <option value="" >Top level</option>
           {childOptionsFor(null).map((p) => (
             <option key={p.id} value={p.id} >Under {p.label}</option>

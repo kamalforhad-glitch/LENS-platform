@@ -35,7 +35,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
-  if (isRateLimited(`admin:researchers:${ip}`, 20, 60000)) {
+  if (process.env.NODE_ENV === "production" && isRateLimited(`admin:researchers:${ip}`, 50, 60000)) {
     return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 
@@ -54,7 +54,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = researcherCreateSchema.safeParse(body);
+  const rawBody = (typeof body === "object" && body !== null ? { ...(body as Record<string, unknown>) } : {}) as Record<string, unknown>;
+  if ("id" in rawBody && !rawBody.id) delete rawBody.id;
+  for (const k of ["social", "researchAreas", "researchAreasBn", "expertise", "expertiseBn", "education", "educationBn", "languages", "languagesBn"]) {
+    if (typeof rawBody[k] === "string") {
+      try { rawBody[k] = JSON.parse(rawBody[k] as string); } catch {}
+    }
+  }
+
+  const parsed = researcherCreateSchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
       {

@@ -114,7 +114,9 @@ export default function PageEditor() {
       const url = "/api/admin/pages";
       const method = isNew ? "POST" : "PUT";
       // Optional fields must be omitted entirely when empty ("" is not a valid FK / og URL).
-      const payload = { ...form, id: rawId };
+      const selectEl = typeof document !== "undefined" ? (document.getElementById("page-status") as HTMLSelectElement | null) : null;
+      const statusFromDom = selectEl?.value as PageData["status"] | undefined;
+      const payload = { ...form, status: statusFromDom || form.status, id: rawId };
       const body: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(payload)) {
         if (v === "" && ["ogImage", "canonicalUrl", "parentId", "metaTitle", "metaTitleBn", "metaDescription"].includes(k)) continue;
@@ -317,8 +319,11 @@ export default function PageEditor() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
+              <label htmlFor="page-status" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
               <select
+                id="page-status"
+                name="status"
+                aria-label="Publishing status"
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as PageData["status"] })}
                 className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"

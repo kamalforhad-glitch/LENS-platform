@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { writeFile, readdir, stat, unlink, readFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
 import { join, basename } from "path";
 import { sendBackupReport } from "@/lib/email";
 import { requireDatabaseUrl } from "@/lib/env";
@@ -19,6 +20,26 @@ const execFileAsync = promisify(execFile);
 const BACKUP_DIR = join(process.cwd(), "backups");
 const MAX_BACKUPS = 30; // 30 days retention
 const MAX_BACKUP_SIZE_MB = 500;
+
+/** Resolves postgres client binary taking into account standard local and server installation paths */
+function resolvePostgresBinary(binary: string): string {
+  if (process.env.PG_BIN_PATH) {
+    const custom = join(process.env.PG_BIN_PATH, process.platform === "win32" ? `${binary}.exe` : binary);
+    if (existsSync(/*turbopackIgnore: true*/ custom)) return custom;
+  }
+  if (process.platform === "win32") {
+    const candidates = [
+      `C:\\Program Files\\PostgreSQL\\18\\bin\\${binary}.exe`,
+      `C:\\Program Files\\PostgreSQL\\17\\bin\\${binary}.exe`,
+      `C:\\Program Files\\PostgreSQL\\16\\bin\\${binary}.exe`,
+      `C:\\Program Files\\PostgreSQL\\15\\bin\\${binary}.exe`,
+    ];
+    for (const p of candidates) {
+      if (existsSync(/*turbopackIgnore: true*/ p)) return p;
+    }
+  }
+  return binary;
+}
 
 /** True when the child process failed to spawn because the binary is absent. */
 function isMissingBinary(error: unknown): boolean {
@@ -75,7 +96,7 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
     // execFile (no shell) prevents DATABASE_URL shell injection.
     const filePath = join(BACKUP_DIR, basename(filename));
     try {
-      await execFileAsync("pg_dump", [
+      await execFileAsync(resolvePostgresBinary("pg_dump"), [
         databaseUrl,
         "--no-owner",
         "--no-acl",
@@ -192,9 +213,8 @@ export async function restoreBackup(backupId: string): Promise<{ success: boolea
 
     // Plain-format dumps restore with psql (no shell — args array only).
     try {
-      await execFileAsync("psql", [
+      await execFileAsync(resolvePostgresBinary("psql"), [
         databaseUrl,
-        "--no-owner",
         "--quiet",
         "--file",
         filePath,

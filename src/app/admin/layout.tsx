@@ -175,7 +175,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside
         id="admin-sidebar"
         aria-label="Admin Navigation"
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-navy-950 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-navy-950 flex flex-col h-screen max-h-screen h-[100dvh] transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
