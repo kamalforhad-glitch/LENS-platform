@@ -60,7 +60,7 @@ const navItems: NavItemConfig[] = [
   { label: "Homepage Builder", href: "/admin/pages/home", icon: Home, group: "Visual CMS" },
   { label: "Sections Library", href: "/admin/sections", icon: LayoutGrid, group: "Visual CMS" },
   { label: "Tabs & Inner Tabs", href: "/admin/tabs", icon: FolderTree, group: "Visual CMS" },
-  { label: "Navigation & Menus", href: "/admin/menus", icon: Menu, group: "Visual CMS" },
+  { label: "Navigation & Menus", href: "/admin/navigation", icon: Menu, group: "Visual CMS" },
   { label: "Site Settings & Footer", href: "/admin/settings", icon: Settings, group: "Visual CMS" },
   { label: "Media Library", href: "/admin/media", icon: ImageIcon, group: "Visual CMS" },
   { label: "Translations (EN/BN)", href: "/admin/translations", icon: Languages, group: "Visual CMS" },

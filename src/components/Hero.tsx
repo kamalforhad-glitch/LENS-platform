@@ -143,6 +143,15 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
   const announcementText = asString(resolveCmsValue(isBn, cEn, cBn, ["announcementText"]));
   const announcementLink = asString(resolveCmsValue(false, cEn, cBn, ["announcementLink"]));
   const scrollText = asString(resolveCmsValue(isBn, cEn, cBn, ["scrollText"])) || t("hero.scroll");
+  const scrollAriaLabel = asString(resolveCmsValue(isBn, cEn, cBn, ["scrollAriaLabel"])) || scrollText || "Scroll to explore";
+
+  const rawGradientWords = resolveCmsValue(isBn, cEn, cBn, ["gradientWords"]);
+  const customGradientList = asWordList(rawGradientWords);
+  const gradientWordSet = new Set(
+    customGradientList.length > 0
+      ? customGradientList.map((w) => w.toLowerCase().replace(/^[^\w\u0980-\u09FF]+|[^\w\u0980-\u09FF]+$/g, ""))
+      : !isBn ? ["digital", "world"] : []
+  );
 
   // Media & Background Settings
   const backgroundImage = asString(cEn.backgroundImage || cEn.heroBgImage || sSettings.backgroundImage);
@@ -151,8 +160,8 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
   const backgroundVideoMobile = asString(cEn.backgroundVideoMobile || sSettings.backgroundVideoMobile);
   const posterImage = asString(cEn.posterImage || sSettings.posterImage || backgroundImage);
   const foregroundImage = asString(cEn.foregroundImage || sSettings.foregroundImage);
-  const imageAlt = asString(cEn.imageAlt || cEn.alt || "Hero visual background");
-  const videoAlt = asString(cEn.videoAlt || "Hero background video");
+  const imageAlt = asString(resolveCmsValue(isBn, cEn, cBn, ["imageAlt", "alt"])) || "Hero visual background";
+  const videoAlt = asString(resolveCmsValue(isBn, cEn, cBn, ["videoAlt"])) || "Hero background video";
   const overlayColor = asString(cEn.overlayColor || sSettings.overlayColor || "#030810");
   const overlayOpacity = typeof cEn.overlayOpacity === "number"
     ? cEn.overlayOpacity
@@ -421,7 +430,8 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
               style={{ perspective: "600px" }}
             >
               {headlineWords.map((word: string, i: number) => {
-                const isGradient = !isBn && (word === "Digital" || word === "World.");
+                const cleanWord = word.toLowerCase().replace(/^[^\w\u0980-\u09FF]+|[^\w\u0980-\u09FF]+$/g, "");
+                const isGradient = gradientWordSet.has(cleanWord) || gradientWordSet.has(word.toLowerCase());
                 return (
                   <span
                     key={i}
@@ -516,7 +526,15 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
       </div>
 
       {/* Scroll indicator — desktop only */}
-      <div className="scroll-indicator absolute bottom-8 left-1/2 -translate-x-1/2 hidden lg:flex flex-col items-center gap-2 opacity-0 z-10">
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={scrollAriaLabel}
+        className="scroll-indicator absolute bottom-8 left-1/2 -translate-x-1/2 hidden lg:flex flex-col items-center gap-2 opacity-0 z-10 cursor-pointer"
+        onClick={() => {
+          window.scrollTo({ top: window.innerHeight * 0.9, behavior: "smooth" });
+        }}
+      >
         <span className="text-slate-400 text-[10px] tracking-[0.3em] uppercase font-medium">
           {scrollText}
         </span>

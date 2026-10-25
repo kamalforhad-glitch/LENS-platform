@@ -1,5 +1,5 @@
 // ============================================================
-// Site navigation model — Phase A (new IA chrome)
+// Site navigation model — Complete Bilingual Navigation
 //
 // Pure module: no database, no Next.js, no React imports, so it is
 // safe to import from Server Components, Client Components and
@@ -8,16 +8,9 @@
 // Two data sources, in priority order:
 //   1. MenuItem CMS rows (location "header"/"footer") via site-menus.ts.
 //   2. SITE_NAV_FALLBACK / SITE_FOOTER_FALLBACK below.
-//
-// Ambiguous IA terms (Mojo, BPFI, Indexing, Press Freedom Index,
-// Clubs, Other Resources, Election, Literature) are NOT given
-// invented meanings here: items without a verified live route are
-// marked `status: "soon"` with a `plannedHref` and NO `href`, so
-// renderers must show them as non-links (never 404, never imply
-// a definition). Phase B turns them into live links.
 // ============================================================
 
-export type NavStatus = "live" | "soon";
+export type NavStatus = "live" | "soon" | "draft" | "disabled";
 
 /** Localised label: an i18n key, or a literal en/bn pair (CMS rows). */
 export type NavLabel =
@@ -27,12 +20,23 @@ export type NavLabel =
 export interface NavChild {
   id: string;
   label: NavLabel;
-  /** Live destination. Absent when status is "soon". */
+  /** Live destination. Absent when status is "soon" and isClickable is false. */
   href?: string;
-  /** Planned Phase-B destination for "soon" items (never rendered as a link). */
+  /** Planned destination for "soon" items. */
   plannedHref?: string;
   status: NavStatus;
   target?: "_self" | "_blank";
+  description?: string;
+  descriptionBn?: string;
+  badgeText?: string;
+  badgeTextBn?: string;
+  badgeStyle?: string;
+  icon?: string;
+  isClickable?: boolean;
+  openSubmenu?: boolean;
+  desktopVisible?: boolean;
+  mobileVisible?: boolean;
+  children?: NavChild[];
 }
 
 export interface NavEntry extends NavChild {
@@ -55,6 +59,20 @@ export interface FlatMenuItem {
   parentId: string | null;
   sortOrder: number;
   visible: boolean;
+  location?: string;
+  status?: string;
+  description?: string;
+  descriptionBn?: string;
+  externalUrl?: string | null;
+  isClickable?: boolean;
+  openSubmenu?: boolean;
+  badgeText?: string | null;
+  badgeTextBn?: string | null;
+  badgeStyle?: string | null;
+  icon?: string | null;
+  desktopVisible?: boolean;
+  mobileVisible?: boolean;
+  roles?: string | null;
 }
 
 export interface MenuNode extends FlatMenuItem {
@@ -62,9 +80,7 @@ export interface MenuNode extends FlatMenuItem {
 }
 
 // ------------------------------------------------------------
-// Donate CTA (Phase B): informational /donate page exists; still NO
-// payment processing — supporters are directed to contact the team
-// until a provider decision lands in a later phase.
+// Donate CTA: informational /donate page; configurable in CMS
 // ------------------------------------------------------------
 export const DONATE_CTA = {
   id: "donate",
@@ -72,8 +88,8 @@ export const DONATE_CTA = {
   href: "/donate",
 } as const;
 
-// Planned (Phase B) top-level order for the new information
-// architecture. Used by tests to guard IA compliance.
+// Planned top-level order for the information architecture.
+// Used by tests to guard IA compliance.
 export const NAV_TOP_LEVEL_IDS = [
   "home",
   "about",
@@ -90,8 +106,6 @@ export const NAV_TOP_LEVEL_IDS = [
 // ------------------------------------------------------------
 // Static fallback navigation (used when the CMS has no visible
 // MenuItems for a location, or the database is unreachable).
-// Only verified live routes get `href`. Everything else is
-// `status: "soon"` with a `plannedHref` and no link.
 // ------------------------------------------------------------
 const key = (k: string): NavLabel => ({ kind: "key", key: k });
 
@@ -104,12 +118,9 @@ export function getFallbackHeaderNav(): NavEntry[] {
       href: "/about",
       status: "live",
       children: [
-        // Planned: /about/vision (Phase B)
-        { id: "vision", label: key("sitenav.vision"), status: "soon", plannedHref: "/about/vision" },
-        // Planned: /about/governance (Phase B)
-        { id: "governance", label: key("sitenav.governance"), status: "soon", plannedHref: "/about/governance" },
-        // Planned: /about/team on the existing TeamMember model (Phase B)
-        { id: "team", label: key("nav.team"), status: "soon", plannedHref: "/about/team" },
+        { id: "vision", label: key("sitenav.vision"), status: "soon", plannedHref: "/about/vision", badgeText: "SOON" },
+        { id: "governance", label: key("sitenav.governance"), status: "soon", plannedHref: "/about/governance", badgeText: "SOON" },
+        { id: "team", label: key("nav.team"), status: "soon", plannedHref: "/about/team", badgeText: "SOON" },
         { id: "partnerships", label: key("nav.partnerships"), href: "/about/partnerships", status: "live" },
       ],
     },
@@ -120,8 +131,7 @@ export function getFallbackHeaderNav(): NavEntry[] {
       status: "live",
       children: [
         { id: "research", label: key("nav.research"), href: "/research", status: "live" },
-        // "Literature" meaning pending user clarification (Phase B).
-        { id: "literature", label: key("sitenav.literature"), status: "soon", plannedHref: "/theme/literature" },
+        { id: "literature", label: key("sitenav.literature"), status: "soon", plannedHref: "/theme/literature", badgeText: "SOON" },
       ],
     },
     {
@@ -130,13 +140,11 @@ export function getFallbackHeaderNav(): NavEntry[] {
       href: "/courses",
       status: "live",
       children: [
-        { id: "photography", label: key("sitenav.photography"), status: "soon", plannedHref: "/courses/photography" },
-        // "Mojo" meaning pending user clarification — label kept verbatim.
-        { id: "mojo", label: key("sitenav.mojo"), status: "soon", plannedHref: "/courses/mojo" },
-        { id: "fact-check", label: key("sitenav.factCheck"), status: "soon", plannedHref: "/courses/fact-check" },
-        { id: "data-journalism", label: key("sitenav.dataJournalism"), status: "soon", plannedHref: "/courses/data-journalism" },
-        { id: "new-media", label: key("sitenav.newMedia"), status: "soon", plannedHref: "/courses/new-media" },
-        // Interim: the current course catalog lives at /programs until Phase B.
+        { id: "photography", label: key("sitenav.photography"), status: "soon", plannedHref: "/courses/photography", badgeText: "SOON" },
+        { id: "mojo", label: key("sitenav.mojo"), status: "soon", plannedHref: "/courses/mojo", badgeText: "SOON" },
+        { id: "fact-check", label: key("sitenav.factCheck"), status: "soon", plannedHref: "/courses/fact-check", badgeText: "SOON" },
+        { id: "data-journalism", label: key("sitenav.dataJournalism"), status: "soon", plannedHref: "/courses/data-journalism", badgeText: "SOON" },
+        { id: "new-media", label: key("sitenav.newMedia"), status: "soon", plannedHref: "/courses/new-media", badgeText: "SOON" },
         { id: "programs", label: key("nav.programs"), href: "/programs", status: "live" },
       ],
     },
@@ -146,12 +154,10 @@ export function getFallbackHeaderNav(): NavEntry[] {
       href: "/resources",
       status: "live",
       children: [
-        // "Election" scope pending user clarification (Phase B).
-        { id: "election", label: key("sitenav.election"), status: "soon", plannedHref: "/resources/election" },
+        { id: "election", label: key("sitenav.election"), status: "soon", plannedHref: "/resources/election", badgeText: "SOON" },
         { id: "publications", label: key("nav.publications"), href: "/publications", status: "live" },
         { id: "media", label: key("nav.media"), href: "/media", status: "live" },
-        // "Other Resources" taxonomy pending user clarification (Phase B).
-        { id: "other", label: key("sitenav.otherResources"), status: "soon", plannedHref: "/resources/other" },
+        { id: "other", label: key("sitenav.otherResources"), status: "soon", plannedHref: "/resources/other", badgeText: "SOON" },
       ],
     },
     {
@@ -160,13 +166,10 @@ export function getFallbackHeaderNav(): NavEntry[] {
       href: "/indexing",
       status: "live",
       children: [
-        { id: "press-freedom-index", label: key("sitenav.pressFreedomIndex"), status: "soon", plannedHref: "/indexing/press-freedom-index" },
-        // "BPFI" kept verbatim — expansion pending user clarification.
-        { id: "bpfi", label: key("sitenav.bpfi"), status: "soon", plannedHref: "/indexing/bpfi" },
+        { id: "press-freedom-index", label: key("sitenav.pressFreedomIndex"), status: "soon", plannedHref: "/indexing/press-freedom-index", badgeText: "SOON" },
+        { id: "bpfi", label: key("sitenav.bpfi"), status: "soon", plannedHref: "/indexing/bpfi", badgeText: "SOON" },
       ],
     },
-    // Clubs hub (live route). Individual clubs are NOT in the primary
-    // navigation — they are reached via the /clubs hub cards.
     { id: "clubs", label: key("sitenav.clubs"), href: "/clubs", status: "live" },
     { id: "events", label: key("nav.events"), href: "/events", status: "live" },
     { id: "blog", label: key("nav.blog"), href: "/blog", status: "live" },
@@ -189,7 +192,6 @@ export function getFallbackFooterColumns(): FooterColumn[] {
     },
     {
       id: "discover",
-      // Generic heading — resolved via i18n, no invented taxonomy.
       heading: key("sitenav.discover"),
       links: [
         { id: "events", label: key("nav.events"), href: "/events", status: "live" },
@@ -216,13 +218,14 @@ export function getFallbackFooterColumns(): FooterColumn[] {
 
 // ------------------------------------------------------------
 // CMS mapping: flat MenuItem rows -> tree -> NavEntry[].
-// Hidden rows are dropped; siblings ordered by sortOrder.
-// CMS rows always render as live links (editors own the URLs).
+// Hidden and draft/disabled rows are dropped from public view;
+// siblings ordered by sortOrder.
 // ------------------------------------------------------------
 export function buildMenuTree(items: FlatMenuItem[]): MenuNode[] {
   const byId = new Map<string, MenuNode>();
   for (const item of items) {
-    if (!item.visible) continue;
+    if (item.visible === false) continue;
+    if (item.status === "draft" || item.status === "disabled") continue;
     byId.set(item.id, { ...item, children: [] });
   }
   const roots: MenuNode[] = [];
@@ -233,7 +236,27 @@ export function buildMenuTree(items: FlatMenuItem[]): MenuNode[] {
       roots.push(node);
     }
   }
-  const byOrder = (a: MenuNode, b: MenuNode) => a.sortOrder - b.sortOrder;
+  const byOrder = (a: MenuNode, b: MenuNode) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+  for (const node of byId.values()) node.children.sort(byOrder);
+  roots.sort(byOrder);
+  return roots;
+}
+
+/** Full tree for CMS admin navigation manager (includes draft, disabled, and hidden items) */
+export function buildFullMenuTree(items: FlatMenuItem[]): MenuNode[] {
+  const byId = new Map<string, MenuNode>();
+  for (const item of items) {
+    byId.set(item.id, { ...item, children: [] });
+  }
+  const roots: MenuNode[] = [];
+  for (const node of byId.values()) {
+    if (node.parentId && byId.has(node.parentId)) {
+      byId.get(node.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  const byOrder = (a: MenuNode, b: MenuNode) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
   for (const node of byId.values()) node.children.sort(byOrder);
   roots.sort(byOrder);
   return roots;
@@ -243,28 +266,38 @@ function cmsLabel(node: MenuNode): NavLabel {
   return { kind: "text", en: node.label, bn: node.labelBn || node.label };
 }
 
-function cmsTarget(target: string): "_self" | "_blank" {
+function cmsTarget(target?: string): "_self" | "_blank" {
   return target === "_blank" ? "_blank" : "_self";
 }
 
-export function menuTreeToNavEntries(nodes: MenuNode[]): NavEntry[] {
-  return nodes.map((node) => ({
+function nodeToNavEntry(node: MenuNode): NavEntry {
+  const isSoon = node.status === "soon";
+  const isClickable = node.isClickable !== false;
+  // If status is soon, only set href if explicitly configured as clickable:
+  const href = isSoon ? (isClickable ? node.url : undefined) : node.url;
+  return {
     id: node.id,
     label: cmsLabel(node),
-    href: node.url,
-    status: "live" as NavStatus,
+    href,
+    plannedHref: node.url,
+    status: isSoon ? "soon" : "live",
     target: cmsTarget(node.target),
-    children:
-      node.children.length > 0
-        ? node.children.map((child) => ({
-            id: child.id,
-            label: cmsLabel(child),
-            href: child.url,
-            status: "live" as NavStatus,
-            target: cmsTarget(child.target),
-          }))
-        : undefined,
-  }));
+    description: node.description || undefined,
+    descriptionBn: node.descriptionBn || undefined,
+    badgeText: node.badgeText ?? undefined,
+    badgeTextBn: node.badgeTextBn ?? undefined,
+    badgeStyle: node.badgeStyle || "gold",
+    icon: node.icon ?? undefined,
+    isClickable,
+    openSubmenu: node.openSubmenu !== false,
+    desktopVisible: node.desktopVisible !== false,
+    mobileVisible: node.mobileVisible !== false,
+    children: node.children.length > 0 ? node.children.map(nodeToNavEntry) : undefined,
+  };
+}
+
+export function menuTreeToNavEntries(nodes: MenuNode[]): NavEntry[] {
+  return nodes.map(nodeToNavEntry);
 }
 
 /** Group CMS footer rows into columns: each parent with children
@@ -277,22 +310,10 @@ export function menuTreeToFooterColumns(nodes: MenuNode[]): FooterColumn[] {
       columns.push({
         id: node.id,
         heading: cmsLabel(node),
-        links: node.children.map((child) => ({
-          id: child.id,
-          label: cmsLabel(child),
-          href: child.url,
-          status: "live" as NavStatus,
-          target: cmsTarget(child.target),
-        })),
+        links: node.children.map(nodeToNavEntry),
       });
     } else {
-      loose.push({
-        id: node.id,
-        label: cmsLabel(node),
-        href: node.url,
-        status: "live" as NavStatus,
-        target: cmsTarget(node.target),
-      });
+      loose.push(nodeToNavEntry(node));
     }
   }
   if (loose.length > 0) {

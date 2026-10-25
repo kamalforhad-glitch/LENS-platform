@@ -149,6 +149,20 @@ export default function HomepageCMS() {
     if (section.type === "hero") {
       prefillEditorKeys(contentObj, HERO_PAIRS);
       prefillEditorKeys(contentBnObj, HERO_PAIRS);
+      if (!contentObj.headline && Array.isArray(contentObj.headlineWords)) {
+        contentObj.headline = (contentObj.headlineWords as string[]).join(" ");
+      }
+      if (!contentBnObj.headline && Array.isArray(contentBnObj.headlineWords)) {
+        contentBnObj.headline = (contentBnObj.headlineWords as string[]).join(" ");
+      }
+      if (Array.isArray(contentObj.gradientWords)) {
+        contentObj.gradientWords = (contentObj.gradientWords as string[]).join(", ");
+      } else if (!contentObj.gradientWords) {
+        contentObj.gradientWords = "Digital, World.";
+      }
+      if (Array.isArray(contentBnObj.gradientWords)) {
+        contentBnObj.gradientWords = (contentBnObj.gradientWords as string[]).join(", ");
+      }
     } else if (section.type === "focus" || section.type === "impact" || section.type === "featured_research") {
       prefillEditorKeys(contentObj, SECTION_TEXT_PAIRS);
       prefillEditorKeys(contentBnObj, SECTION_TEXT_PAIRS);
@@ -173,6 +187,12 @@ export default function HomepageCMS() {
 
   const handleSaveSection = async (sectionId: string) => {
     if (!editFormData) return;
+    if (editFormData.content && typeof editFormData.content.headline === "string") {
+      editFormData.content.headlineWords = (editFormData.content.headline as string).trim().split(/\s+/);
+    }
+    if (editFormData.contentBn && typeof editFormData.contentBn.headline === "string") {
+      editFormData.contentBn.headlineWords = (editFormData.contentBn.headline as string).trim().split(/\s+/);
+    }
     setSavingId(sectionId);
     setSaveError(null);
     setSuccessMsg(null);
@@ -967,6 +987,130 @@ export default function HomepageCMS() {
                           </div>
                         )}
 
+                        {/* Main Headline */}
+                        {(languageMode === "all" || languageMode === "en") && (
+                          <div className={languageMode === "all" ? "grid sm:grid-cols-2 gap-4" : ""}>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                                Main Headline (EN)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Guiding the Future of Narratives in a Digital World."
+                                value={(editFormData.content.headline as string) || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    content: { ...editFormData.content, headline: e.target.value },
+                                  })
+                                }
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold"
+                              />
+                            </div>
+                            {languageMode === "all" && (
+                              <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                                  Main Headline (BN)
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="ডিজিটাল বিশ্বে বর্ণনার ভবিষ্যতকে পথ নির্দেশনা।"
+                                  value={(editFormData.contentBn.headline as string) || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({
+                                      ...editFormData,
+                                      contentBn: { ...editFormData.contentBn, headline: e.target.value },
+                                    })
+                                  }
+                                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold font-bangla"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {languageMode === "bn" && (
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                              Main Headline (BN)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="ডিজিটাল বিশ্বে বর্ণনার ভবিষ্যতকে পথ নির্দেশনা।"
+                              value={(editFormData.contentBn.headline as string) || ""}
+                              onChange={(e) =>
+                                setEditFormData({
+                                  ...editFormData,
+                                  contentBn: { ...editFormData.contentBn, headline: e.target.value },
+                                })
+                              }
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold font-bangla"
+                            />
+                          </div>
+                        )}
+
+                        {/* Kinetic Gradient Words */}
+                        {(languageMode === "all" || languageMode === "en") && (
+                          <div className={languageMode === "all" ? "grid sm:grid-cols-2 gap-4" : ""}>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                                Gradient Highlight Words (EN)
+                                <span className="text-[10px] text-slate-400 font-normal lowercase ml-1">(comma-separated)</span>
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Digital, World."
+                                value={(editFormData.content.gradientWords as string) || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    content: { ...editFormData.content, gradientWords: e.target.value },
+                                  })
+                                }
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs"
+                              />
+                            </div>
+                            {languageMode === "all" && (
+                              <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                                  Gradient Highlight Words (BN)
+                                  <span className="text-[10px] text-slate-400 font-normal lowercase ml-1">(কমা দিয়ে আলাদা করুন)</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="ডিজিটাল, বিশ্বে"
+                                  value={(editFormData.contentBn.gradientWords as string) || ""}
+                                  onChange={(e) =>
+                                    setEditFormData({
+                                      ...editFormData,
+                                      contentBn: { ...editFormData.contentBn, gradientWords: e.target.value },
+                                    })
+                                  }
+                                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bangla"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {languageMode === "bn" && (
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                              Gradient Highlight Words (BN)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="ডিজিটাল, বিশ্বে"
+                              value={(editFormData.contentBn.gradientWords as string) || ""}
+                              onChange={(e) =>
+                                setEditFormData({
+                                  ...editFormData,
+                                  contentBn: { ...editFormData.contentBn, gradientWords: e.target.value },
+                                })
+                              }
+                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bangla"
+                            />
+                          </div>
+                        )}
+
                         {/* Description */}
                         {(languageMode === "all" || languageMode === "en") && (
                           <div className={languageMode === "all" ? "grid sm:grid-cols-2 gap-4" : ""}>
@@ -1108,6 +1252,156 @@ export default function HomepageCMS() {
                               }
                               className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs"
                             />
+                          </div>
+                        </div>
+
+                        {/* Floating Message (Better Information / Stronger Democracies) */}
+                        <div className="pt-2 border-t border-slate-100 space-y-3">
+                          <label className="block text-xs font-bold text-slate-800 uppercase">
+                            Floating Globe Message (Bilingual)
+                          </label>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                Line 1 (EN) - e.g. &quot;Better\nInformation.&quot;
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={(editFormData.content.taglineBetter as string) || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    content: { ...editFormData.content, taglineBetter: e.target.value },
+                                  })
+                                }
+                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs resize-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                Line 1 (BN) - e.g. &quot;উন্নত\nতথ্য।&quot;
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={(editFormData.contentBn.taglineBetter as string) || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    contentBn: { ...editFormData.contentBn, taglineBetter: e.target.value },
+                                  })
+                                }
+                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs resize-none font-bangla"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                Line 2 (EN) - e.g. &quot;Stronger\nDemocracies.&quot;
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={(editFormData.content.taglineStronger as string) || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    content: { ...editFormData.content, taglineStronger: e.target.value },
+                                  })
+                                }
+                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs resize-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                Line 2 (BN) - e.g. &quot;শক্তিশালী\nগণতন্ত্র।&quot;
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={(editFormData.contentBn.taglineStronger as string) || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    contentBn: { ...editFormData.contentBn, taglineStronger: e.target.value },
+                                  })
+                                }
+                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs resize-none font-bangla"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Media Alt Texts */}
+                        <div className="pt-2 border-t border-slate-100 space-y-3">
+                          <label className="block text-xs font-bold text-slate-800 uppercase">
+                            Media Accessibility &amp; Alt Text (Bilingual)
+                          </label>
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                Image Alt Text (EN)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Hero visual background"
+                                value={(editFormData.content.imageAlt as string) || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    content: { ...editFormData.content, imageAlt: e.target.value },
+                                  })
+                                }
+                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                Image Alt Text (BN)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="হিরো ভিজ্যুয়াল ব্যাকগ্রাউন্ড"
+                                value={(editFormData.contentBn.imageAlt as string) || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    contentBn: { ...editFormData.contentBn, imageAlt: e.target.value },
+                                  })
+                                }
+                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bangla"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                Video Alt Text (EN)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Hero background video"
+                                value={(editFormData.content.videoAlt as string) || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    content: { ...editFormData.content, videoAlt: e.target.value },
+                                  })
+                                }
+                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                                Video Alt Text (BN)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="হিরো ব্যাকগ্রাউন্ড ভিডিও"
+                                value={(editFormData.contentBn.videoAlt as string) || ""}
+                                onChange={(e) =>
+                                  setEditFormData({
+                                    ...editFormData,
+                                    contentBn: { ...editFormData.contentBn, videoAlt: e.target.value },
+                                  })
+                                }
+                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bangla"
+                              />
+                            </div>
                           </div>
                         </div>
 

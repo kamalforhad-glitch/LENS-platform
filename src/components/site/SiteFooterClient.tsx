@@ -57,13 +57,6 @@ function RssIcon() {
   );
 }
 
-const SOCIAL_LINKS = [
-  { Icon: FacebookIcon, href: "https://www.facebook.com/lensorgbd", label: "Facebook" },
-  { Icon: XIcon, href: "https://twitter.com/lensorgbd", label: "X" },
-  { Icon: LinkedinIcon, href: "https://www.linkedin.com/company/lensorgbd", label: "LinkedIn" },
-  { Icon: YoutubeIcon, href: "https://www.youtube.com/@lensorgbd", label: "YouTube" },
-  { Icon: RssIcon, href: "/rss.xml", label: "RSS" },
-];
 
 function FooterLink({ link, resolveLabel }: { link: NavChild; resolveLabel: (l: NavLabel) => string }) {
   const label = resolveLabel(link.label);

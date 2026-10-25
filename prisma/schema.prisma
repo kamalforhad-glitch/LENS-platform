@@ -711,20 +711,38 @@ model SiteSetting {
 }
 
 model MenuItem {
-  id          String   @id @default(uuid())
-  location    String   // header | footer
-  label       String
-  labelBn     String   @default("") @map("label_bn")
-  url         String
-  sortOrder   Int      @default(0) @map("sort_order")
-  visible     Boolean  @default(false)
-  target      String   @default("_self") // _self | _blank
-  parentId    String?  @map("parent_id")
-  dateCreated DateTime @default(now()) @map("created_at")
-  dateModified DateTime @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  location       String    // header | footer
+  label          String
+  labelBn        String    @default("") @map("label_bn")
+  description    String    @default("")
+  descriptionBn  String    @default("") @map("description_bn")
+  url            String
+  externalUrl    String?   @map("external_url")
+  sortOrder      Int       @default(0) @map("sort_order")
+  visible        Boolean   @default(true)
+  status         String    @default("active") // active | soon | draft | disabled
+  isClickable    Boolean   @default(true) @map("is_clickable")
+  openSubmenu    Boolean   @default(true) @map("open_submenu")
+  badgeText      String?   @map("badge_text")
+  badgeTextBn    String?   @map("badge_text_bn")
+  badgeStyle     String?   @default("gold") @map("badge_style")
+  icon           String?
+  target         String    @default("_self") // _self | _blank
+  parentId       String?   @map("parent_id")
+  desktopVisible Boolean   @default(true) @map("desktop_visible")
+  mobileVisible  Boolean   @default(true) @map("mobile_visible")
+  roles          String?   @default("all")
+  dateCreated    DateTime  @default(now()) @map("created_at")
+  dateModified   DateTime  @updatedAt @map("updated_at")
+
+  parent         MenuItem?  @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children       MenuItem[] @relation("MenuHierarchy")
 
   @@index([location])
   @@index([sortOrder])
+  @@index([parentId])
+  @@index([status])
   @@map("menu_items")
 }
 

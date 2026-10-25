@@ -6,6 +6,11 @@ import { DEFAULT_SITE_SETTINGS, DEFAULT_HOME_SECTIONS, getDefaultSectionsForSlug
 import { validateSlug, sanitizeUrl } from "@/lib/cms-validation";
 import { serializeSectionJson, toJson, clampText } from "@/lib/cms-validation";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
+import {
+  DEFAULT_HEADER_NAVIGATION,
+  DEFAULT_FOOTER_NAVIGATION,
+  type DefaultNavItem,
+} from "@/lib/cms-navigation-defaults";
 import { assertValidMenuParent, assertValidMenuParentInput } from "@/lib/menu-validation";
 
 async function checkAuth() {
@@ -1138,18 +1143,58 @@ const MENU_LOCATIONS = new Set(["header", "footer"]);
 async function validatedMenuData(data: {
   label?: string;
   labelBn?: string;
+  description?: string;
+  descriptionBn?: string;
   url?: string;
+  externalUrl?: string | null;
   parentId?: string | null;
+  status?: string;
+  isClickable?: boolean;
+  openSubmenu?: boolean;
+  badgeText?: string | null;
+  badgeTextBn?: string | null;
+  badgeStyle?: string | null;
+  icon?: string | null;
+  desktopVisible?: boolean;
+  mobileVisible?: boolean;
+  roles?: string | null;
 }) {
   const clean: Record<string, unknown> = {};
-  if (data.label !== undefined) clean.label = clampText(data.label, 60);
-  if (data.labelBn !== undefined) clean.labelBn = clampText(data.labelBn, 60);
+  if (data.label !== undefined) clean.label = clampText(data.label, 100);
+  if (data.labelBn !== undefined) clean.labelBn = clampText(data.labelBn, 100);
+  if (data.description !== undefined) clean.description = clampText(data.description, 300);
+  if (data.descriptionBn !== undefined) clean.descriptionBn = clampText(data.descriptionBn, 300);
   if (data.url !== undefined) {
     const check = sanitizeUrl(data.url);
     if (!check.ok) throw new Error(`Menu URL rejected: ${check.error}`);
     clean.url = check.url ?? "";
   }
+  if (data.externalUrl !== undefined) {
+    if (data.externalUrl && data.externalUrl.trim()) {
+      const check = sanitizeUrl(data.externalUrl);
+      if (!check.ok) throw new Error(`External URL rejected: ${check.error}`);
+      clean.externalUrl = check.url ?? null;
+    } else {
+      clean.externalUrl = null;
+    }
+  }
   if (data.parentId !== undefined) clean.parentId = data.parentId || null;
+  if (data.status !== undefined) {
+    const s = String(data.status);
+    if (!["active", "soon", "draft", "disabled"].includes(s)) {
+      throw new Error("Invalid menu status");
+    }
+    clean.status = s;
+  }
+  if (data.isClickable !== undefined) clean.isClickable = Boolean(data.isClickable);
+  if (data.openSubmenu !== undefined) clean.openSubmenu = Boolean(data.openSubmenu);
+  if (data.badgeText !== undefined) clean.badgeText = data.badgeText ? clampText(data.badgeText, 40) : null;
+  if (data.badgeTextBn !== undefined) clean.badgeTextBn = data.badgeTextBn ? clampText(data.badgeTextBn, 40) : null;
+  if (data.badgeStyle !== undefined) clean.badgeStyle = data.badgeStyle ? clampText(data.badgeStyle, 30) : "gold";
+  if (data.icon !== undefined) clean.icon = data.icon ? clampText(data.icon, 50) : null;
+  if (data.desktopVisible !== undefined) clean.desktopVisible = Boolean(data.desktopVisible);
+  if (data.mobileVisible !== undefined) clean.mobileVisible = Boolean(data.mobileVisible);
+  if (data.roles !== undefined) clean.roles = data.roles ? clampText(data.roles, 50) : "all";
   return clean;
 }
 
@@ -1157,9 +1202,22 @@ export async function createMenuItem(data: {
   location: string;
   label: string;
   labelBn?: string;
+  description?: string;
+  descriptionBn?: string;
   url: string;
+  externalUrl?: string | null;
   sortOrder?: number;
   visible?: boolean;
+  status?: string;
+  isClickable?: boolean;
+  openSubmenu?: boolean;
+  badgeText?: string | null;
+  badgeTextBn?: string | null;
+  badgeStyle?: string | null;
+  icon?: string | null;
+  desktopVisible?: boolean;
+  mobileVisible?: boolean;
+  roles?: string | null;
   target?: string;
   parentId?: string | null;
 }) {
@@ -1201,12 +1259,7 @@ export async function updateMenuItem(id: string, data: Record<string, unknown>) 
   const auth = await checkAuth();
   if (!auth) throw new Error("Unauthorized");
 
-  const clean = await validatedMenuData({
-    label: typeof data.label === "string" ? data.label : undefined,
-    labelBn: typeof data.labelBn === "string" ? data.labelBn : undefined,
-    url: typeof data.url === "string" ? data.url : undefined,
-    parentId: data.parentId as string | null | undefined,
-  } as { label?: string; labelBn?: string; url?: string; parentId?: string | null });
+  const clean = await validatedMenuData(data as any);
 
   const extra: Record<string, unknown> = {};
   let targetLocation = "";
@@ -1225,9 +1278,6 @@ export async function updateMenuItem(id: string, data: Record<string, unknown>) 
     extra.sortOrder = data.sortOrder;
   }
 
-  // Parent validation happens after the item itself is known: the
-  // effective location is the new one when set, otherwise the item's
-  // current one (fetched below).
   const parentId = assertValidMenuParentInput(clean.parentId, id);
   if (parentId) {
     const effectiveLocation = targetLocation || (await db.menuItem.findUnique({ where: { id } }))?.location;
@@ -1296,6 +1346,62 @@ export async function reorderMenuItems(location: string, itemIds: string[]) {
     targetType: "menu",
     meta: { location, count: ids.length },
   });
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function seedDefaultNavigation(location: "header" | "footer" | "all" = "all") {
+  const auth = await checkAuth();
+  if (!auth) throw new Error("Unauthorized");
+  if (auth.role !== "super_admin" && auth.role !== "admin") {
+    throw new Error("Only administrators can seed default navigation");
+  }
+
+  const seedBranch = async (
+    items: DefaultNavItem[],
+    loc: "header" | "footer",
+    parentId: string | null = null,
+    orderOffset: number = 0
+  ) => {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const created = await db.menuItem.create({
+        data: {
+          location: loc,
+          label: item.label,
+          labelBn: item.labelBn || "",
+          url: item.url,
+          status: item.status || "active",
+          visible: item.visible !== false,
+          isClickable: item.isClickable !== false,
+          openSubmenu: item.openSubmenu !== false,
+          badgeText: item.badgeText || null,
+          badgeTextBn: item.badgeTextBn || null,
+          badgeStyle: item.badgeStyle || "gold",
+          icon: item.icon || null,
+          target: item.target || "_self",
+          parentId,
+          sortOrder: orderOffset + i,
+          desktopVisible: item.desktopVisible !== false,
+          mobileVisible: item.mobileVisible !== false,
+        },
+      });
+      if (item.children && item.children.length > 0) {
+        await seedBranch(item.children, loc, created.id, 0);
+      }
+    }
+  };
+
+  if (location === "header" || location === "all") {
+    await db.menuItem.deleteMany({ where: { location: "header" } });
+    await seedBranch(DEFAULT_HEADER_NAVIGATION, "header");
+  }
+
+  if (location === "footer" || location === "all") {
+    await db.menuItem.deleteMany({ where: { location: "footer" } });
+    await seedBranch(DEFAULT_FOOTER_NAVIGATION, "footer");
+  }
+
   revalidatePath("/", "layout");
   return { success: true };
 }

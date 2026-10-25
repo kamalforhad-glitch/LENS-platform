@@ -119,7 +119,8 @@ export async function loginUser(
   password: string,
   meta?: { ip?: string; userAgent?: string }
 ): Promise<{ success: boolean; error?: string; user?: AuthUser }> {
-  const user = await db.user.findUnique({ where: { email } });
+  const normalizedEmail = email ? email.trim().toLowerCase() : "";
+  const user = await db.user.findUnique({ where: { email: normalizedEmail } });
 
   const auditBase = {
     context: meta ? { ip: meta.ip, userAgent: meta.userAgent } : undefined,
@@ -130,7 +131,7 @@ export async function loginUser(
       action: AUDIT_ACTIONS.LOGIN_FAILED,
       targetType: "account",
       targetId: user?.id ?? null,
-      meta: { email },
+      meta: { email: normalizedEmail },
       ...auditBase,
     });
     return { success: false, error: "Invalid email or password" };
@@ -141,7 +142,7 @@ export async function loginUser(
       action: AUDIT_ACTIONS.LOGIN_FAILED,
       targetType: "account",
       targetId: user.id,
-      meta: { email, reason: "deactivated" },
+      meta: { email: normalizedEmail, reason: "deactivated" },
       ...auditBase,
     });
     return { success: false, error: "Account disabled. Contact a Super Admin." };
@@ -167,7 +168,7 @@ export async function loginUser(
     action: AUDIT_ACTIONS.LOGIN_SUCCESS,
     targetType: "account",
     targetId: user.id,
-    meta: { email },
+    meta: { email: normalizedEmail },
     ...auditBase,
   });
 

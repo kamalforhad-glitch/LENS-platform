@@ -18,6 +18,20 @@ async function main() {
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
+    if (process.env.NODE_ENV !== "production" && password) {
+      const matches = bcrypt.compareSync(password, existing.passwordHash);
+      if (!matches) {
+        const passwordHash = bcrypt.hashSync(password, 12);
+        await prisma.user.update({
+          where: { id: existing.id },
+          data: { passwordHash, active: true, role: "super_admin" },
+        });
+        console.log("Updated existing admin credentials to match ADMIN_SEED_PASSWORD (development mode).");
+        return;
+      }
+      console.log("Admin user already exists with matching credentials.");
+      return;
+    }
     console.log(`User ${email} already exists. Skipping.`);
     return;
   }

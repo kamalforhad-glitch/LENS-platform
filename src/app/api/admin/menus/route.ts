@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
 import { sanitizeUrl, clampText } from "@/lib/cms-validation";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 import { assertValidMenuParent, assertValidMenuParentInput } from "@/lib/menu-validation";
+import { seedDefaultNavigation } from "@/lib/actions/cms";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -13,7 +15,27 @@ function authErrorResponse(error: unknown) {
 
 // Fields a REST caller may set on a menu item.
 const MENU_MUTABLE = new Set([
-  "label", "labelBn", "url", "visible", "target", "parentId", "location",
+  "label",
+  "labelBn",
+  "description",
+  "descriptionBn",
+  "url",
+  "externalUrl",
+  "visible",
+  "status",
+  "isClickable",
+  "openSubmenu",
+  "badgeText",
+  "badgeTextBn",
+  "badgeStyle",
+  "icon",
+  "target",
+  "parentId",
+  "location",
+  "desktopVisible",
+  "mobileVisible",
+  "roles",
+  "sortOrder",
 ]);
 
 /** Whitelist + validate a menu payload. Throws with a readable message. */
@@ -26,10 +48,42 @@ function buildMenuData(raw: unknown, selfId?: string): Record<string, unknown> {
   }
   if (typeof data.label === "string") data.label = clampText(data.label, 100);
   if (typeof data.labelBn === "string") data.labelBn = clampText(data.labelBn, 100);
+  if (typeof data.description === "string") data.description = clampText(data.description, 300);
+  if (typeof data.descriptionBn === "string") data.descriptionBn = clampText(data.descriptionBn, 300);
   if (data.url !== undefined) {
-    const check = sanitizeUrl(data.url);
+    const check = sanitizeUrl(String(data.url));
     if (!check.ok) throw new Error(check.error || "Invalid URL");
     data.url = check.url || "/";
+  }
+  if (data.externalUrl !== undefined && data.externalUrl !== null && data.externalUrl !== "") {
+    const check = sanitizeUrl(String(data.externalUrl));
+    if (!check.ok) throw new Error(check.error || "Invalid external URL");
+    data.externalUrl = check.url;
+  } else if (data.externalUrl === "") {
+    data.externalUrl = null;
+  }
+  if (data.status !== undefined) {
+    const s = String(data.status);
+    if (!["active", "soon", "draft", "disabled"].includes(s)) {
+      throw new Error("Invalid status");
+    }
+    data.status = s;
+  }
+  if (data.isClickable !== undefined) data.isClickable = Boolean(data.isClickable);
+  if (data.openSubmenu !== undefined) data.openSubmenu = Boolean(data.openSubmenu);
+  if (data.desktopVisible !== undefined) data.desktopVisible = Boolean(data.desktopVisible);
+  if (data.mobileVisible !== undefined) data.mobileVisible = Boolean(data.mobileVisible);
+  if (data.badgeText !== undefined) {
+    data.badgeText = data.badgeText ? clampText(String(data.badgeText), 40) : null;
+  }
+  if (data.badgeTextBn !== undefined) {
+    data.badgeTextBn = data.badgeTextBn ? clampText(String(data.badgeTextBn), 40) : null;
+  }
+  if (data.badgeStyle !== undefined) {
+    data.badgeStyle = data.badgeStyle ? clampText(String(data.badgeStyle), 30) : "gold";
+  }
+  if (data.icon !== undefined) {
+    data.icon = data.icon ? clampText(String(data.icon), 50) : null;
   }
   if (data.target !== undefined) {
     const t = String(data.target);
@@ -37,9 +91,11 @@ function buildMenuData(raw: unknown, selfId?: string): Record<string, unknown> {
     data.target = t;
   }
   if (data.visible !== undefined) data.visible = Boolean(data.visible);
+  if (data.sortOrder !== undefined) data.sortOrder = Number(data.sortOrder) || 0;
+
   // Empty parent means "no parent" (top level).
-  if (data.parentId === "") delete data.parentId;
-  if (data.parentId !== undefined) {
+  if (data.parentId === "") data.parentId = null;
+  if (data.parentId !== undefined && data.parentId !== null) {
     if (typeof data.parentId === "string" && data.parentId === selfId) {
       throw new Error("A menu item cannot be its own parent");
     }
@@ -48,10 +104,7 @@ function buildMenuData(raw: unknown, selfId?: string): Record<string, unknown> {
 }
 
 /**
- * Referential validation for parents (the MenuItem parent reference has
- * no database foreign key). Throws with a readable message when the
- * referenced parent is missing, lives in another location, or would
- * create a parent cycle.
+ * Referential validation for parents.
  */
 async function validateMenuParent(
   rawParentId: unknown,
@@ -85,7 +138,51 @@ export async function POST(req: NextRequest) {
     return authErrorResponse(error);
   }
   try {
-    const data = buildMenuData(await req.json());
+    const body = await req.json();
+
+    // Special action: Seed defaults
+    if (body.action === "seed_defaults") {
+      requireAdmin(user);
+      const loc = body.location === "header" || body.location === "footer" ? body.location : "all";
+      await seedDefaultNavigation(loc);
+      const items = await db.menuItem.findMany({
+        where: { location: loc === "all" ? undefined : loc },
+        orderBy: { sortOrder: "asc" },
+      });
+      return NextResponse.json({ success: true, items });
+    }
+
+    // Special action: Reorder multiple items
+    if (body.action === "reorder") {
+      const { items: reorderedItems, location } = body as {
+        items: Array<{ id: string; sortOrder: number; parentId?: string | null }>;
+        location: string;
+      };
+      if (!Array.isArray(reorderedItems) || !location) {
+        return NextResponse.json({ error: "Invalid reorder payload" }, { status: 400 });
+      }
+      await db.$transaction(
+        reorderedItems.map((item) =>
+          db.menuItem.update({
+            where: { id: item.id },
+            data: {
+              sortOrder: item.sortOrder,
+              ...(item.parentId !== undefined ? { parentId: item.parentId || null } : {}),
+            },
+          })
+        )
+      );
+      await logAudit({
+        action: AUDIT_ACTIONS.MENU_REORDERED,
+        actor: user,
+        targetType: "menu",
+        meta: { location, count: reorderedItems.length },
+      });
+      revalidatePath("/", "layout");
+      return NextResponse.json({ success: true });
+    }
+
+    const data = buildMenuData(body);
     if (!data.location) data.location = "header";
     if (!["header", "footer"].includes(String(data.location))) {
       return NextResponse.json({ error: "Invalid location" }, { status: 400 });
@@ -102,15 +199,19 @@ export async function POST(req: NextRequest) {
       select: { sortOrder: true },
     });
     const item = await db.menuItem.create({
-      data: { ...data, sortOrder: (maxOrder?.sortOrder ?? 0) + 1 } as never,
+      data: {
+        ...data,
+        sortOrder: data.sortOrder !== undefined ? Number(data.sortOrder) : (maxOrder?.sortOrder ?? 0) + 1,
+      } as never,
     });
     await logAudit({
       action: AUDIT_ACTIONS.MENU_CREATED,
       actor: user,
-      targetType: "menu_item",
+      targetType: "menu",
       targetId: item.id,
       meta: { location: item.location, label: item.label },
     });
+    revalidatePath("/", "layout");
     return NextResponse.json({ item });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Create failed";
@@ -150,10 +251,11 @@ export async function PUT(req: NextRequest) {
     await logAudit({
       action: AUDIT_ACTIONS.MENU_UPDATED,
       actor: user,
-      targetType: "menu_item",
+      targetType: "menu",
       targetId: id,
-      meta: { location: item.location, label: item.label },
+      meta: { location: item.location, label: item.label, status: item.status },
     });
+    revalidatePath("/", "layout");
     return NextResponse.json({ item });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Update failed";
@@ -170,22 +272,43 @@ export async function DELETE(req: NextRequest) {
     return authErrorResponse(error);
   }
   try {
-    const { id } = await req.json();
+    const { id, cascade } = await req.json();
     if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
     const existing = await db.menuItem.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Menu item not found" }, { status: 404 });
-    // Reparent children before deleting (avoid orphan references).
-    await db.menuItem.updateMany({ where: { parentId: id }, data: { parentId: null } });
+
+    if (cascade) {
+      // Cascade delete all descendants
+      const getDescendantIds = async (parentId: string): Promise<string[]> => {
+        const children = await db.menuItem.findMany({ where: { parentId }, select: { id: true } });
+        let result: string[] = [];
+        for (const child of children) {
+          result.push(child.id);
+          const deeper = await getDescendantIds(child.id);
+          result = result.concat(deeper);
+        }
+        return result;
+      };
+      const descIds = await getDescendantIds(id);
+      if (descIds.length > 0) {
+        await db.menuItem.deleteMany({ where: { id: { in: descIds } } });
+      }
+    } else {
+      // Reparent children to parent's parent before deleting
+      await db.menuItem.updateMany({ where: { parentId: id }, data: { parentId: existing.parentId || null } });
+    }
+
     await db.menuItem.delete({ where: { id } });
     await logAudit({
       action: AUDIT_ACTIONS.MENU_DELETED,
       actor: user,
-      targetType: "menu_item",
+      targetType: "menu",
       targetId: id,
       meta: { location: existing.location, label: existing.label },
     });
+    revalidatePath("/", "layout");
     return NextResponse.json({ success: true });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Delete failed";

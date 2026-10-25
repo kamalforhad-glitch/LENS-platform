@@ -26,6 +26,7 @@ export async function login(email: string, password: string) {
       return { success: false, error: "Email and password are required" };
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
     const context = await requestContext();
 
     // Skip rate limiting in non-production environments
@@ -35,12 +36,12 @@ export async function login(email: string, password: string) {
     if (!isDevOrTest) {
       // Sliding-window limiter keyed on ip+email. Checked BEFORE credential
       // verification so brute force never reaches bcrypt.
-      limit = loginRateLimit(context.ip || "unknown", email);
+      limit = loginRateLimit(context.ip || "unknown", normalizedEmail);
       if (!limit.allowed) {
         await logAudit({
           action: AUDIT_ACTIONS.LOGIN_RATE_LIMITED,
           targetType: "account",
-          meta: { email },
+          meta: { email: normalizedEmail },
           context,
         });
         return {
@@ -50,9 +51,9 @@ export async function login(email: string, password: string) {
       }
     }
 
-    const result = await loginUser(email, password, context);
+    const result = await loginUser(normalizedEmail, password, context);
 
-    if (result.success && !isDevOrTest) clearLoginRateLimit(context.ip || "unknown", email);
+    if (result.success && !isDevOrTest) clearLoginRateLimit(context.ip || "unknown", normalizedEmail);
 
     return {
       ...result,
