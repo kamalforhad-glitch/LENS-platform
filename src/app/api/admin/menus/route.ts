@@ -13,6 +13,46 @@ function authErrorResponse(error: unknown) {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
+export function isTableMissingError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as Record<string, unknown>;
+  if (err.code === "42P01") return true;
+  const message = String(err.message || "");
+  return (
+    (message.includes("relation") && message.includes("does not exist")) ||
+    (message.includes("table") && message.includes("does not exist")) ||
+    message.includes("UndefinedTable")
+  );
+}
+
+export function isSchemaColumnMissingError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as Record<string, unknown>;
+  if (err.code === "P2022" || err.code === "42703") return true;
+  const message = String(err.message || "");
+  return (
+    (message.includes("column") && message.includes("does not exist")) ||
+    message.includes("UndefinedColumn") ||
+    message.includes("P2022")
+  );
+}
+
+export function isDatabaseConnectionError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as Record<string, unknown>;
+  const name = String(err.name || "");
+  const code = String(err.code || "");
+  const message = String(err.message || "");
+
+  if (name === "PrismaClientInitializationError") return true;
+  if (["P1000", "P1001", "P1002", "P1008", "P1017"].includes(code)) return true;
+  return (
+    message.includes("Can't reach database server") ||
+    message.includes("connection closed") ||
+    message.includes("Connection terminated")
+  );
+}
+
 // Fields a REST caller may set on a menu item.
 const MENU_MUTABLE = new Set([
   "label",
@@ -122,11 +162,85 @@ export async function GET(req: NextRequest) {
     return authErrorResponse(error);
   }
   const location = req.nextUrl.searchParams.get("location") || "header";
-  const items = await db.menuItem.findMany({
-    where: { location: location === "*" ? undefined : location },
-    orderBy: { sortOrder: "asc" },
-  });
-  return NextResponse.json({ items });
+  try {
+    const items = await db.menuItem.findMany({
+      where: { location: location === "*" ? undefined : location },
+      orderBy: { sortOrder: "asc" },
+    });
+    return NextResponse.json({ items: items || [] });
+  } catch (error) {
+    if (isTableMissingError(error)) {
+      console.warn("[Menu API Table Missing Error]", error);
+      return NextResponse.json(
+        {
+          error: "Navigation database table is not initialized. Database migrations must be run before managing menus.",
+          items: [],
+          tableMissing: true,
+        },
+        { status: 503 }
+      );
+    }
+    if (isSchemaColumnMissingError(error)) {
+      console.warn("[Menu API Schema Drift Warning - falling back to base columns]", error);
+      try {
+        const rawItems = location === "*"
+          ? await db.$queryRaw<any[]>`
+              SELECT id, location, label, COALESCE(label_bn, '') as "labelBn",
+                     '' as description, '' as "descriptionBn", url, NULL as "externalUrl",
+                     sort_order as "sortOrder", visible, 'active' as status,
+                     true as "isClickable", true as "openSubmenu", NULL as "badgeText",
+                     NULL as "badgeTextBn", 'gold' as "badgeStyle", NULL as icon,
+                     target, parent_id as "parentId", true as "desktopVisible",
+                     true as "mobileVisible", 'all' as roles,
+                     created_at as "dateCreated", updated_at as "dateModified"
+              FROM menu_items
+              ORDER BY sort_order ASC
+            `
+          : await db.$queryRaw<any[]>`
+              SELECT id, location, label, COALESCE(label_bn, '') as "labelBn",
+                     '' as description, '' as "descriptionBn", url, NULL as "externalUrl",
+                     sort_order as "sortOrder", visible, 'active' as status,
+                     true as "isClickable", true as "openSubmenu", NULL as "badgeText",
+                     NULL as "badgeTextBn", 'gold' as "badgeStyle", NULL as icon,
+                     target, parent_id as "parentId", true as "desktopVisible",
+                     true as "mobileVisible", 'all' as roles,
+                     created_at as "dateCreated", updated_at as "dateModified"
+              FROM menu_items
+              WHERE location = ${location}
+              ORDER BY sort_order ASC
+            `;
+        return NextResponse.json({
+          items: rawItems || [],
+          warning: "Database migration pending: running in legacy schema compatibility mode.",
+        });
+      } catch (rawError) {
+        if (isTableMissingError(rawError)) {
+          return NextResponse.json(
+            {
+              error: "Navigation database table is not initialized. Database migrations must be run before managing menus.",
+              items: [],
+              tableMissing: true,
+            },
+            { status: 503 }
+          );
+        }
+        console.warn("[Menu API Legacy Fallback Error - returning 500]", rawError);
+        return NextResponse.json(
+          {
+            error: "Failed to read navigation items from database.",
+            items: [],
+          },
+          { status: 500 }
+        );
+      }
+    }
+    if (isDatabaseConnectionError(error)) {
+      console.error("[Menu API Database Connection Error]", error);
+      return NextResponse.json({ error: "Database connection unavailable", items: [] }, { status: 503 });
+    }
+    console.error("[Menu API Unexpected Error]", error);
+    return NextResponse.json({ error: "Failed to fetch menu items", items: [] }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -138,7 +252,12 @@ export async function POST(req: NextRequest) {
     return authErrorResponse(error);
   }
   try {
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
     // Special action: Seed defaults
     if (body.action === "seed_defaults") {
@@ -214,6 +333,15 @@ export async function POST(req: NextRequest) {
     revalidatePath("/", "layout");
     return NextResponse.json({ item });
   } catch (error) {
+    if (isTableMissingError(error) || isSchemaColumnMissingError(error)) {
+      return NextResponse.json(
+        { error: "Database migration required before updating navigation fields." },
+        { status: 503 }
+      );
+    }
+    if (isDatabaseConnectionError(error)) {
+      return NextResponse.json({ error: "Database connection unavailable" }, { status: 503 });
+    }
     const msg = error instanceof Error ? error.message : "Create failed";
     return NextResponse.json({ error: msg }, { status: 400 });
   }
@@ -228,7 +356,12 @@ export async function PUT(req: NextRequest) {
     return authErrorResponse(error);
   }
   try {
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { id, ...payload } = body as { id?: string } & Record<string, unknown>;
     if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -258,6 +391,15 @@ export async function PUT(req: NextRequest) {
     revalidatePath("/", "layout");
     return NextResponse.json({ item });
   } catch (error) {
+    if (isTableMissingError(error) || isSchemaColumnMissingError(error)) {
+      return NextResponse.json(
+        { error: "Database migration required before updating navigation fields." },
+        { status: 503 }
+      );
+    }
+    if (isDatabaseConnectionError(error)) {
+      return NextResponse.json({ error: "Database connection unavailable" }, { status: 503 });
+    }
     const msg = error instanceof Error ? error.message : "Update failed";
     return NextResponse.json({ error: msg }, { status: 400 });
   }
@@ -272,7 +414,13 @@ export async function DELETE(req: NextRequest) {
     return authErrorResponse(error);
   }
   try {
-    const { id, cascade } = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    const { id, cascade } = body;
     if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
@@ -311,6 +459,15 @@ export async function DELETE(req: NextRequest) {
     revalidatePath("/", "layout");
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (isTableMissingError(error) || isSchemaColumnMissingError(error)) {
+      return NextResponse.json(
+        { error: "Database migration required before updating navigation fields." },
+        { status: 503 }
+      );
+    }
+    if (isDatabaseConnectionError(error)) {
+      return NextResponse.json({ error: "Database connection unavailable" }, { status: 503 });
+    }
     const msg = error instanceof Error ? error.message : "Delete failed";
     return NextResponse.json({ error: msg }, { status: 400 });
   }

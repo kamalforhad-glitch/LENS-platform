@@ -91,6 +91,91 @@ interface MenuItem extends FlatMenuItem {
   dateModified?: string;
 }
 
+interface ApiResponse<T = any> {
+  ok: boolean;
+  status: number;
+  data: T | null;
+  error?: string;
+  warning?: string;
+}
+
+async function safeApiRequest<T = any>(
+  url: string,
+  options?: RequestInit
+): Promise<ApiResponse<T>> {
+  try {
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        Accept: "application/json",
+        ...(options?.headers || {}),
+      },
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      return {
+        ok: false,
+        status: res.status,
+        data: null,
+        error: "Your session has expired or you do not have permission. Please sign in again.",
+      };
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+    let data: any = null;
+
+    if (contentType.includes("application/json")) {
+      const text = await res.text();
+      if (text.trim()) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          return {
+            ok: false,
+            status: res.status,
+            data: null,
+            error: "Received invalid JSON from server.",
+          };
+        }
+      }
+    } else {
+      const text = await res.text();
+      return {
+        ok: false,
+        status: res.status,
+        data: null,
+        error:
+          res.status >= 500
+            ? `Server error (${res.status}). Please check database migrations or server logs.`
+            : `Request failed with status ${res.status}.`,
+      };
+    }
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: res.status,
+        data,
+        error: data?.error || `Request failed with status ${res.status}.`,
+      };
+    }
+
+    return {
+      ok: true,
+      status: res.status,
+      data,
+      warning: data?.warning,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      status: 0,
+      data: null,
+      error: err instanceof Error ? err.message : "Network request failed",
+    };
+  }
+}
+
 export default function NavigationManager() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +183,7 @@ export default function NavigationManager() {
   const [deleteTarget, setDeleteTarget] = useState<MenuItem | null>(null);
   const [deleteCascade, setDeleteCascade] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -127,12 +213,16 @@ export default function NavigationManager() {
   const load = async () => {
     setLoading(true);
     try {
-      const d = await fetch("/api/admin/menus?location=*").then((r) => r.json());
-      if (d.error) throw new Error(d.error);
-      setItems(d.items || []);
+      const res = await safeApiRequest<{ items: MenuItem[]; warning?: string }>("/api/admin/menus?location=*");
+      if (!res.ok) {
+        throw new Error(res.error || "Failed to load menus");
+      }
+      setItems(res.data?.items || []);
+      setWarning(res.warning || null);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load menus");
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -184,16 +274,15 @@ export default function NavigationManager() {
         mobileVisible: true,
       };
 
-      const res = await fetch("/api/admin/menus", {
+      const res = await safeApiRequest<{ item: MenuItem }>("/api/admin/menus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || "Failed to add item");
+      if (!res.ok) throw new Error(res.error || "Failed to add item");
 
       setQuickItem({ label: "", labelBn: "", url: "", status: "active", parentId: "" });
-      showSuccess(`Added "${d.item.label}" successfully.`);
+      showSuccess(`Added "${res.data?.item?.label || payload.label}" successfully.`);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -210,13 +299,12 @@ export default function NavigationManager() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/admin/menus", {
+      const res = await safeApiRequest<{ success: boolean; items: MenuItem[] }>("/api/admin/menus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "seed_defaults", location: locationFilter }),
       });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || "Failed to seed navigation");
+      if (!res.ok) throw new Error(res.error || "Failed to seed navigation");
       showSuccess(`Successfully initialized standard ${locationFilter} navigation!`);
       await load();
     } catch (err) {
@@ -232,13 +320,12 @@ export default function NavigationManager() {
     setIsSubmitting(true);
     try {
       const method = payload.id ? "PUT" : "POST";
-      const res = await fetch("/api/admin/menus", {
+      const res = await safeApiRequest<{ item: MenuItem }>("/api/admin/menus", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || "Save failed");
+      if (!res.ok) throw new Error(res.error || "Save failed");
       setEditingItem(null);
       showSuccess(payload.id ? "Menu item updated successfully." : "Menu item created successfully.");
       await load();
@@ -254,11 +341,12 @@ export default function NavigationManager() {
     const next = !item.visible;
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, visible: next } : i)));
     try {
-      await fetch("/api/admin/menus", {
+      const res = await safeApiRequest("/api/admin/menus", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: item.id, visible: next }),
       });
+      if (!res.ok) throw new Error(res.error || "Visibility change failed");
       showSuccess(`Visibility updated for "${item.label}".`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Visibility change failed");
@@ -280,11 +368,12 @@ export default function NavigationManager() {
     }
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, ...updatePayload } : i)));
     try {
-      await fetch("/api/admin/menus", {
+      const res = await safeApiRequest("/api/admin/menus", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatePayload),
       });
+      if (!res.ok) throw new Error(res.error || "Status change failed");
       showSuccess(`Status for "${item.label}" changed to ${newStatus.toUpperCase()}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Status change failed");
@@ -317,7 +406,7 @@ export default function NavigationManager() {
     );
 
     try {
-      await fetch("/api/admin/menus", {
+      const res = await safeApiRequest("/api/admin/menus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -326,6 +415,7 @@ export default function NavigationManager() {
           items: reorderedList,
         }),
       });
+      if (!res.ok) throw new Error(res.error || "Reorder failed");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Reorder failed");
@@ -357,13 +447,12 @@ export default function NavigationManager() {
         mobileVisible: item.mobileVisible,
       };
 
-      const res = await fetch("/api/admin/menus", {
+      const res = await safeApiRequest<{ item: MenuItem }>("/api/admin/menus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || "Failed to duplicate item");
+      if (!res.ok) throw new Error(res.error || "Failed to duplicate item");
       showSuccess(`Duplicated "${item.label}" as draft.`);
       await load();
     } catch (err) {
@@ -379,13 +468,12 @@ export default function NavigationManager() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/admin/menus", {
+      const res = await safeApiRequest<{ success: boolean }>("/api/admin/menus", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteTarget.id, cascade: deleteCascade }),
       });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || "Delete failed");
+      if (!res.ok) throw new Error(res.error || "Delete failed");
       showSuccess(`Deleted "${deleteTarget.label}".`);
       setDeleteTarget(null);
       setDeleteCascade(false);
@@ -724,6 +812,17 @@ export default function NavigationManager() {
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center justify-between">
           <span>{error}</span>
           <button type="button" onClick={() => setError(null)} className="text-red-500 hover:text-red-800">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+      {warning && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            {warning}
+          </span>
+          <button type="button" onClick={() => setWarning(null)} className="text-amber-600 hover:text-amber-800">
             <X className="w-4 h-4" />
           </button>
         </div>
