@@ -20,7 +20,7 @@ interface LenisInstance {
 export default function SmoothScrollProvider({
   children,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   const lenisRef = useRef<LenisInstance | null>(null);
   const tickerCallbackRef = useRef<((time: number) => void) | null>(null);

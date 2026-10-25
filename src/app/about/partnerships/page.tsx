@@ -67,7 +67,7 @@ async function resolveCmsSections(sections: PublicSectionData[]) {
 }
 
 export default async function AboutPartnershipsPage() {
-  const cms = await getPublicPage("partnerships");
+  const cms = await getPublicPage("about/partnerships");
   if (cms) {
     const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
     return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;

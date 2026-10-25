@@ -177,11 +177,12 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
 
   const headlineFromArray = asWordList(resolveCmsValue(isBn, cEn, cBn, ["headlineWords"]));
   const headlineFromString = asString(resolveCmsValue(isBn, cEn, cBn, ["headline"]));
+  const fallbackTranslation = t("hero.headline_words", { returnObjects: true });
   const headlineWords: string[] = headlineFromArray.length > 0
     ? headlineFromArray
     : headlineFromString.trim()
       ? headlineFromString.trim().split(/\s+/)
-      : ((t("hero.headline_words", { returnObjects: true }) as string[]) || []);
+      : asWordList(fallbackTranslation);
 
   useEffect(() => {
     const mm = gsap.matchMedia();

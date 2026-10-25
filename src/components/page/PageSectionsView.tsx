@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CLUBS } from "@/lib/clubs";
 import type { PublicSectionData } from "@/lib/actions/cms";
@@ -1025,27 +1026,55 @@ function TestimonialBlock({ content }: { content: Record<string, unknown> }) {
 }
 
 // Logo Cloud
+function LogoCloudItem({ logo, idx }: { logo: Record<string, unknown>; idx: number }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const url = safeHref(logo.url);
+  const image = safeHref(logo.image);
+  const name = asString(logo.alt) || asString(logo.name) || asString(logo.title) || "Partner";
+
+  const renderBadge = () => (
+    <div className="w-full min-h-[3.5rem] px-4 py-2.5 rounded-xl border border-slate-200/90 bg-slate-50/90 hover:bg-slate-100 hover:border-slate-300 transition-colors flex items-center justify-center text-center shadow-xs group-hover:border-teal-500/30">
+      <span className="text-xs sm:text-sm font-semibold text-slate-700 group-hover:text-teal-700 transition-colors tracking-tight leading-snug">
+        {name}
+      </span>
+    </div>
+  );
+
+  const logoEl = (!image || imgFailed) ? (
+    renderBadge()
+  ) : (
+    <img
+      src={image}
+      alt={name}
+      onError={() => setImgFailed(true)}
+      className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity grayscale hover:grayscale-0"
+    />
+  );
+
+  return url ? (
+    <a
+      key={idx}
+      href={url}
+      className="flex items-center justify-center w-full group focus:outline-hidden focus-visible:ring-2 focus-visible:ring-teal-500 rounded-xl"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={name}
+    >
+      {logoEl}
+    </a>
+  ) : (
+    <div key={idx} className="flex items-center justify-center w-full">{logoEl}</div>
+  );
+}
+
 function LogoCloud({ content }: { content: Record<string, unknown> }) {
   const items = Array.isArray(content.items) ? content.items : [];
   if (items.length === 0) return null;
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8 items-center">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8 items-center">
       {items.map((item, idx) => {
-        const logo = item as Record<string, unknown>;
-        const url = safeHref(logo.url);
-        const image = safeHref(logo.image);
-        const alt = asString(logo.alt);
-        if (!image) return null;
-        const logoEl = (
-          <img src={image} alt={alt} className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity grayscale" />
-        );
-        return url ? (
-          <a key={idx} href={url} className="flex items-center justify-center" target="_blank" rel="noopener noreferrer">
-            {logoEl}
-          </a>
-        ) : (
-          <div key={idx} className="flex items-center justify-center">{logoEl}</div>
-        );
+        const logo = (typeof item === "object" && item !== null) ? (item as Record<string, unknown>) : {};
+        return <LogoCloudItem key={idx} logo={logo} idx={idx} />;
       })}
     </div>
   );

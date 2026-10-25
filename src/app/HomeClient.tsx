@@ -10,12 +10,12 @@ import type { ReactNode } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import IndexingScanner from "@/components/IndexingScanner";
 
-const Hero = dynamic(() => import("@/components/Hero"), { ssr: false });
-const FocusAreas = dynamic(() => import("@/components/FocusAreas"), { ssr: false });
-const FeaturedResearch = dynamic(() => import("@/components/FeaturedResearch"), { ssr: false });
-const ImpactStats = dynamic(() => import("@/components/ImpactStats"), { ssr: false });
-const EventsNewsletter = dynamic(() => import("@/components/EventsNewsletter"), { ssr: false });
-const PageSectionsView = dynamic(() => import("@/components/page/PageSectionsView"), { ssr: false });
+const Hero = dynamic(() => import("@/components/Hero"));
+const FocusAreas = dynamic(() => import("@/components/FocusAreas"));
+const FeaturedResearch = dynamic(() => import("@/components/FeaturedResearch"));
+const ImpactStats = dynamic(() => import("@/components/ImpactStats"));
+const EventsNewsletter = dynamic(() => import("@/components/EventsNewsletter"));
+const PageSectionsView = dynamic(() => import("@/components/page/PageSectionsView"));
 const SmoothScrollProvider = dynamic(() => import("@/components/SmoothScrollProvider"), { ssr: false });
 const ScrollProgress = dynamic(() => import("@/components/ScrollProgress"), { ssr: false });
 const BackToTop = dynamic(() => import("@/components/BackToTop"), { ssr: false });
@@ -161,33 +161,32 @@ export default function HomeClient({
 
   return (
     <ErrorBoundary>
-      <SmoothScrollProvider>
-        <ScrollProgress />
+      <SmoothScrollProvider />
+      <ScrollProgress />
 
-        <div className="noise-overlay" aria-hidden="true" />
+      <div className="noise-overlay" aria-hidden="true" />
 
-        {header}
-        <main className="flex-1" id="main-content">
-          {visibleSections.length > 0 ? (
-            visibleSections.map((sec, idx) => renderSection(sec, idx))
-          ) : (
-            // Default fallback if sections array is empty
-            <>
-              <Hero />
-              <SectionSeparator />
-              <section id="focus"><FocusAreas /></section>
-              <IndexingScanner />
-              <section id="research"><FeaturedResearch /></section>
-              <SectionSeparator />
-              <section id="impact"><ImpactStats /></section>
-              <SectionSeparator />
-              <section id="events"><EventsNewsletter /></section>
-            </>
-          )}
-        </main>
-        {footer}
-        <BackToTop />
-      </SmoothScrollProvider>
+      {header}
+      <main className="flex-1" id="main-content">
+        {visibleSections.length > 0 ? (
+          visibleSections.map((sec, idx) => renderSection(sec, idx))
+        ) : (
+          // Default fallback if sections array is empty
+          <>
+            <Hero />
+            <SectionSeparator />
+            <section id="focus"><FocusAreas /></section>
+            <IndexingScanner />
+            <section id="research"><FeaturedResearch /></section>
+            <SectionSeparator />
+            <section id="impact"><ImpactStats /></section>
+            <SectionSeparator />
+            <section id="events"><EventsNewsletter /></section>
+          </>
+        )}
+      </main>
+      {footer}
+      <BackToTop />
     </ErrorBoundary>
   );
 }
