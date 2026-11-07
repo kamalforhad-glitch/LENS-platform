@@ -25,7 +25,7 @@ vi.mock("@/lib/db", () => {
   };
 });
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), unstable_cache: <T extends (...args: any[]) => any>(fn: T): T => fn }));
 
 vi.mock("@/lib/auth", () => {
   // requireAuth passes through the current user when role >= editor.

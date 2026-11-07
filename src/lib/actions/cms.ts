@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { db } from "@/lib/db";import { getCurrentUser, requireAuth, requireAdmin } from "@/lib/auth";
 import { DEFAULT_SITE_SETTINGS, DEFAULT_HOME_SECTIONS, getDefaultSectionsForSlug } from "@/lib/cms-defaults";
 import { validateSlug, sanitizeUrl } from "@/lib/cms-validation";
@@ -26,20 +26,30 @@ export interface PublicSiteSettingsMap {
   [key: string]: { value: string; valueBn: string };
 }
 
-export async function getPublicSiteSettings(): Promise<PublicSiteSettingsMap> {
-  try {
+// Core site-settings fetch, cached across requests and deduplicated within a
+// single render (it is invoked by generateMetadata, SiteHeader and SiteFooter
+// on every public page). Tagged so editors can bust it on save.
+const cachedGetPublicSiteSettings = unstable_cache(
+  async (): Promise<PublicSiteSettingsMap> => {
     const rows = await db.siteSetting.findMany();
     const map: PublicSiteSettingsMap = {};
     for (const r of rows) {
       map[r.key] = { value: r.value, valueBn: r.valueBn };
     }
-    // Fill in any defaults not present in DB
     for (const d of DEFAULT_SITE_SETTINGS) {
       if (!map[d.key]) {
         map[d.key] = { value: d.value, valueBn: d.valueBn };
       }
     }
     return map;
+  },
+  ["public-site-settings"],
+  { tags: ["site-settings"] }
+);
+
+export async function getPublicSiteSettings(): Promise<PublicSiteSettingsMap> {
+  try {
+    return await cachedGetPublicSiteSettings();
   } catch {
     const fallback: PublicSiteSettingsMap = {};
     for (const d of DEFAULT_SITE_SETTINGS) {
@@ -1057,6 +1067,7 @@ export async function upsertSiteSetting(
   });
 
   revalidatePath("/", "layout");
+  revalidateTag("site-settings", { expire: 0 });
   return setting;
 }
 
@@ -1114,6 +1125,7 @@ export async function updateSiteSettingsBulk(
   }
 
   revalidatePath("/", "layout");
+  revalidateTag("site-settings", { expire: 0 });
   return { success: true };
 }
 
@@ -1252,6 +1264,8 @@ export async function createMenuItem(data: {
   });
 
   revalidatePath("/", "layout");
+  revalidateTag("navigation:header", { expire: 0 });
+  revalidateTag("navigation:footer", { expire: 0 });
   return item;
 }
 
@@ -1294,6 +1308,8 @@ export async function updateMenuItem(id: string, data: Record<string, unknown>) 
     meta: { location: item.location, label: item.label, url: item.url, visible: item.visible },
   });
   revalidatePath("/", "layout");
+  revalidateTag("navigation:header", { expire: 0 });
+  revalidateTag("navigation:footer", { expire: 0 });
   return item;
 }
 
@@ -1347,6 +1363,8 @@ export async function reorderMenuItems(location: string, itemIds: string[]) {
     meta: { location, count: ids.length },
   });
   revalidatePath("/", "layout");
+  revalidateTag("navigation:header", { expire: 0 });
+  revalidateTag("navigation:footer", { expire: 0 });
   return { success: true };
 }
 
@@ -1403,5 +1421,7 @@ export async function seedDefaultNavigation(location: "header" | "footer" | "all
   }
 
   revalidatePath("/", "layout");
+  revalidateTag("navigation:header", { expire: 0 });
+  revalidateTag("navigation:footer", { expire: 0 });
   return { success: true };
 }

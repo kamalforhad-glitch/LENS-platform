@@ -11,6 +11,7 @@
 // ============================================================
 
 import { db } from "@/lib/db";
+import { unstable_cache } from "next/cache";
 import {
   buildMenuTree,
   getFallbackFooterColumns,
@@ -21,12 +22,31 @@ import {
   type NavEntry,
 } from "@/lib/site-navigation";
 
-export async function getHeaderNavigation(): Promise<NavEntry[]> {
-  try {
-    const items = await db.menuItem.findMany({
+// Cached header navigation: deduplicated within a render and cached across
+// requests. Busted via the `navigation:header` tag when editors save menus.
+const cachedHeaderItems = unstable_cache(
+  async () =>
+    db.menuItem.findMany({
       where: { location: "header", visible: true },
       orderBy: { sortOrder: "asc" },
-    });
+    }),
+  ["header-navigation"],
+  { tags: ["navigation:header"] }
+);
+
+const cachedFooterItems = unstable_cache(
+  async () =>
+    db.menuItem.findMany({
+      where: { location: "footer", visible: true },
+      orderBy: { sortOrder: "asc" },
+    }),
+  ["footer-navigation"],
+  { tags: ["navigation:footer"] }
+);
+
+export async function getHeaderNavigation(): Promise<NavEntry[]> {
+  try {
+    const items = await cachedHeaderItems();
     if (items.length === 0) return getFallbackHeaderNav();
     return menuTreeToNavEntries(buildMenuTree(items));
   } catch {
@@ -36,10 +56,7 @@ export async function getHeaderNavigation(): Promise<NavEntry[]> {
 
 export async function getFooterColumns(): Promise<FooterColumn[]> {
   try {
-    const items = await db.menuItem.findMany({
-      where: { location: "footer", visible: true },
-      orderBy: { sortOrder: "asc" },
-    });
+    const items = await cachedFooterItems();
     if (items.length === 0) return getFallbackFooterColumns();
     return menuTreeToFooterColumns(buildMenuTree(items));
   } catch {

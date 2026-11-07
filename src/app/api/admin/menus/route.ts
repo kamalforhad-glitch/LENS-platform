@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
 import { sanitizeUrl, clampText } from "@/lib/cms-validation";
@@ -298,6 +298,8 @@ export async function POST(req: NextRequest) {
         meta: { location, count: reorderedItems.length },
       });
       revalidatePath("/", "layout");
+      revalidateTag("navigation:header", { expire: 0 });
+      revalidateTag("navigation:footer", { expire: 0 });
       return NextResponse.json({ success: true });
     }
 
@@ -331,6 +333,8 @@ export async function POST(req: NextRequest) {
       meta: { location: item.location, label: item.label },
     });
     revalidatePath("/", "layout");
+    revalidateTag("navigation:header", { expire: 0 });
+    revalidateTag("navigation:footer", { expire: 0 });
     return NextResponse.json({ item });
   } catch (error) {
     if (isTableMissingError(error) || isSchemaColumnMissingError(error)) {
@@ -389,6 +393,8 @@ export async function PUT(req: NextRequest) {
       meta: { location: item.location, label: item.label, status: item.status },
     });
     revalidatePath("/", "layout");
+    revalidateTag("navigation:header", { expire: 0 });
+    revalidateTag("navigation:footer", { expire: 0 });
     return NextResponse.json({ item });
   } catch (error) {
     if (isTableMissingError(error) || isSchemaColumnMissingError(error)) {
@@ -457,6 +463,8 @@ export async function DELETE(req: NextRequest) {
       meta: { location: existing.location, label: existing.label },
     });
     revalidatePath("/", "layout");
+    revalidateTag("navigation:header", { expire: 0 });
+    revalidateTag("navigation:footer", { expire: 0 });
     return NextResponse.json({ success: true });
   } catch (error) {
     if (isTableMissingError(error) || isSchemaColumnMissingError(error)) {

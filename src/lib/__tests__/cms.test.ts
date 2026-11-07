@@ -24,6 +24,9 @@ vi.mock("@/lib/db", () => {
 // Mock next/cache
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  // Passthrough so cached getters still invoke their db logic under test.
+  unstable_cache: <T extends (...args: any[]) => any>(fn: T): T => fn,
 }));
 
 // Mock auth
