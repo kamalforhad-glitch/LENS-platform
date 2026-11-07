@@ -19,7 +19,6 @@ const execFileAsync = promisify(execFile);
 
 const BACKUP_DIR = join(process.cwd(), "backups");
 const MAX_BACKUPS = 30; // 30 days retention
-const MAX_BACKUP_SIZE_MB = 500;
 
 /** Resolves postgres client binary taking into account standard local and server installation paths */
 function resolvePostgresBinary(binary: string): string {
@@ -82,7 +81,7 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
   const id = crypto.randomUUID();
 
   // Create backup record
-  const record = await db.backupRecord.create({
+  await db.backupRecord.create({
     data: { id, filename, type, status: "pending" },
   });
 
