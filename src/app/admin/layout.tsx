@@ -33,7 +33,6 @@ import {
   UserCheck,
   Mail,
   ShieldCheck,
-  Bot,
   Database,
   ExternalLink,
   LogOut,
@@ -84,7 +83,6 @@ const navItems: NavItemConfig[] = [
 
   // Admin & Security
   { label: "Admin Accounts", href: "/admin/users", icon: ShieldCheck, superOnly: true, group: "Admin" },
-  { label: "AI Assistant", href: "/admin/ai", icon: Bot, group: "Admin" },
   { label: "Backups", href: "/admin/backups", icon: Database, group: "Admin" },
 ];
 
