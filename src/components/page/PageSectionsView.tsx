@@ -491,7 +491,7 @@ function CtaBlock({ content }: { content: Record<string, unknown> }) {
   );
 }
 
-function FeaturedItems({ content, items }: { content: Record<string, unknown>; items: Array<{ title: string; titleBn?: string; description?: string; descriptionBn?: string; image?: string | null; href?: string; meta?: string; dateLabel?: string }> }) {
+function FeaturedItems({ content: _content, items }: { content: Record<string, unknown>; items: Array<{ title: string; titleBn?: string; description?: string; descriptionBn?: string; image?: string | null; href?: string; meta?: string; dateLabel?: string }> }) {
   if (items.length === 0) {
     return <p className="text-sm text-slate-400">No published items yet.</p>;
   }
@@ -514,7 +514,7 @@ function FeaturedItems({ content, items }: { content: Record<string, unknown>; i
 function CollectionListing({
   content,
   items,
-  sectionType,
+  sectionType: _sectionType,
   bn,
 }: {
   content: Record<string, unknown>;

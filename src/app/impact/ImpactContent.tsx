@@ -61,7 +61,6 @@ export default function ImpactPage() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-fetch idiom used by 20+ admin/library pages; load() only sets state from fetch results
     load();
   }, []);
 

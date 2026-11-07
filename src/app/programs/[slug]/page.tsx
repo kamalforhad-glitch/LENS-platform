@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
-import Breadcrumbs from "@/components/site/Breadcrumbs";
 import { getPublicProgram } from "@/lib/public-content";
 import { headers } from "next/headers";
 

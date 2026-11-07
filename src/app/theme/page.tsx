@@ -3,8 +3,6 @@ import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageHero from "@/components/site/PageHero";
-import ContentListState from "@/components/ContentListState";
-import { formatMonthYear, getPublicResearch } from "@/lib/public-content";
 import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
 import { resolveSectionItems } from "@/components/page/resolveSectionItems";
 import type { SectionWithResolved } from "@/components/page/PageSectionsView";

@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, Hind_Siliguri } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import Analytics from "@/components/Analytics";
 import CookieConsent from "@/components/CookieConsent";
 import I18nProvider from "@/components/I18nProvider";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import HomeCanonical from "@/components/HomeCanonical";
 
 const inter = Inter({
@@ -153,8 +150,10 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${hindSiliguri.variable} h-full antialiased`}>
       <head>
         <HomeCanonical />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Fonts are self-hosted by next/font (Inter + Hind Siliguri are
+            downloaded at build time and served from /_next/static/media), so
+            preconnecting to fonts.googleapis.com/gstatic only opened browser
+            connections that were never used. */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
