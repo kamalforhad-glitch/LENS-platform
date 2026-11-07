@@ -14,25 +14,74 @@ interface PageItem {
   dateModified: string;
 }
 
+interface PageApiResponse {
+  pages: PageItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+  counts?: {
+    all: number;
+    published: number;
+    draft: number;
+    archived: number;
+  };
+}
+
 export default function PagesAdmin() {
   const [pages, setPages] = useState<PageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [counts, setCounts] = useState({ all: 0, published: 0, draft: 0, archived: 0 });
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
-    fetch("/api/admin/pages")
-      .then((r) => r.json())
-      .then((d) => {
+    const params = new URLSearchParams();
+    params.set("page", String(currentPage));
+    params.set("limit", String(limit));
+    if (search) params.set("search", search);
+    if (filter !== "all") params.set("status", filter);
+
+    fetch(`/api/admin/pages?${params.toString()}`)
+      .then(async (r) => {
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({ error: `Request failed (${r.status})` }));
+          throw new Error(err.error || `Request failed (${r.status})`);
+        }
+        return r.json();
+      })
+      .then((d: PageApiResponse) => {
         setPages(d.pages || []);
+        setTotal(d.total || 0);
+        setTotalPages(d.totalPages || 1);
+        setHasMore(d.hasMore || false);
+        if (d.counts) {
+          setCounts(d.counts);
+        } else {
+          setCounts({ all: d.total || 0, published: 0, draft: 0, archived: 0 });
+        }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load pages.");
+        setLoading(false);
+      });
+  }, [currentPage, limit, search, filter]);
+
+  // Reset to page 1 when search or status filter changes.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -54,19 +103,6 @@ export default function PagesAdmin() {
 
   const duplicate = (p: PageItem) =>
     run(p.id, async () => duplicatePage(p.id), "Duplicate failed");
-
-  const filtered = pages.filter(p => {
-    const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.slug.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "all" || p.status === filter;
-    return matchSearch && matchFilter;
-  });
-
-  const counts = {
-    all: pages.length,
-    published: pages.filter(p => p.status === "published").length,
-    draft: pages.filter(p => p.status === "draft").length,
-    archived: pages.filter(p => p.status === "archived").length,
-  };
 
   const statusBadge = (status: string) =>
     status === "published" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : status === "archived" ? "bg-slate-100 text-slate-600 border border-slate-200" : "bg-amber-50 text-amber-700 border border-amber-200";
@@ -90,51 +126,77 @@ export default function PagesAdmin() {
       )}
       {loading ? (
         <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="p-4 rounded-xl bg-white border border-slate-200 animate-pulse"><div className="flex items-center gap-4"><div className="flex-1"><div className="h-4 bg-slate-100 rounded w-48 mb-2" /><div className="h-3 bg-slate-100 rounded w-32" /></div></div></div>)}</div>
-      ) : filtered.length === 0 ? (
+      ) : pages.length === 0 ? (
         <div className="flex flex-col items-center py-16">
           <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4"><svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z" /></svg></div>
           <h3 className="text-lg font-semibold text-slate-900 mb-1">No pages found</h3>
           <p className="text-slate-500 text-sm text-center max-w-sm">{search || filter !== "all" ? "Try adjusting your search or filters." : "Create your first CMS page."}</p>
         </div>
       ) : (
-        <div className={isPending ? "space-y-2 opacity-60 transition-opacity" : "space-y-2"}>
-          {filtered.map(p => (
-            <div key={p.id} className="flex items-center gap-3 p-4 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-xs transition-all flex-wrap">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-slate-900 font-medium truncate">
-                  {p.title} {p.titleBn && <span className="text-slate-500 text-sm">/ {p.titleBn}</span>}
-                </h3>
-                <p className="text-slate-500 text-sm mt-0.5">/{p.slug}{p.slug === "home" && <span className="ml-2 text-[10px] uppercase tracking-wider text-teal-400">homepage</span>}</p>
+        <>
+          <div className={isPending ? "space-y-2 opacity-60 transition-opacity" : "space-y-2"}>
+            {pages.map(p => (
+              <div key={p.id} className="flex items-center gap-3 p-4 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-xs transition-all flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-slate-900 font-medium truncate">
+                    {p.title} {p.titleBn && <span className="text-slate-500 text-sm">/ {p.titleBn}</span>}
+                  </h3>
+                  <p className="text-slate-500 text-sm mt-0.5">/{p.slug}{p.slug === "home" && <span className="ml-2 text-[10px] uppercase tracking-wider text-teal-400">homepage</span>}</p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>{p.status}</span>
+                <span className="text-xs text-slate-500">{new Date(p.dateModified).toLocaleDateString()}</span>
+                <div className="flex items-center gap-1">
+                  <Link href={`/admin/pages/${p.id}`} className="px-2.5 py-1 text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded transition-colors">Edit</Link>
+                  <Link href={`/admin/preview/${p.id}`} className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors" title="Preview draft">Preview</Link>
+                  {p.status === "published" && p.slug !== "home" && (
+                    <a href={`/${p.slug}`} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors" title="View live">View</a>
+                  )}
+                  {busyId === p.id ? (
+                    <span className="px-2 py-1 text-xs text-slate-500">…</span>
+                  ) : (
+                    <>
+                      <button onClick={() => setStatus(p, p.status === "published" ? "draft" : "published")} className="px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded transition-colors">
+                        {p.status === "published" ? "Unpublish" : "Publish"}
+                      </button>
+                      {p.slug !== "home" && (
+                        <button onClick={() => duplicate(p)} className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors">Duplicate</button>
+                      )}
+                      {p.status !== "archived" ? (
+                        <button onClick={() => setStatus(p, "archived")} className="px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded transition-colors">Archive</button>
+                      ) : (
+                        <button onClick={() => setStatus(p, "draft")} className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors">Restore</button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>{p.status}</span>
-              <span className="text-xs text-slate-500">{new Date(p.dateModified).toLocaleDateString()}</span>
-              <div className="flex items-center gap-1">
-                <Link href={`/admin/pages/${p.id}`} className="px-2.5 py-1 text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded transition-colors">Edit</Link>
-                <Link href={`/admin/preview/${p.id}`} className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors" title="Preview draft">Preview</Link>
-                {p.status === "published" && p.slug !== "home" && (
-                  <a href={`/${p.slug}`} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors" title="View live">View</a>
-                )}
-                {busyId === p.id ? (
-                  <span className="px-2 py-1 text-xs text-slate-500">…</span>
-                ) : (
-                  <>
-                    <button onClick={() => setStatus(p, p.status === "published" ? "draft" : "published")} className="px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded transition-colors">
-                      {p.status === "published" ? "Unpublish" : "Publish"}
-                    </button>
-                    {p.slug !== "home" && (
-                      <button onClick={() => duplicate(p)} className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors">Duplicate</button>
-                    )}
-                    {p.status !== "archived" ? (
-                      <button onClick={() => setStatus(p, "archived")} className="px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded transition-colors">Archive</button>
-                    ) : (
-                      <button onClick={() => setStatus(p, "draft")} className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors">Restore</button>
-                    )}
-                  </>
-                )}
-              </div>
+            ))}
+          </div>
+
+          {/* Pagination controls */}
+          <div className="mt-6 flex items-center justify-between gap-4">
+            <div className="text-xs text-slate-500">
+              Showing {total} total record{total !== 1 ? "s" : ""} &nbsp;|&nbsp;
+              Page {currentPage} of {totalPages}
             </div>
-          ))}
-        </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={!hasMore}
+                className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

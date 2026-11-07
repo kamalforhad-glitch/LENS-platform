@@ -49,10 +49,18 @@ function SectionBlock({ section, bn }: { section: SectionWithResolved; bn: boole
     background === "muted" ? "bg-slate-50" :
     background === "navy" ? "bg-navy-950 text-slate-100" : "";
 
+  const title = asString(bn && section.titleBn ? section.titleBn : section.title);
+  const description = asString(bn && section.descriptionBn ? section.descriptionBn : section.description);
+  const hasHeading = Boolean(title || description);
+  // Hide the entire wrapper when there is neither a valid heading nor
+  // meaningful content — no empty padding, background, heading or container.
+  const hasContent = sectionHasMeaningfulContent(section, bn);
+  if (!hasHeading && !hasContent) return null;
+
   return (
     <section className={`py-16 sm:py-20 ${bgCls}`}>
       <div className={containerCls}>
-        {(section.title || section.description) && (
+        {hasHeading && (
           <SectionHeading section={section} bn={bn} />
         )}
         <SectionContent section={section} bn={bn} />
@@ -74,6 +82,141 @@ function SectionHeading({ section, bn }: { section: SectionWithResolved; bn: boo
 
 export function asString(v: unknown): string {
   return typeof v === "string" ? v : "";
+}
+
+// ------------------------------------------------------------
+// Meaningful-content guard (Phase 1: empty CMS sections)
+// ------------------------------------------------------------
+// Reliable, section-type-aware check used to decide whether a section
+// wrapper should be rendered at all. A section is hidden when it has
+// neither a valid heading nor meaningful structured content — no empty
+// padding, background, heading or blank container is left behind.
+//
+// - Empty HTML paragraphs / whitespace-only strings count as empty.
+// - Valid scalars such as `0` or `false` are not treated as empty where
+//   meaningful for the section (e.g. a stat item with value 0 still counts).
+// - A valid title/description preserves intentionally title-only sections.
+// - Content added later through CMS appears automatically (array items,
+//   paragraphs, images, etc. are read from the payload at render time).
+// ------------------------------------------------------------
+
+function sectionHasMeaningfulContent(section: SectionWithResolved, bn: boolean): boolean {
+  const content = pickLocale(bn, section.content, section.contentBn) as Record<string, unknown>;
+  const title = asString(bn && section.titleBn ? section.titleBn : section.title);
+  const description = asString(bn && section.descriptionBn ? section.descriptionBn : section.description);
+  const hasHeading = Boolean(title || description);
+
+  switch (section.type) {
+    case "hero":
+    case "banner":
+      return (
+        hasHeading
+        || Boolean(asString(content.eyebrow))
+        || Boolean(asString(content.subtitle))
+        || Boolean(safeHref(content.image) || safeHref(content.backgroundImage))
+        || Boolean(safeHref(content.backgroundVideo) || safeHref(content.videoUrl))
+        || Boolean(asString(content.ctaLabel) && safeHref(content.ctaUrl))
+        || Boolean(asString(content.ctaLabel2) && safeHref(content.ctaUrl2))
+      );
+    case "heading":
+      return hasHeading || Boolean(asString(content.title));
+    case "rich_text": {
+      const paragraphsRaw = Array.isArray(content.paragraphs) ? content.paragraphs : [content.text];
+      const paragraphs = (paragraphsRaw as unknown[]).filter(
+        (p): p is string => typeof p === "string" && p.trim().length > 0
+      );
+      return hasHeading || paragraphs.length > 0;
+    }
+    case "image_text": {
+      const paragraphs = (Array.isArray(content.paragraphs) ? content.paragraphs : [content.text]).filter(
+        (p): p is string => typeof p === "string" && p.trim().length > 0
+      );
+      return hasHeading || Boolean(safeHref(content.image)) || paragraphs.length > 0;
+    }
+    case "cards":
+      return hasHeading || (Array.isArray(content.items) && content.items.length > 0);
+    case "gallery":
+      return (
+        hasHeading ||
+        (Array.isArray(content.images) &&
+          content.images.some((img) => {
+            const i = (img ?? {}) as Record<string, unknown>;
+            return Boolean(safeHref(i.url));
+          }))
+      );
+    case "stats":
+      // Emptiness is about having items, not their values — a stat of `0` is meaningful.
+      return hasHeading || (Array.isArray(content.items) && content.items.length > 0);
+    case "cta":
+      return (
+        hasHeading
+        || Boolean(asString(content.title) || asString(content.description))
+        || Boolean(asString(content.buttonLabel) && safeHref(content.buttonUrl))
+      );
+    case "featured":
+      return hasHeading || (Array.isArray(section.resolved?.items) && section.resolved.items.length > 0);
+    case "event_list":
+    case "publication_list":
+    case "blog_list":
+    case "media_list":
+    case "resource_list":
+    case "program_list":
+    case "research_list":
+    case "researcher_grid":
+      return hasHeading || (Array.isArray(section.resolved?.items) && section.resolved.items.length > 0);
+    case "focus_areas": {
+      const items = Array.isArray(content.items) ? content.items : [];
+      return (
+        hasHeading ||
+        items.some((item) => {
+          const it = (item ?? {}) as Record<string, unknown>;
+          return Boolean(asString(it.title));
+        })
+      );
+    }
+    case "clubs":
+      // CLUBS is a non-empty constant — always meaningful.
+      return true;
+    case "team":
+      return hasHeading || (Array.isArray(section.resolved?.items) && section.resolved.items.length > 0);
+    case "embed":
+      return hasHeading || Boolean(asString(content.url).trim());
+    case "video":
+      return hasHeading || Boolean(asString(content.url).trim());
+    case "faq":
+      return hasHeading || (Array.isArray(content.items) && content.items.length > 0);
+    case "timeline":
+      return hasHeading || (Array.isArray(content.items) && content.items.length > 0);
+    case "table": {
+      const headers = asString(content.headers).split(",").map((h) => h.trim()).filter(Boolean);
+      return hasHeading || (headers.length > 0 && Array.isArray(content.rows) && content.rows.length > 0);
+    }
+    case "contact_form":
+      return (
+        hasHeading
+        || Boolean(asString(content.title) || asString(content.description))
+        || (Array.isArray(content.fields) && content.fields.length > 0)
+      );
+    case "newsletter":
+      // Always renders a subscription form (title defaults to "Stay Updated").
+      return true;
+    case "library_search":
+    case "search_filter":
+      // Always renders a UI.
+      return true;
+    case "testimonial":
+      return hasHeading || (Array.isArray(content.items) && content.items.length > 0);
+    case "logo_cloud":
+      return hasHeading || (Array.isArray(content.items) && content.items.length > 0);
+    case "accordion":
+      return hasHeading || (Array.isArray(content.items) && content.items.length > 0);
+    case "tabs":
+    case "nested_tabs":
+      return hasHeading || Boolean(Array.isArray(content.tabs) && (content.tabs as unknown[]).length > 0);
+    default:
+      // Unknown / homepage-manager sections carry no renderer content here.
+      return hasHeading;
+  }
 }
 
 // ------------------------------------------------------------

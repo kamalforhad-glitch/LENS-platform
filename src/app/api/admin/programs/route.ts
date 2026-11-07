@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
+import { parsePagination } from "@/lib/admin-pagination";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -19,8 +20,38 @@ export async function GET(req: NextRequest) {
     const program = await db.program.findUnique({ where: { id } });
     return NextResponse.json({ program });
   }
-  const programs = await db.program.findMany({ orderBy: { sortOrder: "asc" } });
-  return NextResponse.json({ programs });
+
+  const pagination = parsePagination(
+    req.nextUrl.searchParams.get("page"),
+    req.nextUrl.searchParams.get("limit")
+  );
+  if (pagination.ok === false) {
+    return NextResponse.json({ error: pagination.error }, { status: pagination.status });
+  }
+  const { page, limit, skip } = pagination;
+
+  const [programs, total] = await Promise.all([
+    db.program.findMany({
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        titleBn: true,
+        description: true,
+        category: true,
+        status: true,
+      },
+    }),
+    db.program.count({ where: {} }),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+  const hasMore = page < totalPages;
+
+  return NextResponse.json({ programs, total, page, limit, totalPages, hasMore });
 }
 
 export async function POST(req: NextRequest) {

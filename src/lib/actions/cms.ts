@@ -277,8 +277,8 @@ function fallbackPage(slug: string, id: string): PublicPageData | null {
   };
 }
 
-export async function getPublicPage(slug: string): Promise<PublicPageData | null> {
-  try {
+const cachedGetPublicPage = unstable_cache(
+  async (slug: string): Promise<PublicPageData | null> => {
     const page = await db.page.findFirst({
       where: { slug, status: "published" },
       include: {
@@ -298,6 +298,14 @@ export async function getPublicPage(slug: string): Promise<PublicPageData | null
     }
 
     return sectionsToPublicPage(page as unknown as PublicPageRow);
+  },
+  ["public-page"],
+  { tags: ["public-page"] }
+);
+
+export async function getPublicPage(slug: string): Promise<PublicPageData | null> {
+  try {
+    return await cachedGetPublicPage(slug);
   } catch {
     // Try fallback for known slugs on error too
     const fallback = fallbackPage(slug, `fallback-${slug}-error`);
@@ -455,6 +463,7 @@ export async function createPage(data: {
 
   revalidatePath("/");
   revalidatePath(`/${page.slug}`);
+  revalidateTag("public-page", { expire: 0 });
   return page;
 }
 
@@ -551,8 +560,10 @@ async function mutatePage(id: string, raw: Record<string, unknown>) {
 
   revalidatePath("/");
   revalidatePath(`/${existing.slug}`);
+  revalidateTag("public-page", { expire: 0 });
   if (typeof data.slug === "string" && data.slug !== existing.slug) {
     revalidatePath(`/${data.slug}`);
+    revalidateTag("public-page", { expire: 0 });
   }
   return { page, action: auditAction as string };
 }
@@ -582,6 +593,7 @@ export async function deletePage(id: string) {
   });
   revalidatePath("/");
   revalidatePath(`/${page.slug}`);
+  revalidateTag("public-page", { expire: 0 });
   return page;
 }
 
@@ -647,6 +659,7 @@ export async function duplicatePage(id: string, opts?: { newSlug?: string; newTi
   });
   revalidatePath("/");
   revalidatePath(`/${copy.slug}`);
+  revalidateTag("public-page", { expire: 0 });
   return copy;
 }
 
@@ -713,6 +726,7 @@ export async function createSection(
 
   revalidatePath("/");
   if (section.page) revalidatePath(`/${section.page.slug}`);
+  if (section.page) revalidateTag("public-page", { expire: 0 });
   return section;
 }
 
@@ -755,6 +769,7 @@ export async function updateSection(id: string, data: Record<string, unknown>) {
 
   revalidatePath("/");
   if (section.page) revalidatePath(`/${section.page.slug}`);
+  if (section.page) revalidateTag("public-page", { expire: 0 });
   return section;
 }
 
@@ -777,6 +792,7 @@ export async function deleteSection(id: string) {
 
   revalidatePath("/");
   if (section.page) revalidatePath(`/${section.page.slug}`);
+  if (section.page) revalidateTag("public-page", { expire: 0 });
   return section;
 }
 
@@ -825,6 +841,7 @@ export async function duplicateSection(id: string) {
 
   revalidatePath("/");
   if (section.page) revalidatePath(`/${section.page.slug}`);
+  if (section.page) revalidateTag("public-page", { expire: 0 });
   return section;
 }
 
@@ -857,6 +874,7 @@ export async function reorderSections(pageId: string, sectionIds: string[]) {
   });
   revalidatePath("/");
   if (page) revalidatePath(`/${page.slug}`);
+  if (page) revalidateTag("public-page", { expire: 0 });
 }
 
 // ============================================================
@@ -1015,6 +1033,7 @@ export async function restorePageRevision(revisionId: string) {
   const page = await db.page.findUnique({ where: { id: revision.pageId }, select: { slug: true } });
   revalidatePath("/");
   if (page) revalidatePath(`/${page.slug}`);
+  if (page) revalidateTag("public-page", { expire: 0 });
   return { success: true };
 }
 

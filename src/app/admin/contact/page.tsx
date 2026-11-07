@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface Submission { id: string; name: string; email: string; subject: string; message: string; status: string; createdAt: string; }
+
+interface SubmissionApiResponse {
+  submissions: Submission[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+}
 
 function SkeletonItem() {
   return (
@@ -25,18 +34,51 @@ function SkeletonItem() {
 export default function ContactAdmin() {
   const [items, setItems] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Submission | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(() => {
     setLoading(true);
-    const url = filter === "all" ? "/api/admin/contact" : `/api/admin/contact?status=${filter}`;
-    const d = await fetch(url).then(r => r.json());
-    setItems(d.submissions || []);
-    setLoading(false);
-  };
+    setError(null);
+    const params = new URLSearchParams();
+    params.set("page", String(currentPage));
+    params.set("limit", String(limit));
+    if (search) params.set("search", search);
+    if (filter !== "all") params.set("status", filter);
 
-  useEffect(() => { loadItems(); }, [filter, loadItems]);
+    fetch(`/api/admin/contact?${params.toString()}`)
+      .then(async (r) => {
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({ error: `Request failed (${r.status})` }));
+          throw new Error(err.error || `Request failed (${r.status})`);
+        }
+        return r.json();
+      })
+      .then((d: SubmissionApiResponse) => {
+        setItems(d.submissions || []);
+        setTotal(d.total || 0);
+        setTotalPages(d.totalPages || 1);
+        setHasMore(d.hasMore || false);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load submissions.");
+        setLoading(false);
+      });
+  }, [currentPage, limit, search, filter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
+
+  useEffect(() => { loadItems(); }, [loadItems]);
 
   const updateStatus = async (id: string, status: string) => {
     await fetch("/api/admin/contact", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });
@@ -46,13 +88,23 @@ export default function ContactAdmin() {
 
   return (
     <div className="p-6">
+      {error && (
+        <div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-800 text-sm">
+          {error}
+        </div>
+      )}
       <h1 className="text-2xl font-bold text-slate-900 mb-2">Contact Submissions</h1>
       <p className="text-sm text-slate-500 mb-6">View and manage messages from the contact form.</p>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
+        <input placeholder="Search name, email, subject..." value={search} onChange={(e) => setSearch(e.target.value)} className="px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 w-64" />
         {["all", "new", "read", "resolved"].map(s => (
           <button key={s} onClick={() => setFilter(s)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filter === s ? "bg-teal-600 text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"}`}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>
         ))}
+      </div>
+
+      <div className="text-xs text-slate-500 mb-4">
+        Showing {total} total record{total !== 1 ? "s" : ""} &nbsp;|&nbsp; Page {currentPage} of {totalPages}
       </div>
 
       {loading ? (
@@ -66,7 +118,7 @@ export default function ContactAdmin() {
           </svg>
           <p className="text-slate-400 text-sm font-medium">No submissions found</p>
           <p className="text-slate-600 text-xs mt-1">
-            {filter !== "all" ? "Try selecting a different filter" : "Messages from the contact form will appear here"}
+            {filter !== "all" || search ? "Try selecting a different filter or adjusting your search." : "Messages from the contact form will appear here"}
           </p>
         </div>
       ) : (
@@ -88,6 +140,30 @@ export default function ContactAdmin() {
           ))}
         </div>
       )}
+
+      {/* Pagination controls */}
+      <div className="mt-6 flex items-center justify-between gap-4">
+        <div className="text-xs text-slate-500">
+          Showing {total} total record{total !== 1 ? "s" : ""} &nbsp;|&nbsp;
+          Page {currentPage} of {totalPages}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1}
+            className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => setCurrentPage((p) => p + 1)}
+            disabled={!hasMore}
+            className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
 
       {selected && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>

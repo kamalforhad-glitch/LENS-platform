@@ -4,6 +4,7 @@ import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/
 import { validateSlug, sanitizeUrl } from "@/lib/cms-validation";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
+import { parsePagination } from "@/lib/admin-pagination";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -27,8 +28,93 @@ export async function GET(req: NextRequest) {
     const page = await db.page.findUnique({ where: { id }, include: { sections: { orderBy: { sortOrder: "asc" } } } });
     return NextResponse.json({ page });
   }
-  const pages = await db.page.findMany({ orderBy: { sortOrder: "asc" } });
-  return NextResponse.json({ pages });
+
+  // List endpoint with bounded offset pagination.
+  const all = req.nextUrl.searchParams.get("all") === "true";
+  const search = req.nextUrl.searchParams.get("search") || undefined;
+  const statusFilter = req.nextUrl.searchParams.get("status") || undefined;
+
+  const searchWhere: Record<string, unknown> = {};
+  if (search) {
+    searchWhere.OR = [
+      { title: { contains: search, mode: "insensitive" } },
+      { slug: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  // listWhere: search conditions + selected status. Used for the paginated
+  // findMany and the pagination count, so total/totalPages/hasMore reflect
+  // the filtered results.
+  const listWhere: Record<string, unknown> = { ...searchWhere };
+  if (statusFilter && statusFilter !== "all") {
+    listWhere.status = statusFilter;
+  }
+
+  // Lightweight list mode (no pagination) for the parent dropdown selector.
+  if (all) {
+    const pages = await db.page.findMany({
+      where: listWhere,
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        titleBn: true,
+        status: true,
+        sortOrder: true,
+        dateModified: true,
+      },
+    });
+    return NextResponse.json({ pages });
+  }
+
+  // Parse and validate pagination parameters using the shared strict helper.
+  const pagination = parsePagination(
+    req.nextUrl.searchParams.get("page"),
+    req.nextUrl.searchParams.get("limit")
+  );
+  if (pagination.ok === false) {
+    return NextResponse.json({ error: pagination.error }, { status: pagination.status });
+  }
+  const { page, limit, skip } = pagination;
+
+  // Run list + pagination count + status counts concurrently.
+  // status counts use searchWhere (search only) so they are independent of
+  // the currently selected status filter.
+  const [pages, total, allCount, statusRows] = await Promise.all([
+    db.page.findMany({
+      where: listWhere,
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        titleBn: true,
+        status: true,
+        sortOrder: true,
+        dateModified: true,
+      },
+    }),
+    db.page.count({ where: listWhere }),
+    db.page.count({ where: searchWhere }),
+    db.page.groupBy({
+      by: ["status"],
+      where: searchWhere,
+      _count: { status: true },
+    }),
+  ]);
+
+  const counts: Record<string, number> = { all: allCount, published: 0, draft: 0, archived: 0 };
+  for (const row of statusRows) {
+    counts[row.status] = (counts[row.status] || 0) + row._count.status;
+  }
+
+  const totalPages = Math.ceil(total / limit);
+  const hasMore = page < totalPages;
+
+  return NextResponse.json({ pages, total, page, limit, totalPages, hasMore, counts });
 }
 
 // Fields a REST caller may set on a page record.

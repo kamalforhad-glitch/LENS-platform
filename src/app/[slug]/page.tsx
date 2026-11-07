@@ -14,8 +14,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  if (RESERVED_SLUGS.has(slug.toLowerCase())) return {};
-  const page = await getPublicPage(slug);
+  const key = (slug || "").toLowerCase();
+  if (RESERVED_SLUGS.has(key)) return {};
+  const page = await getPublicPage(key);
   if (!page) return { title: "Page Not Found" };
 
   // Use Bangla metadata when available and usable, otherwise English.

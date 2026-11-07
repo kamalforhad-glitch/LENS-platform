@@ -428,7 +428,7 @@ export default function SiteHeaderClient({
         {hasNested && openSubMenu === child.id && (
           <ul
             aria-label={label}
-            className="animate-fade-in-up absolute top-0 left-full ml-1.5 min-w-56 rounded-2xl border border-white/10 bg-navy-900/98 backdrop-blur-2xl p-2 shadow-2xl shadow-navy-950/60 z-50"
+            className="animate-fade-in-up absolute top-0 left-full min-w-56 rounded-2xl border border-white/10 bg-navy-900/98 backdrop-blur-2xl p-2 shadow-2xl shadow-navy-950/60 z-50"
           >
             {child.children!.map((subChild) => {
               const subLabel = resolveLabel(subChild.label);
@@ -643,7 +643,7 @@ export default function SiteHeaderClient({
                           else menuListRefs.current.delete(entry.id);
                         }}
                         aria-label={resolveLabel(entry.label)}
-                        className="animate-fade-in-up absolute top-full left-0 mt-2 min-w-64 rounded-2xl border border-white/10 bg-navy-900/98 backdrop-blur-2xl p-2 shadow-2xl shadow-navy-950/60 z-50"
+                        className="animate-fade-in-up absolute top-full left-0 min-w-64 rounded-2xl border border-white/10 bg-navy-900/98 backdrop-blur-2xl p-2 shadow-2xl shadow-navy-950/60 z-50"
                       >
                         {entry.children!.map((child, i) => (
                           <li key={child.id}>

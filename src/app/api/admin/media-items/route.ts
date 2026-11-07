@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
+import { parsePagination } from "@/lib/admin-pagination";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -19,8 +20,71 @@ export async function GET(req: NextRequest) {
     const item = await db.mediaItem.findUnique({ where: { id } });
     return NextResponse.json({ item });
   }
-  const items = await db.mediaItem.findMany({ orderBy: { datePublished: "desc" } });
-  return NextResponse.json({ items });
+
+  // List endpoint with strict pagination and per-status counts.
+  const rawPage = req.nextUrl.searchParams.get("page");
+  const rawLimit = req.nextUrl.searchParams.get("limit");
+  const search = req.nextUrl.searchParams.get("search") || undefined;
+  const statusFilter = req.nextUrl.searchParams.get("status") || undefined;
+
+  const pagination = parsePagination(rawPage, rawLimit);
+  if (pagination.ok === false) {
+    return NextResponse.json({ error: pagination.error }, { status: pagination.status });
+  }
+  const { page, limit, skip } = pagination;
+
+  // searchWhere: search conditions only. Used for status counts so counts
+  // are independent of the currently selected status filter.
+  const searchWhere: Record<string, unknown> = {};
+  if (search) {
+    searchWhere.OR = [
+      { title: { contains: search, mode: "insensitive" } },
+      { source: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  // listWhere: search conditions + selected status. Used for the paginated
+  // findMany and the pagination count, so total/totalPages/hasMore reflect
+  // the filtered results.
+  const listWhere: Record<string, unknown> = { ...searchWhere };
+  if (statusFilter && statusFilter !== "all") {
+    listWhere.status = statusFilter;
+  }
+
+  const [items, total, allCount, statusRows] = await Promise.all([
+    db.mediaItem.findMany({
+      where: listWhere,
+      orderBy: [{ datePublished: "desc" }, { id: "asc" }],
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        titleBn: true,
+        type: true,
+        source: true,
+        status: true,
+      },
+    }),
+    db.mediaItem.count({ where: listWhere }),
+    db.mediaItem.count({ where: searchWhere }),
+    db.mediaItem.groupBy({
+      by: ["status"],
+      where: searchWhere,
+      _count: { status: true },
+    }),
+  ]);
+
+  const counts: Record<string, number> = { all: allCount };
+  for (const row of statusRows) {
+    counts[row.status] = (counts[row.status] || 0) + row._count.status;
+  }
+
+  const totalPages = Math.ceil(total / limit);
+  const hasMore = page < totalPages;
+
+  return NextResponse.json({ items, total, page, limit, totalPages, hasMore, counts });
 }
 
 export async function POST(req: NextRequest) {

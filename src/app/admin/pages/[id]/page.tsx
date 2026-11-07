@@ -60,8 +60,8 @@ export default function PageEditor() {
 
   useEffect(() => {
     if (!isNew && rawId) {
-      // Load parent-page options for the hierarchy dropdown.
-      fetch("/api/admin/pages")
+      // Load parent-page options for the hierarchy dropdown (lightweight, no pagination).
+      fetch("/api/admin/pages?all=true")
         .then((r) => r.json())
         .then((d) => {
           setParents(

@@ -358,6 +358,7 @@ export async function getPublicTeamMembers(): Promise<PublicList<TeamCard>> {
     db.teamMember.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      take: 100,
       select: {
         slug: true,
         name: true,
@@ -378,6 +379,7 @@ export async function getPublicResearchers(): Promise<PublicList<ResearcherCard>
     db.researcherProfile.findMany({
       where: { status: "active" },
       orderBy: [{ featured: "desc" }, { totalDownloads: "desc" }],
+      take: 100,
       select: {
         slug: true,
         name: true,

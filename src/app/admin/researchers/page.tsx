@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface Researcher {
   id: string;
@@ -34,6 +34,15 @@ interface Researcher {
   updatedAt: string;
 }
 
+interface ResearcherApiResponse {
+  researchers: Researcher[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
 function SkeletonItem() {
   return (
     <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
@@ -55,10 +64,15 @@ function SkeletonItem() {
 export default function ResearchersAdmin() {
   const [items, setItems] = useState<Researcher[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [editingItem, setEditingItem] = useState<Researcher | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [newItem, setNewItem] = useState({
     name: "",
     nameBn: "",
@@ -85,21 +99,42 @@ export default function ResearchersAdmin() {
     status: "active",
   });
 
-  const loadItems = async () => {
+  const loadItems = useCallback(() => {
     setLoading(true);
     setError(null);
-    try {
-      const d = await fetch("/api/admin/researchers").then((r) => r.json());
-      if (d.error) throw new Error(d.error);
-      setItems(d.researchers || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load researchers");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const params = new URLSearchParams();
+    params.set("page", String(currentPage));
+    params.set("limit", String(limit));
+    if (search) params.set("search", search);
+    if (filter !== "all") params.set("status", filter);
 
-  useEffect(() => { loadItems(); }, []);
+    fetch(`/api/admin/researchers?${params.toString()}`)
+      .then(async (r) => {
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({ error: `Request failed (${r.status})` }));
+          throw new Error(err.error || `Request failed (${r.status})`);
+        }
+        return r.json();
+      })
+      .then((d: ResearcherApiResponse) => {
+        setItems(d.researchers || []);
+        setTotal(d.total || 0);
+        setTotalPages(d.totalPages || 1);
+        setHasMore(d.hasMore || false);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load researchers");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [currentPage, limit, search, filter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
+
+  useEffect(() => { loadItems(); }, [loadItems]);
 
   const saveItem = async (payload: Researcher | Record<string, unknown>) => {
     setError(null);
@@ -143,13 +178,6 @@ export default function ResearchersAdmin() {
     try { return JSON.parse(str); } catch { return []; }
   };
 
-  const filtered = items.filter((r) =>
-    (r.name.toLowerCase().includes(search.toLowerCase()) ||
-      r.affiliation.toLowerCase().includes(search.toLowerCase()) ||
-      r.nameBn.includes(search)) &&
-    (filter === "all" || r.status === filter)
-  );
-
   if (loading) return <div className="p-6 space-y-2">{Array.from({ length: 5 }).map((_, i) => <SkeletonItem key={i} />)}</div>;
 
   return (
@@ -170,7 +198,11 @@ export default function ResearchersAdmin() {
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      <div className="text-xs text-slate-500 mb-4">
+        Showing {total} total result{total !== 1 ? "s" : ""} &nbsp;|&nbsp; Page {currentPage} of {totalPages}
+      </div>
+
+      {items.length === 0 ? (
         <div className="text-center py-16">
           <svg className="w-12 h-12 mx-auto text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -179,7 +211,7 @@ export default function ResearchersAdmin() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(item => (
+          {items.map(item => (
             <div key={item.id} className={`p-4 rounded-xl border cursor-pointer transition-all ${editingItem?.id === item.id ? "ring-1 ring-teal-400" : "bg-white border-slate-200 hover:border-slate-300 shadow-2xs"}`} onClick={() => setEditingItem(item)}>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-lg font-bold shrink-0">
@@ -200,6 +232,30 @@ export default function ResearchersAdmin() {
           ))}
         </div>
       )}
+
+      {/* Pagination controls */}
+      <div className="mt-6 flex items-center justify-between gap-4">
+        <div className="text-xs text-slate-500">
+          Showing {total} total record{total !== 1 ? "s" : ""} &nbsp;|&nbsp;
+          Page {currentPage} of {totalPages}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1}
+            className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => setCurrentPage((p) => p + 1)}
+            disabled={!hasMore}
+            className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
 
       {/* Add/Edit Modal */}
       {editingItem && (

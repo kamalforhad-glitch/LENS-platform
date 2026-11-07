@@ -4,6 +4,7 @@ import { getCurrentUser, requireEditor } from "@/lib/auth";
 import { researcherCreateSchema } from "@/lib/schemas";
 import { isRateLimited } from "@/lib/validation";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
+import { parsePagination } from "@/lib/admin-pagination";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -11,7 +12,7 @@ function authErrorResponse(error: unknown) {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,11 +22,69 @@ export async function GET() {
       return authErrorResponse(error);
     }
 
-    const researchers = await db.researcherProfile.findMany({
-      orderBy: [{ featured: "desc" }, { totalDownloads: "desc" }],
-    });
+    const pagination = parsePagination(
+      req.nextUrl.searchParams.get("page"),
+      req.nextUrl.searchParams.get("limit")
+    );
+    if (pagination.ok === false) {
+      return NextResponse.json({ error: pagination.error }, { status: pagination.status });
+    }
+    const { page, limit, skip } = pagination;
 
-    return NextResponse.json({ researchers });
+    const search = req.nextUrl.searchParams.get("search") || undefined;
+    const statusFilter = req.nextUrl.searchParams.get("status") || undefined;
+
+    const where: Record<string, unknown> = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { affiliation: { contains: search, mode: "insensitive" } },
+        { nameBn: { contains: search, mode: "insensitive" } },
+      ];
+    }
+    if (statusFilter && statusFilter !== "all") {
+      where.status = statusFilter;
+    }
+
+    const [researchers, total] = await Promise.all([
+      db.researcherProfile.findMany({
+        where,
+        orderBy: [{ featured: "desc" }, { totalDownloads: "desc" }, { id: "asc" }],
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          nameBn: true,
+          email: true,
+          affiliation: true,
+          affiliationBn: true,
+          position: true,
+          positionBn: true,
+          bio: true,
+          bioBn: true,
+          image: true,
+          orcid: true,
+          website: true,
+          totalDownloads: true,
+          totalCitations: true,
+          featured: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          // Excluded large JSON array fields from list results (not required by
+          // the list UI): social, researchAreas, researchAreasBn, expertise,
+          // expertiseBn, education, educationBn, languages, languagesBn.
+        },
+      }),
+      db.researcherProfile.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+    const hasMore = page < totalPages;
+
+    return NextResponse.json({ researchers, total, page, limit, totalPages, hasMore });
   } catch (error) {
     console.error("[Admin Researchers List Error]", error);
     return NextResponse.json({ error: "Failed to fetch researchers" }, { status: 500 });
