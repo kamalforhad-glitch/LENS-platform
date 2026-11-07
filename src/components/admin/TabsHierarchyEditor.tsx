@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Layers,
   Plus,
@@ -28,6 +28,30 @@ function generateId(): string {
   return "tab-" + Math.random().toString(36).substring(2, 9);
 }
 
+// Deep equality for tab hierarchies. Used to decide whether a prop update
+// carries genuinely new content (adopt it) or just a new reference to the same
+// data (leave the editor's unsaved edits and selection untouched).
+export function valuesEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!valuesEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    const ka = Object.keys(a as Record<string, unknown>);
+    const kb = Object.keys(b as Record<string, unknown>);
+    if (ka.length !== kb.length) return false;
+    for (const key of ka) {
+      if (!valuesEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
 export default function TabsHierarchyEditor({
   value,
   valueBn = [],
@@ -40,6 +64,24 @@ export default function TabsHierarchyEditor({
   const [selectedInnerTabId, setSelectedInnerTabId] = useState<string>("");
   const [lang, setLang] = useState<"en" | "bn">(activeLanguage);
   const [pickerTarget, setPickerTarget] = useState<{ blockId: string; field: "imageUrl" | "videoUrl" | "videoPoster" } | null>(null);
+
+  // Prop synchronization: when the parent switches to a different section's tabs
+  // (or Bangla tabs), adopt the new value so the editor never displays another
+  // section's stale data. A content comparison guards against unrelated parent
+  // rerenders that echo back the same data — those never discard unsaved local
+  // edits or reset the user's tab selection.
+  useEffect(() => {
+    const nextEn = Array.isArray(value) ? value : [];
+    const nextBn = Array.isArray(valueBn) ? valueBn : [];
+    // Same reference: the parent echoed back our own state, nothing to adopt.
+    if (nextEn === tabsEn && nextBn === tabsBn) return;
+    if (!valuesEqual(nextEn, tabsEn) || !valuesEqual(nextBn, tabsBn)) {
+      setTabsEn(nextEn);
+      setTabsBn(nextBn);
+      setSelectedTabId(nextEn[0]?.id || "");
+      setSelectedInnerTabId("");
+    }
+  }, [value, valueBn, tabsEn, tabsBn]);
 
   const update = (newEn: TabItem[], newBn: TabItem[]) => {
     setTabsEn(newEn);

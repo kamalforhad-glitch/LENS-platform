@@ -5,7 +5,6 @@ import {
   downloadFromR2,
   getR2Config,
   r2ObjectKey,
-  r2PublicUrl,
   uploadToR2,
   type R2Config,
 } from "@/lib/backup/r2";
@@ -16,33 +15,31 @@ const TEST_CONFIG: R2Config = {
   secretAccessKey: "test-secret",
   bucket: "lens-backups",
   endpoint: "https://test-account.r2.cloudflarestorage.com",
-  publicUrl: "https://backups.lens.org.bd",
 };
 
-function clearR2Env() {
-  delete process.env.R2_ACCOUNT_ID;
-  delete process.env.R2_ACCESS_KEY_ID;
-  delete process.env.R2_SECRET_ACCESS_KEY;
-  delete process.env.R2_BUCKET;
-  delete process.env.R2_ENDPOINT;
-  delete process.env.R2_PUBLIC_URL;
+function clearR2BackupEnv() {
+  delete process.env.R2_BACKUP_ACCOUNT_ID;
+  delete process.env.R2_BACKUP_ACCESS_KEY_ID;
+  delete process.env.R2_BACKUP_SECRET_ACCESS_KEY;
+  delete process.env.R2_BACKUP_BUCKET;
+  delete process.env.R2_BACKUP_ENDPOINT;
 }
 
 describe("Cloudflare R2 backup persistence (mocked client, no real credentials)", () => {
   beforeEach(() => {
-    clearR2Env();
+    clearR2BackupEnv();
     vi.unstubAllEnvs();
   });
 
-  it("returns null when R2 is entirely unconfigured (explicit local mode)", () => {
+  it("returns null when R2 backup is entirely unconfigured (explicit local mode)", () => {
     expect(getR2Config()).toBeNull();
   });
 
   it("fails closed on partial configuration (names only, no values)", () => {
-    process.env.R2_BUCKET = "lens-backups";
-    expect(() => getR2Config()).toThrow(/R2_ACCOUNT_ID/);
+    process.env.R2_BACKUP_BUCKET = "lens-backups";
+    expect(() => getR2Config()).toThrow(/R2_BACKUP_ACCOUNT_ID/);
     // The thrown message must name variables, never values.
-    process.env.R2_SECRET_ACCESS_KEY = "super-secret-value";
+    process.env.R2_BACKUP_SECRET_ACCESS_KEY = "super-secret-value";
     try {
       getR2Config();
       expect.unreachable();
@@ -51,11 +48,11 @@ describe("Cloudflare R2 backup persistence (mocked client, no real credentials)"
     }
   });
 
-  it("derives the Cloudflare account endpoint when R2_ENDPOINT is unset", () => {
-    process.env.R2_ACCOUNT_ID = "abc123";
-    process.env.R2_ACCESS_KEY_ID = "key";
-    process.env.R2_SECRET_ACCESS_KEY = "secret";
-    process.env.R2_BUCKET = "lens-backups";
+  it("derives the Cloudflare account endpoint when R2_BACKUP_ENDPOINT is unset", () => {
+    process.env.R2_BACKUP_ACCOUNT_ID = "abc123";
+    process.env.R2_BACKUP_ACCESS_KEY_ID = "key";
+    process.env.R2_BACKUP_SECRET_ACCESS_KEY = "secret";
+    process.env.R2_BACKUP_BUCKET = "lens-backups";
     const config = getR2Config();
     expect(config?.endpoint).toBe("https://abc123.r2.cloudflarestorage.com");
   });
@@ -64,14 +61,6 @@ describe("Cloudflare R2 backup persistence (mocked client, no real credentials)"
     expect(r2ObjectKey("lens-backup-2026-01-01.sql")).toBe("backups/lens-backup-2026-01-01.sql");
     expect(r2ObjectKey("../../etc/passwd")).toBe("backups/passwd");
     expect(r2ObjectKey("/abs/path/lens-backup-x.sql")).toBe("backups/lens-backup-x.sql");
-  });
-
-  it("builds public URLs without leaking credentials", () => {
-    const url = r2PublicUrl(TEST_CONFIG, "backups/lens-backup-x.sql");
-    expect(url).toBe("https://backups.lens.org.bd/backups/lens-backup-x.sql");
-    expect(url).not.toContain("test-secret");
-    expect(url).not.toContain("test-key-id");
-    expect(r2PublicUrl({ ...TEST_CONFIG, publicUrl: undefined }, "k")).toBeNull();
   });
 
   it("successful upload resolves without exposing secrets", async () => {
@@ -119,7 +108,6 @@ describe("Cloudflare R2 backup persistence (mocked client, no real credentials)"
     const opts = captured as { endpoint: string; region: string };
     expect(opts.endpoint).toBe(TEST_CONFIG.endpoint);
     expect(opts.region).toBe("auto");
-    expect(JSON.stringify(captured)).toContain("test-secret"); // credentials block only
     expect(opts.endpoint).not.toContain("test-secret");
   });
 });

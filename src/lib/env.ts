@@ -8,6 +8,10 @@ function isBuildPhase(): boolean {
   return process.env.NEXT_PHASE === "phase-production-build";
 }
 
+function isProduction(): boolean {
+  return process.env.NODE_ENV === "production" && !isBuildPhase();
+}
+
 export function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -16,8 +20,12 @@ export function getJwtSecret(): string {
     if (isBuildPhase()) return "build-phase-placeholder-secret-do-not-use";
     throw new Error("JWT_SECRET environment variable is required");
   }
-  if (secret.length < 32 && process.env.NODE_ENV === "production" && !isBuildPhase()) {
+  if (isProduction() && secret.length < 32) {
     throw new Error("JWT_SECRET must be at least 32 characters in production");
+  }
+  // Never allow a build-phase placeholder to be used at runtime.
+  if (isProduction() && secret === "build-phase-placeholder-secret-do-not-use") {
+    throw new Error("JWT_SECRET build-phase placeholder must not be used in production");
   }
   return secret;
 }
@@ -28,6 +36,9 @@ export function getCronSecret(): string {
     if (isBuildPhase()) return "build-phase-placeholder-cron-secret";
     throw new Error("CRON_SECRET environment variable is required");
   }
+  if (isProduction() && secret === "build-phase-placeholder-cron-secret") {
+    throw new Error("CRON_SECRET build-phase placeholder must not be used in production");
+  }
   return secret;
 }
 
@@ -37,28 +48,61 @@ export function requireDatabaseUrl(): string {
     if (isBuildPhase()) return "postgresql://build:build@localhost:5432/build?schema=public";
     throw new Error("DATABASE_URL environment variable is required");
   }
+  if (isProduction() && url === "postgresql://build:build@localhost:5432/build?schema=public") {
+    throw new Error("DATABASE_URL build-phase placeholder must not be used in production");
+  }
   return url;
 }
 
-/** Warn (once) about optional integrations running in stub mode. */
-let warned = false;
-export function warnOptionalIntegrations(): void {
-  if (warned || isBuildPhase()) return;
-  warned = true;
-  if (!process.env.RESEND_API_KEY) {
-    console.warn(
-      "[env] RESEND_API_KEY missing — emails will log as dev-mode and NOT deliver."
-    );
+/**
+ * Returns the media R2 bucket name. Required in production for media uploads.
+ * Never falls back to the backup bucket.
+ */
+export function requireMediaBucket(): string {
+  const bucket = process.env.R2_MEDIA_BUCKET;
+  if (!bucket) {
+    if (isBuildPhase()) return "build-phase-media-bucket";
+    if (isProduction()) {
+      throw new Error("R2_MEDIA_BUCKET environment variable is required in production");
+    }
+    return "";
   }
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn(
-      "[env] OPENAI_API_KEY missing — AI uses retrieval fallback without LLM answers."
-    );
+  if (isProduction() && bucket === "build-phase-media-bucket") {
+    throw new Error("R2_MEDIA_BUCKET build-phase placeholder must not be used in production");
   }
-  if (!process.env.R2_ACCESS_KEY_ID) {
-    console.warn(
-      "[env] R2_ACCESS_KEY_ID missing — uploads will fail in production; " +
-        "local public/uploads is ephemeral and does not persist across redeployments."
+  return bucket;
+}
+
+/**
+ * Returns the backup R2 bucket name. Required in production for backup uploads.
+ * Never falls back to the media bucket.
+ */
+export function requireBackupBucket(): string {
+  const bucket = process.env.R2_BACKUP_BUCKET;
+  if (!bucket) {
+    if (isBuildPhase()) return "build-phase-backup-bucket";
+    if (isProduction()) {
+      throw new Error("R2_BACKUP_BUCKET environment variable is required in production");
+    }
+    return "";
+  }
+  if (isProduction() && bucket === "build-phase-backup-bucket") {
+    throw new Error("R2_BACKUP_BUCKET build-phase placeholder must not be used in production");
+  }
+  return bucket;
+}
+
+/**
+ * Ensures media and backup buckets are never the same value in production.
+ * Prevents accidental co-mingling of media objects and backup artifacts.
+ */
+export function assertBucketsDistinct(): void {
+  if (!isProduction()) return;
+  const media = process.env.R2_MEDIA_BUCKET;
+  const backup = process.env.R2_BACKUP_BUCKET;
+  if (media && backup && media === backup) {
+    throw new Error(
+      "R2_MEDIA_BUCKET and R2_BACKUP_BUCKET must not be the same bucket in production"
     );
   }
 }

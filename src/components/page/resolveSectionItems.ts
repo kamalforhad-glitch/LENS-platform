@@ -29,9 +29,19 @@ export interface ResolvedItem {
 
 export interface ResolvedItems {
   items: ResolvedItem[];
+  error?: boolean;
 }
 
-const EMPTY: ResolvedItems = { items: [] };
+const EMPTY: ResolvedItems = { items: [], error: false };
+
+/**
+ * Returns a resolved result flagged with `error: true` when the underlying
+ * public data fetch failed. This keeps database failures distinguishable from
+ * genuinely empty results instead of fabricating an empty success response.
+ */
+function failed(): ResolvedItems {
+  return { items: [], error: true };
+}
 
 /**
  * Fetch public data for section types that render database content.
@@ -48,6 +58,7 @@ export async function resolveSectionItems(
     // Research Articles
     if (collection === "research") {
       const res = await getPublicResearch();
+      if (res.error) return failed();
       return {
         items: res.items.slice(0, limit).map((r) => ({
           title: r.title,
@@ -64,6 +75,7 @@ export async function resolveSectionItems(
     // Publications
     if (collection === "publications") {
       const res = await getPublicPublications();
+      if (res.error) return failed();
       return {
         items: res.items.slice(0, limit).map((p) => ({
           title: p.title,
@@ -80,6 +92,7 @@ export async function resolveSectionItems(
     // Events
     if (collection === "events") {
       const res = await getPublicEvents();
+      if (res.error) return failed();
       return {
         items: res.items.slice(0, limit).map((e) => ({
           title: e.name,
@@ -96,6 +109,7 @@ export async function resolveSectionItems(
     // Blog Posts
     if (collection === "blog") {
       const res = await getPublicBlogPosts();
+      if (res.error) return failed();
       return {
         items: res.items.slice(0, limit).map((b) => ({
           title: b.title,
@@ -118,6 +132,7 @@ export async function resolveSectionItems(
     // Media Items
     if (collection === "media") {
       const res = await getPublicMediaItems();
+      if (res.error) return failed();
       return {
         items: res.items.slice(0, limit).map((m) => ({
           title: m.title,
@@ -139,6 +154,7 @@ export async function resolveSectionItems(
     // Resources
     if (collection === "resources") {
       const res = await getPublicResources();
+      if (res.error) return failed();
       return {
         items: res.items.slice(0, limit).map((r) => ({
           title: r.title,
@@ -154,6 +170,7 @@ export async function resolveSectionItems(
     // Programs
     if (collection === "programs") {
       const res = await getPublicPrograms();
+      if (res.error) return failed();
       return {
         items: res.items.slice(0, limit).map((p) => ({
           title: p.title,
@@ -169,6 +186,7 @@ export async function resolveSectionItems(
     // Researchers
     if (collection === "researchers") {
       const res = await getPublicResearchers();
+      if (res.error) return failed();
       return {
         items: res.items.slice(0, limit).map((r) => ({
           title: r.name,
@@ -184,6 +202,7 @@ export async function resolveSectionItems(
 
     // Default fallback to research
     const res = await getPublicResearch();
+    if (res.error) return failed();
     return {
       items: res.items.slice(0, limit).map((r) => ({
         title: r.title,
@@ -199,6 +218,7 @@ export async function resolveSectionItems(
 
   if (type === "team") {
     const res = await getPublicTeamMembers();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 8));
     return {
       items: res.items.slice(0, limit).map((t) => ({
@@ -216,6 +236,7 @@ export async function resolveSectionItems(
   // Event listing section - renders upcoming events
   if (type === "event_list") {
     const res = await getPublicEvents();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 6));
     const showPast = Boolean(content.showPast);
     const now = new Date();
@@ -241,6 +262,7 @@ export async function resolveSectionItems(
   // Publication listing section
   if (type === "publication_list") {
     const res = await getPublicPublications();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 6));
     return {
       items: res.items.slice(0, limit).map((p) => ({
@@ -258,6 +280,7 @@ export async function resolveSectionItems(
   // Blog listing section
   if (type === "blog_list") {
     const res = await getPublicBlogPosts();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 6));
     return {
       items: res.items.slice(0, limit).map((b) => ({
@@ -281,6 +304,7 @@ export async function resolveSectionItems(
   // Media listing section
   if (type === "media_list") {
     const res = await getPublicMediaItems();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 6));
     return {
       items: res.items.slice(0, limit).map((m) => ({
@@ -303,6 +327,7 @@ export async function resolveSectionItems(
   // Resource listing section
   if (type === "resource_list") {
     const res = await getPublicResources();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 6));
     const categoryFilter = content.category ? String(content.category) : null;
 
@@ -326,6 +351,7 @@ export async function resolveSectionItems(
   // Program listing section
   if (type === "program_list") {
     const res = await getPublicPrograms();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 6));
     const categoryFilter = content.category ? String(content.category) : null;
 
@@ -349,6 +375,7 @@ export async function resolveSectionItems(
   // Research listing section (alternative to featured with collection=research)
   if (type === "research_list") {
     const res = await getPublicResearch();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 6));
     const categoryFilter = content.category ? String(content.category) : null;
 
@@ -373,6 +400,7 @@ export async function resolveSectionItems(
   // Career listing section
   if (type === "career_list") {
     const res = await getPublicCareerOpenings();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 6));
     const departmentFilter = content.department ? String(content.department) : null;
 
@@ -397,6 +425,7 @@ export async function resolveSectionItems(
   // Researcher listing section
   if (type === "researcher_list") {
     const res = await getPublicResearchers();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 8));
     const featuredOnly = Boolean(content.featuredOnly);
 
@@ -421,6 +450,7 @@ export async function resolveSectionItems(
   // Researcher grid section - fetches from public content (replaces API call)
   if (type === "researcher_grid") {
     const res = await getPublicResearchers();
+    if (res.error) return failed();
     const limit = Math.min(24, Math.max(1, Number(content.limit) || 8));
     const featuredOnly = Boolean(content.featuredOnly);
 

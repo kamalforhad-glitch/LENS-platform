@@ -1,3 +1,10 @@
+import { assertBucketsDistinct } from "@/lib/env";
+
+// assertBucketsDistinct is imported for use by callers who need to
+// validate bucket separation at runtime (e.g., admin configuration UI).
+// It is re-exported here for convenience.
+export { assertBucketsDistinct };
+
 export interface StorageConfig {
   bucket: string;
   region: string;
@@ -9,12 +16,12 @@ export interface StorageConfig {
 
 function getConfig(): StorageConfig {
   return {
-    bucket: process.env.R2_BUCKET || "lens-media",
-    region: process.env.R2_REGION || "auto",
-    endpoint: process.env.R2_ENDPOINT,
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
-    cdnUrl: process.env.R2_PUBLIC_URL,
+    bucket: process.env.R2_MEDIA_BUCKET || "",
+    region: process.env.R2_MEDIA_REGION || "auto",
+    endpoint: process.env.R2_MEDIA_ENDPOINT,
+    accessKeyId: process.env.R2_MEDIA_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.R2_MEDIA_SECRET_ACCESS_KEY || "",
+    cdnUrl: process.env.R2_MEDIA_PUBLIC_URL,
   };
 }
 
@@ -305,7 +312,7 @@ export async function getSignedUploadUrl(
     // local fallback so the UI remains functional without credentials.
     if (process.env.NODE_ENV === "production") {
       throw new Error(
-        "R2 storage is not configured (R2_ACCESS_KEY_ID missing) and is required in production."
+        "R2 media storage is not configured (R2_MEDIA_ACCESS_KEY_ID missing) and is required in production."
       );
     }
     // Local storage fallback for development

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import TabsHierarchyEditor from "@/components/admin/TabsHierarchyEditor";
 import TabsSection, { type TabItem } from "@/components/page/TabsSection";
-import { getPageBySlug, updateSection } from "@/lib/actions/cms";
+import { getPagesWithTabSections, updateSection } from "@/lib/actions/cms";
 
 interface SectionWithPage {
   id: string;
@@ -39,55 +39,32 @@ export default function TabsAdminPage() {
   const [activeTabsEn, setActiveTabsEn] = useState<TabItem[]>([]);
   const [activeTabsBn, setActiveTabsBn] = useState<TabItem[]>([]);
 
-  // Load pages with tabs sections, defaulting to Homepage's tabs section
+  // Load pages with tabs sections via a single bounded server action.
   useEffect(() => {
     async function load() {
       setLoading(true);
+      setErrorMsg(null);
       try {
-        const homePage = await getPageBySlug("home");
+        // Single bounded query: only pages that contain tabs/nested_tabs
+        // sections, with those sections' content included. Replaces the
+        // previous fetch-all-pages + one getPageBySlug-per-page pattern.
+        const pages = await getPagesWithTabSections();
         const foundSections: SectionWithPage[] = [];
 
-        if (homePage?.sections) {
-          for (const s of homePage.sections) {
-            if (s.type === "tabs" || s.type === "nested_tabs") {
-              const c = typeof s.content === "string" ? JSON.parse(s.content || "{}") : (s.content || {});
-              const cBn = typeof s.contentBn === "string" ? JSON.parse(s.contentBn || "{}") : (s.contentBn || {});
-              foundSections.push({
-                id: s.id,
-                pageId: homePage.id,
-                pageSlug: "home",
-                pageTitle: "Homepage",
-                title: s.title || "Research-Driven Think Tank",
-                titleBn: s.titleBn || "গবেষণাভিত্তিক থিংক ট্যাংক",
-                content: c,
-                contentBn: cBn,
-              });
-            }
-          }
-        }
-
-        // Fetch other pages that might have tabs
-        const allPagesRes = await fetch("/api/admin/pages").then((r) => r.json()).catch(() => ({ pages: [] }));
-        for (const p of allPagesRes.pages || []) {
-          if (p.slug === "home") continue;
-          const pageData = await getPageBySlug(p.slug).catch(() => null);
-          if (pageData?.sections) {
-            for (const s of pageData.sections) {
-              if (s.type === "tabs" || s.type === "nested_tabs") {
-                const c = typeof s.content === "string" ? JSON.parse(s.content || "{}") : (s.content || {});
-                const cBn = typeof s.contentBn === "string" ? JSON.parse(s.contentBn || "{}") : (s.contentBn || {});
-                foundSections.push({
-                  id: s.id,
-                  pageId: p.id,
-                  pageSlug: p.slug,
-                  pageTitle: p.title,
-                  title: s.title,
-                  titleBn: s.titleBn,
-                  content: c,
-                  contentBn: cBn,
-                });
-              }
-            }
+        for (const p of pages) {
+          for (const s of p.sections) {
+            const c = typeof s.content === "string" ? JSON.parse(s.content || "{}") : (s.content || {});
+            const cBn = typeof s.contentBn === "string" ? JSON.parse(s.contentBn || "{}") : (s.contentBn || {});
+            foundSections.push({
+              id: s.id,
+              pageId: p.id,
+              pageSlug: p.slug,
+              pageTitle: p.title,
+              title: s.title || "Tabs Section",
+              titleBn: s.titleBn || "",
+              content: c,
+              contentBn: cBn,
+            });
           }
         }
 
@@ -98,8 +75,8 @@ export default function TabsAdminPage() {
           setActiveTabsEn(Array.isArray(first.content.tabs) ? (first.content.tabs as TabItem[]) : []);
           setActiveTabsBn(Array.isArray(first.contentBn.tabs) ? (first.contentBn.tabs as TabItem[]) : []);
         }
-      } catch (_err) {
-        setErrorMsg("Failed to load tab sections.");
+      } catch (err) {
+        setErrorMsg(err instanceof Error ? err.message : "Failed to load tab sections.");
       } finally {
         setLoading(false);
       }

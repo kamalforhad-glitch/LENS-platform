@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { v4 as uuid } from "uuid";
 import bcrypt from "bcryptjs";
@@ -184,6 +185,21 @@ export async function loginUser(
 }
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
+  return getCurrentUserCached();
+}
+
+/**
+ * Resolve the current session user in a single database round trip: the session
+ * row is loaded together with its associated user, so a revoked/expired session
+ * or a missing user still resolves to `null` (no privileged access retained).
+ *
+ * Wrapped in React's `cache` so that multiple authentication lookups within the
+ * same request (e.g. the layout check plus several dashboard actions) share one
+ * session/user query instead of repeating it. The cache is request-scoped — it
+ * never persists across requests, never survives logout/expiry, and cannot be
+ * bypassed from the client — so server authorization is preserved.
+ */
+const getCurrentUserImpl = async (): Promise<AuthUser | null> => {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("lens-session")?.value;
@@ -192,33 +208,30 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     const payload = verifyToken(token);
     if (!payload) return null;
 
-    // Verify session exists and not expired
     const session = await db.session.findFirst({
       where: {
         id: payload.sessionId,
         expiresAt: { gt: new Date() },
       },
+      include: {
+        user: { select: { id: true, email: true, name: true, role: true } },
+      },
     });
 
-    if (!session) return null;
-
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { id: true, email: true, name: true, role: true },
-    });
-
-    if (!user) return null;
+    if (!session || !session.user) return null;
 
     return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as AuthUser["role"],
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name,
+      role: session.user.role as AuthUser["role"],
     };
   } catch {
     return null;
   }
-}
+};
+
+const getCurrentUserCached = cache(getCurrentUserImpl);
 
 // ============================================================
 // Authorization

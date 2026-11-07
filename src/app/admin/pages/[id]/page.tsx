@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Trash2, Globe, ExternalLink } from "lucide-react";
@@ -35,6 +35,7 @@ export default function PageEditor() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const [success, setSuccess] = useState<string | null>(
     searchParams?.get("created") === "1" ? "Page saved successfully!" : null
@@ -58,51 +59,71 @@ export default function PageEditor() {
   const [parents, setParents] = useState<ParentOption[]>([]);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
 
-  useEffect(() => {
-    if (!isNew && rawId) {
-      // Load parent-page options for the hierarchy dropdown (lightweight, no pagination).
-      fetch("/api/admin/pages?all=true")
-        .then((r) => r.json())
-        .then((d) => {
-          setParents(
-            (d.pages || [])
-              .filter((p: { id: string; slug: string; title: string }) => p.id !== rawId && p.slug !== "home")
-              .map((p: { id: string; slug: string; title: string }) => ({ id: p.id, slug: p.slug, title: p.title }))
-          );
-        })
-        .catch(() => { /* parent options are optional */ });
+  const loadPage = useCallback(async () => {
+    if (isNew || !rawId) return;
+    setLoading(true);
+    setLoadError(null);
 
-      fetch(`/api/admin/pages?id=${rawId}`)
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.page) {
-            setForm({
-              id: d.page.id,
-              slug: d.page.slug || "",
-              title: d.page.title || "",
-              titleBn: d.page.titleBn || "",
-              description: d.page.description || "",
-              descriptionBn: d.page.descriptionBn || "",
-              metaTitle: d.page.metaTitle || "",
-              metaDescription: d.page.metaDescription || "",
-              keywords: d.page.keywords || "[]",
-              canonicalUrl: d.page.canonicalUrl || "",
-              ogImage: d.page.ogImage || "",
-              parentId: d.page.parentId || "",
-              status: d.page.status || "draft",
-              sortOrder: d.page.sortOrder || 0,
-            });
-          } else {
-            setError("Page not found");
-          }
+    // Load parent-page options for the hierarchy dropdown (lightweight, no pagination).
+    // This is optional; failures are swallowed so they never block editing.
+    fetch("/api/admin/pages?all=true")
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`Failed to load parent pages (${r.status})`);
+        return r.json();
+      })
+      .then((d) => {
+        setParents(
+          (d.pages || [])
+            .filter((p: { id: string; slug: string; title: string }) => p.id !== rawId && p.slug !== "home")
+            .map((p: { id: string; slug: string; title: string }) => ({ id: p.id, slug: p.slug, title: p.title }))
+        );
+      })
+      .catch(() => { /* parent options are optional */ });
+
+    // Load the page itself. Distinguish a genuine 404 (page does not exist)
+    // from server/network/auth failures so we never show "Page not found" for
+    // an unrelated API error.
+    try {
+      const res = await fetch(`/api/admin/pages?id=${rawId}`);
+      if (!res.ok) {
+        if (res.status === 404) {
+          setLoadError("Page not found");
           setLoading(false);
-        })
-        .catch(() => {
-          setError("Failed to load page");
-          setLoading(false);
+          return;
+        }
+        throw new Error(`Failed to load page (${res.status})`);
+      }
+      const d = await res.json();
+      if (d.page) {
+        setForm({
+          id: d.page.id,
+          slug: d.page.slug || "",
+          title: d.page.title || "",
+          titleBn: d.page.titleBn || "",
+          description: d.page.description || "",
+          descriptionBn: d.page.descriptionBn || "",
+          metaTitle: d.page.metaTitle || "",
+          metaDescription: d.page.metaDescription || "",
+          keywords: d.page.keywords || "[]",
+          canonicalUrl: d.page.canonicalUrl || "",
+          ogImage: d.page.ogImage || "",
+          parentId: d.page.parentId || "",
+          status: d.page.status || "draft",
+          sortOrder: d.page.sortOrder || 0,
         });
+      } else {
+        setLoadError("Page not found");
+      }
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Failed to load page");
+    } finally {
+      setLoading(false);
     }
   }, [isNew, rawId]);
+
+  useEffect(() => {
+    loadPage();
+  }, [loadPage]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,6 +260,19 @@ export default function PageEditor() {
       </div>
 
       {/* Notifications */}
+      {loadError && (
+        <div className="p-4 mb-6 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center justify-between gap-3">
+          <span>{loadError}</span>
+          <button
+            type="button"
+            onClick={loadPage}
+            disabled={loading || saving}
+            className="text-xs font-semibold underline text-teal-600 hover:text-teal-700 disabled:opacity-50"
+          >
+            Try again
+          </button>
+        </div>
+      )}
       {error && (
         <div className="p-4 mb-6 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
           {error}

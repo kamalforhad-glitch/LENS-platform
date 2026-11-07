@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, ChevronRight } from "lucide-react";
+import { AlertCircle, Search, ChevronRight } from "lucide-react";
 import { SECTION_TYPE_DEFS } from "@/components/admin/PageSectionEditor";
 
 interface PageOption {
@@ -15,18 +15,36 @@ interface PageOption {
 export default function SectionsLibraryAdmin() {
   const [pages, setPages] = useState<PageOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
+    setLoading(true);
+    setErrorMsg(null);
     fetch("/api/admin/pages")
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          throw new Error(`Failed to load pages (${r.status})`);
+        }
+        return r.json();
+      })
       .then((d) => {
-        setPages(d.pages || []);
+        if (!d || !Array.isArray(d.pages)) {
+          throw new Error("Malformed pages response.");
+        }
+        setPages(d.pages);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        setErrorMsg(err instanceof Error ? err.message : "Failed to load sections library.");
+        setLoading(false);
+      });
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const filteredDefs = SECTION_TYPE_DEFS.filter((def) => {
     const matchesSearch =
@@ -62,6 +80,20 @@ export default function SectionsLibraryAdmin() {
         </div>
       </div>
 
+      {errorMsg && (
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-center gap-3 text-rose-800 text-sm">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
+          <span>{errorMsg}</span>
+          <button
+            type="button"
+            onClick={loadData}
+            className="ml-auto px-3 py-1.5 text-xs font-semibold text-rose-600 hover:text-rose-800 underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
       {/* Search Bar */}
       <div className="relative">
         <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
@@ -75,40 +107,55 @@ export default function SectionsLibraryAdmin() {
       </div>
 
       {/* Grid of Section Types */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDefs.map((def) => {
-          return (
-            <div
-              key={def.type}
-              className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between hover:border-teal-500/50 hover:shadow-xs transition-all"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
-                    {def.type}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    {def.fields.length} configurable field{def.fields.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <h3 className="text-base font-bold text-slate-900 mb-1.5">{def.label}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{def.description}</p>
-              </div>
-
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between animate-pulse">
+              <div className="h-4 bg-slate-100 rounded w-32 mb-2" />
+              <h3 className="h-5 bg-slate-100 rounded w-24 mb-1" />
+              <p className="h-4 bg-slate-100 rounded h-8" />
               <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-xs font-medium text-teal-600">Bilingual ready (EN / BN)</span>
-                <Link
-                  href="/admin/pages"
-                  className="text-xs font-semibold text-slate-700 hover:text-teal-600 transition-colors inline-flex items-center gap-1"
-                >
-                  Add to page <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
+                <span className="h-4 bg-slate-100 rounded w-16" />
+                <span className="h-4 bg-slate-100 rounded w-20" />
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredDefs.map((def) => {
+            return (
+              <div
+                key={def.type}
+                className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between hover:border-teal-500/50 hover:shadow-xs transition-all"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
+                      {def.type}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {def.fields.length} configurable field{def.fields.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 mb-1.5">{def.label}</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">{def.description}</p>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs font-medium text-teal-600">Bilingual ready (EN / BN)</span>
+                  <Link
+                    href="/admin/pages"
+                    className="text-xs font-semibold text-slate-700 hover:text-teal-600 transition-colors inline-flex items-center gap-1"
+                  >
+                    Add to page <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
-

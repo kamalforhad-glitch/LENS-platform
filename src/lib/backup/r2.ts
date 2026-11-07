@@ -6,9 +6,13 @@
 // configuration, environment variables, and documentation here are
 // Cloudflare R2 — no AWS infrastructure is involved.
 //
+// Backup objects are NEVER assigned public URLs. Backup access is
+// through authenticated admin endpoints only.
+//
 // Env (all R2-specific, never hardcoded, never logged):
-//   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
-//   R2_BUCKET, R2_ENDPOINT (optional), R2_PUBLIC_URL (optional)
+//   R2_BACKUP_ACCOUNT_ID, R2_BACKUP_ACCESS_KEY_ID,
+//   R2_BACKUP_SECRET_ACCESS_KEY, R2_BACKUP_BUCKET,
+//   R2_BACKUP_ENDPOINT (optional)
 // ============================================================
 import { basename } from "path";
 import {
@@ -24,7 +28,7 @@ export interface R2Config {
   secretAccessKey: string;
   bucket: string;
   endpoint: string;
-  publicUrl?: string;
+  // Backups must not have public URLs. This field is intentionally omitted.
 }
 
 // Structural client type so unit tests can inject a mock without credentials.
@@ -32,30 +36,36 @@ export interface R2ClientLike {
   send(command: unknown): Promise<unknown>;
 }
 
-/** Returns null when R2 is entirely unconfigured (local-only mode). */
+/** Returns null when R2 backup storage is entirely unconfigured (local-only mode). */
 export function getR2Config(): R2Config | null {
-  const accountId = process.env.R2_ACCOUNT_ID;
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-  const bucket = process.env.R2_BUCKET;
+  const accountId = process.env.R2_BACKUP_ACCOUNT_ID;
+  const accessKeyId = process.env.R2_BACKUP_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_BACKUP_SECRET_ACCESS_KEY;
+  const bucket = process.env.R2_BACKUP_BUCKET;
 
-  if (!accountId && !accessKeyId && !secretAccessKey && !bucket && !process.env.R2_ENDPOINT) {
+  if (
+    !accountId &&
+    !accessKeyId &&
+    !secretAccessKey &&
+    !bucket &&
+    !process.env.R2_BACKUP_ENDPOINT
+  ) {
     return null;
   }
 
   // Fail closed on partial configuration — variable NAMES only, never values.
   const missing: string[] = [];
-  if (!accountId) missing.push("R2_ACCOUNT_ID");
-  if (!accessKeyId) missing.push("R2_ACCESS_KEY_ID");
-  if (!secretAccessKey) missing.push("R2_SECRET_ACCESS_KEY");
-  if (!bucket) missing.push("R2_BUCKET");
+  if (!accountId) missing.push("R2_BACKUP_ACCOUNT_ID");
+  if (!accessKeyId) missing.push("R2_BACKUP_ACCESS_KEY_ID");
+  if (!secretAccessKey) missing.push("R2_BACKUP_SECRET_ACCESS_KEY");
+  if (!bucket) missing.push("R2_BACKUP_BUCKET");
   if (missing.length > 0) {
-    throw new Error(`Cloudflare R2 misconfigured, missing: ${missing.join(", ")}`);
+    throw new Error(`Cloudflare R2 backup misconfigured, missing: ${missing.join(", ")}`);
   }
 
-  // Cloudflare account endpoint convention; explicit R2_ENDPOINT wins.
+  // Cloudflare account endpoint convention; explicit R2_BACKUP_ENDPOINT wins.
   const endpoint =
-    process.env.R2_ENDPOINT || `https://${accountId}.r2.cloudflarestorage.com`;
+    process.env.R2_BACKUP_ENDPOINT || `https://${accountId}.r2.cloudflarestorage.com`;
 
   return {
     accountId: accountId!,
@@ -63,7 +73,6 @@ export function getR2Config(): R2Config | null {
     secretAccessKey: secretAccessKey!,
     bucket: bucket!,
     endpoint,
-    publicUrl: process.env.R2_PUBLIC_URL,
   };
 }
 
@@ -72,10 +81,13 @@ export function r2ObjectKey(filename: string): string {
   return `backups/${basename(filename)}`;
 }
 
-/** Public URL for an object key, or null when no public URL is configured. */
-export function r2PublicUrl(config: R2Config, key: string): string | null {
-  if (!config.publicUrl) return null;
-  return `${config.publicUrl.replace(/\/+$/, "")}/${key}`;
+/**
+ * Backups must never have public URLs. This function is intentionally
+ * not exported for backup configs — backup access is via authenticated
+ * admin download endpoints using short-lived signed URLs only.
+ */
+export function r2PublicUrl(): never {
+  throw new Error("Backup objects must not have public URLs");
 }
 
 export function createR2Client(
@@ -129,7 +141,7 @@ export async function downloadFromR2(
     Body?: { transformToByteArray?: () => Promise<Uint8Array> } | AsyncIterable<Uint8Array>;
   };
   const body = result.Body;
-  if (!body) throw new Error(`Cloudflare R2 object not found for key "${key}"`);
+  if (!body) throw new Error(`Cloud R2 object not found for key "${key}"`);
   if (typeof (body as { transformToByteArray?: unknown }).transformToByteArray === "function") {
     const bytes = await (body as { transformToByteArray: () => Promise<Uint8Array> }).transformToByteArray();
     return Buffer.from(bytes);

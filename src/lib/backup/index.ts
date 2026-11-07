@@ -5,15 +5,16 @@ import { writeFile, readdir, stat, unlink, readFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join, basename } from "path";
 import { sendBackupReport } from "@/lib/email";
-import { requireDatabaseUrl } from "@/lib/env";
+import { requireDatabaseUrl, requireBackupBucket, assertBucketsDistinct } from "@/lib/env";
+import { sanitizeError } from "@/lib/sanitize-error";
 import {
   createR2Client,
   downloadFromR2,
   getR2Config,
   r2ObjectKey,
-  r2PublicUrl,
   uploadToR2,
 } from "@/lib/backup/r2";
+import { encryptBackup, decryptBackup, loadEncryptionKey } from "@/lib/backup/encryption";
 
 const execFileAsync = promisify(execFile);
 
@@ -60,6 +61,16 @@ function missingBinaryMessage(binary: string): string {
   );
 }
 
+/**
+ * Sanitizes backup error messages before persisting to the database or
+ * returning to the admin UI. Delegates to the shared sanitizeError()
+ * utility so that backup and upload error handling use one source of
+ * truth for secret redaction.
+ */
+export function sanitizeBackupError(error: unknown): string {
+  return sanitizeError(error);
+}
+
 
 export interface BackupResult {
   id: string;
@@ -70,8 +81,7 @@ export interface BackupResult {
   error?: string;
   /** Where the artifact durably lives: local disk or Cloudflare R2. */
   storage: "local" | "r2";
-  /** R2 public URL when storage === "r2" and a public URL is configured. */
-  remoteUrl?: string;
+  /** Backups never have public URLs. Remote URL is intentionally omitted. */
 }
 
 export async function createBackup(type: "manual" | "scheduled" = "manual"): Promise<BackupResult> {
@@ -79,6 +89,7 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const filename = `lens-backup-${timestamp}.sql`;
   const id = crypto.randomUUID();
+  const isProduction = process.env.NODE_ENV === "production";
 
   // Create backup record
   await db.backupRecord.create({
@@ -87,6 +98,15 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
 
   try {
     const databaseUrl = requireDatabaseUrl();
+
+    // Production backup bucket validation — fail closed before pg_dump.
+    // requireBackupBucket() throws in production if R2_BACKUP_BUCKET is missing.
+    // assertBucketsDistinct() rejects identical media/backup bucket names.
+    requireBackupBucket();
+    assertBucketsDistinct();
+
+    // Load encryption key — fail closed in production if missing.
+    const encryptionKey = loadEncryptionKey(isProduction);
 
     // Ensure backup directory exists before dumping (pg_dump won't create it).
     await mkdir(BACKUP_DIR, { recursive: true });
@@ -111,29 +131,41 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
       throw error;
     }
     const fileStat = await stat(filePath);
+    const plaintext = await readFile(filePath);
 
-    // Cloudflare R2 persistence (null = R2 unconfigured → explicit local mode).
+    // Cloudflare R2 persistence.
     // getR2Config() throws on partial configuration — caught below as failure.
     const r2 = getR2Config();
     let storage: "local" | "r2" = "local";
     let remoteKey: string | null = null;
-    let remoteUrl: string | null = null;
 
     if (r2) {
+      // Encrypt before upload — never store plaintext SQL in R2.
+      // Encryption key is required whenever R2 backup storage is configured.
+      if (!encryptionKey) {
+        throw new Error(
+          "BACKUP_ENCRYPTION_KEY is required when R2 backup storage is configured"
+        );
+      }
+      const encrypted = encryptBackup(plaintext, encryptionKey);
       const key = r2ObjectKey(filename);
-      const body = await readFile(filePath);
       // Throws R2UploadError on failure → backup is marked failed, never
       // reported as a successful persistent backup. No silent local fallback.
-      await uploadToR2(createR2Client(r2), r2.bucket, key, body);
+      await uploadToR2(createR2Client(r2), r2.bucket, key, encrypted.data);
       remoteKey = key;
-      remoteUrl = r2PublicUrl(r2, key);
       storage = "r2";
 
-      // Safe local cleanup: artifact now durable in R2. A cleanup failure
-      // must not fail the backup — retention sweep removes stragglers later.
+      // Safe local cleanup: encrypted artifact now durable in R2. A cleanup
+      // failure must not fail the backup — retention sweep removes stragglers later.
       await unlink(filePath).catch((e) => {
         console.warn(`[Backup] R2 upload ok but local cleanup failed for ${filename}`, e);
       });
+    } else if (isProduction) {
+      // In production, R2 backup storage is required. Do not silently fall
+      // back to ephemeral local disk, which does not survive redeployments.
+      throw new Error(
+        "R2 backup storage is required in production (R2_BACKUP_BUCKET not configured)."
+      );
     }
 
     await db.backupRecord.update({
@@ -143,7 +175,6 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
         size: fileStat.size,
         storage,
         remoteKey,
-        remoteUrl,
       },
     });
 
@@ -161,9 +192,11 @@ export async function createBackup(type: "manual" | "scheduled" = "manual"): Pro
       duration,
     });
 
-    return { id, filename, size: fileStat.size, status: "completed", duration, storage, remoteUrl: remoteUrl ?? undefined };
+    return { id, filename, size: fileStat.size, status: "completed", duration, storage };
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    // Sanitize error messages — never expose connection strings, credentials,
+    // host details, or raw subprocess output to the caller or admin UI.
+    const errorMsg = sanitizeBackupError(error);
 
     await db.backupRecord.update({
       where: { id },
@@ -190,25 +223,59 @@ export async function restoreBackup(backupId: string): Promise<{ success: boolea
   if (!record) return { success: false, error: "Backup record not found" };
   if (record.status !== "completed") return { success: false, error: "Backup is not completed" };
 
+  const isProduction = process.env.NODE_ENV === "production";
+
   // basename() prevents directory traversal if the DB record was tampered with.
-  let filePath = join(BACKUP_DIR, basename(record.filename));
-  let tempPath: string | null = null;
+  const filePath = join(BACKUP_DIR, basename(record.filename));
+  let downloadTempPath: string | null = null;   // R2 download target (encrypted artifact)
+  let plaintextTempPath: string | null = null;  // Decrypted SQL for psql (never the original file)
 
   try {
-    // R2-persisted artifacts have no local file (cleaned up after upload):
-    // fetch to a temp file first. Local/legacy rows restore from disk.
+    // Load encryption key — required to decrypt encrypted backups.
+    const encryptionKey = loadEncryptionKey(isProduction);
+
+    // Determine the source of the backup artifact.
+    let sourcePath: string;
+
     if (record.storage === "r2") {
       const r2 = getR2Config();
       if (!r2) throw new Error("Backup is stored in Cloudflare R2 but R2 is not configured");
       const key = record.remoteKey || r2ObjectKey(record.filename);
-      tempPath = join(BACKUP_DIR, `restore-${record.id}.sql`);
+      downloadTempPath = join(BACKUP_DIR, `restore-${record.id}.sql`);
       await mkdir(BACKUP_DIR, { recursive: true });
       const data = await downloadFromR2(createR2Client(r2), r2.bucket, key);
-      await writeFile(tempPath, data);
-      filePath = tempPath;
+      await writeFile(downloadTempPath, data);
+      sourcePath = downloadTempPath;
+    } else {
+      sourcePath = filePath;
+    }
+
+    // Read the artifact and detect format.
+    const data = await readFile(sourcePath);
+
+    if (data.length >= 4 && data.subarray(0, 4).toString("latin1") === "LBK1") {
+      if (!encryptionKey) {
+        throw new Error("Backup is encrypted but BACKUP_ENCRYPTION_KEY is not configured");
+      }
+      const decrypted = decryptBackup(data, encryptionKey);
+      // Write decrypted SQL to a separate unpredictable temp file.
+      // Never overwrite the original encrypted backup file.
+      plaintextTempPath = join(BACKUP_DIR, `restore-plaintext-${record.id}.sql`);
+      await writeFile(plaintextTempPath, decrypted);
+    } else {
+      // Legacy unencrypted backup — reject in production.
+      if (isProduction) {
+        throw new Error("Legacy unencrypted backups are not supported for restore");
+      }
+      // In development, write legacy plaintext to a temp file for psql.
+      plaintextTempPath = join(BACKUP_DIR, `restore-plaintext-${record.id}.sql`);
+      await writeFile(plaintextTempPath, data);
     }
 
     const databaseUrl = requireDatabaseUrl();
+
+    // psql restores from the temp plaintext file (never the original encrypted artifact).
+    const psqlFilePath = plaintextTempPath ?? sourcePath;
 
     // Plain-format dumps restore with psql (no shell — args array only).
     try {
@@ -216,7 +283,7 @@ export async function restoreBackup(backupId: string): Promise<{ success: boolea
         databaseUrl,
         "--quiet",
         "--file",
-        filePath,
+        psqlFilePath,
       ]);
     } catch (error) {
       if (isMissingBinary(error)) {
@@ -224,12 +291,15 @@ export async function restoreBackup(backupId: string): Promise<{ success: boolea
       }
       throw error;
     }
-    if (tempPath) await unlink(tempPath).catch(() => {});
     return { success: true };
   } catch (error) {
-    if (tempPath) await unlink(tempPath).catch(() => {});
-    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    const errorMsg = sanitizeBackupError(error);
     return { success: false, error: errorMsg };
+  } finally {
+    // Clean up all temporary files — success or failure.
+    // The original encrypted backup file (filePath) is never touched.
+    if (downloadTempPath) await unlink(downloadTempPath).catch(() => {});
+    if (plaintextTempPath) await unlink(plaintextTempPath).catch(() => {});
   }
 }
 
@@ -286,7 +356,7 @@ async function cleanOldBackups() {
       });
     }
   } catch (error) {
-    console.error("[Backup Cleanup Error]", error);
+    console.error("[Backup Cleanup Error]", sanitizeBackupError(error));
   }
 }
 
@@ -295,10 +365,16 @@ export async function downloadBackup(backupId: string): Promise<{ data?: Buffer;
   if (!record) return { error: "Backup not found" };
   if (record.status !== "completed") return { error: "Backup not completed" };
 
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // Load encryption key — required to decrypt encrypted backups.
+  const encryptionKey = loadEncryptionKey(isProduction);
+
   const filePath = join(BACKUP_DIR, basename(record.filename));
   try {
     const data = await readFile(filePath);
-    return { data, filename: basename(record.filename) };
+    const decrypted = maybeDecrypt(data, encryptionKey, isProduction);
+    return { data: decrypted, filename: basename(record.filename) };
   } catch {
     // Fall through to R2 for r2-persisted artifacts (local file cleaned up).
   }
@@ -309,11 +385,35 @@ export async function downloadBackup(backupId: string): Promise<{ data?: Buffer;
       if (!r2) return { error: "Backup is stored in Cloudflare R2 but R2 is not configured" };
       const key = record.remoteKey || r2ObjectKey(record.filename);
       const data = await downloadFromR2(createR2Client(r2), r2.bucket, key);
-      return { data, filename: basename(record.filename) };
+      const decrypted = maybeDecrypt(data, encryptionKey, isProduction);
+      return { data: decrypted, filename: basename(record.filename) };
     } catch {
       return { error: "Backup file not found in Cloudflare R2" };
     }
   }
 
   return { error: "Backup file not found on disk" };
+}
+
+/**
+ * Detects the LBK1 encrypted format and decrypts if present.
+ * Legacy unencrypted backups are returned as-is in development, but
+ * rejected in production.
+ */
+function maybeDecrypt(
+  data: Buffer,
+  encryptionKey: Buffer | null,
+  isProduction: boolean
+): Buffer {
+  if (data.length >= 4 && data.subarray(0, 4).toString("latin1") === "LBK1") {
+    if (!encryptionKey) {
+      throw new Error("Backup is encrypted but BACKUP_ENCRYPTION_KEY is not configured");
+    }
+    return decryptBackup(data, encryptionKey);
+  }
+  // Legacy unencrypted backup.
+  if (isProduction) {
+    throw new Error("Legacy unencrypted backups are not supported for download");
+  }
+  return data;
 }

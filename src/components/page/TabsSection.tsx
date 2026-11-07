@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useId, useMemo } from "react";
 import Link from "next/link";
 import { pickLocale } from "@/lib/cms-content";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export { pickLocale };
 import {
@@ -174,9 +175,16 @@ export default function TabsSection({ content, contentBn, bn }: TabsSectionProps
   const tabListRef = useRef<HTMLDivElement>(null);
   const innerTabListRef = useRef<HTMLDivElement>(null);
 
-  // Sync active tab if initial selection is not found or tabs change
+  // When the set of parent tabs changes, keep the current selection only if it
+  // still exists; otherwise jump to the first tab. This prevents displaying a
+  // previous section's tab when the parent tab configuration is replaced.
   useEffect(() => {
-    if (tabs.length > 0 && !tabs.some((t) => t.id === activeTabId)) {
+    if (tabs.length === 0) {
+      setActiveTabId("");
+      setActiveInnerTabId("");
+      return;
+    }
+    if (!tabs.some((t) => t.id === activeTabId)) {
       setActiveTabId(tabs[0].id);
     }
   }, [tabs, activeTabId]);
@@ -184,14 +192,19 @@ export default function TabsSection({ content, contentBn, bn }: TabsSectionProps
   const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
   const innerTabs = useMemo(() => activeTab?.innerTabs || [], [activeTab]);
 
-  // Sync active inner tab when active top tab changes
+  // When the active parent tab changes, select the first visible inner tab of
+  // the new parent (or clear the selection when there are none). inner-tab
+  // content never belongs to another parent tab. activeInnerTabId is
+  // intentionally not a dependency here so a user's inner-tab choice is not
+  // discarded, and there is no update loop.
   useEffect(() => {
-    if (innerTabs.length > 0) {
-      if (!innerTabs.some((it) => it.id === activeInnerTabId)) {
-        setActiveInnerTabId(innerTabs[0].id);
-      }
-    } else {
+    const visibleInner = innerTabs.filter((it) => it.visible !== false);
+    if (visibleInner.length === 0) {
       setActiveInnerTabId("");
+      return;
+    }
+    if (!visibleInner.some((it) => it.id === activeInnerTabId)) {
+      setActiveInnerTabId(visibleInner[0].id);
     }
   }, [innerTabs, activeInnerTabId]);
 
@@ -376,7 +389,9 @@ export default function TabsSection({ content, contentBn, bn }: TabsSectionProps
               .filter((b) => b.visible !== false)
               .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
               .map((block) => (
-                <RenderContentBlock key={block.id} block={block} bn={bn} />
+                <ErrorBoundary key={block.id} fallback={<ContentBlockFallback block={block} />}>
+                  <RenderContentBlock block={block} bn={bn} />
+                </ErrorBoundary>
               ))}
           </div>
         ) : (
@@ -385,6 +400,22 @@ export default function TabsSection({ content, contentBn, bn }: TabsSectionProps
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Safe fallback rendered when a single content block throws. The block's
+// siblings stay visible; the error is surfaced instead of being silently hidden.
+function ContentBlockFallback({ block }: { block: ContentBlockItem }) {
+  const title = block.title || block.titleBn || "Untitled block";
+  return (
+    <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+      <p>
+        Failed to render content block <strong>{title}</strong> ({block.type}).
+      </p>
+      <p className="text-xs text-rose-600 mt-1">
+        This block was skipped so the rest of the section stays visible.
+      </p>
     </div>
   );
 }

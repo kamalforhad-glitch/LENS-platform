@@ -9,6 +9,8 @@ import {
   generateStorageKey,
   getPublicUrl,
 } from "@/lib/storage";
+import { requireMediaBucket, assertBucketsDistinct } from "@/lib/env";
+import { sanitizeError } from "@/lib/sanitize-error";
 
 export async function POST(request: Request) {
   try {
@@ -63,32 +65,38 @@ export async function POST(request: Request) {
     const key = generateStorageKey(file.name);
     const publicUrl = getPublicUrl(key);
 
+    // Production media bucket validation — fail closed before any upload.
+    // requireMediaBucket() throws in production if R2_MEDIA_BUCKET is missing.
+    // assertBucketsDistinct() rejects identical media/backup bucket names.
+    requireMediaBucket();
+    assertBucketsDistinct();
+
     // Upload to R2 (S3-compatible API) if configured, otherwise save locally.
-    // In production, require R2 configuration — do not silently persist to
+    // In production, require R2 media configuration — do not silently persist to
     // ephemeral local disk, which does not survive redeployments.
-    const s3Key = process.env.R2_ACCESS_KEY_ID;
+    const s3Key = process.env.R2_MEDIA_ACCESS_KEY_ID;
 
     if (process.env.NODE_ENV === "production" && !s3Key) {
       throw new Error(
-        "R2 storage is required in production (R2_ACCESS_KEY_ID environment variable missing)."
+        "R2 media storage is required in production (R2_MEDIA_ACCESS_KEY_ID environment variable missing)."
       );
     }
 
     if (s3Key) {
       const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
       const config = {
-        region: process.env.R2_REGION || "auto",
-        endpoint: process.env.R2_ENDPOINT,
+        region: process.env.R2_MEDIA_REGION || "auto",
+        endpoint: process.env.R2_MEDIA_ENDPOINT,
         credentials: {
-          accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
-          secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
+          accessKeyId: process.env.R2_MEDIA_ACCESS_KEY_ID || "",
+          secretAccessKey: process.env.R2_MEDIA_SECRET_ACCESS_KEY || "",
         },
       };
 
       const client = new S3Client(config);
       await client.send(
         new PutObjectCommand({
-          Bucket: process.env.R2_BUCKET || "lens-media",
+          Bucket: process.env.R2_MEDIA_BUCKET || "",
           Key: key,
           Body: buffer,
           ContentType: effectiveType,
@@ -132,7 +140,8 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error("[Upload API Error]", error);
+    // Log a sanitized error — never credentials, keys, URLs, or stack traces.
+    console.error("[Upload API Error]", sanitizeError(error));
     const errorMessage = error instanceof Error ? error.message : "Upload failed";
     return NextResponse.json(
       { error: errorMessage },

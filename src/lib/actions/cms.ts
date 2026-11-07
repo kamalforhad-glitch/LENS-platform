@@ -419,6 +419,45 @@ export async function getPageBySlug(slug: string) {
   });
 }
 
+/**
+ * Fetch only pages that contain at least one tabs/nested_tabs section, together
+ * with those sections' content. A single bounded query replaces the previous
+ * fetch-all-pages + one getPageBySlug-per-page pattern, avoiding unbounded
+ * payloads and repeated per-page requests. Access control is preserved: the
+ * caller must be authenticated, and sections are filtered to tabs types only.
+ */
+export async function getPagesWithTabSections() {
+  requireAuth(await getCurrentUser(), "viewer");
+  const pages = await db.page.findMany({
+    where: {
+      sections: { some: { type: { in: ["tabs", "nested_tabs"] } } },
+    },
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    take: 100,
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      titleBn: true,
+      status: true,
+      sections: {
+        where: { type: { in: ["tabs", "nested_tabs"] } },
+        orderBy: { sortOrder: "asc" },
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          titleBn: true,
+          content: true,
+          contentBn: true,
+          sortOrder: true,
+        },
+      },
+    },
+  });
+  return pages;
+}
+
 export async function createPage(data: {
   slug: string;
   title: string;
