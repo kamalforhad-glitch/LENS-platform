@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Layers,
-  FolderTree,
   Save,
   CheckCircle,
   AlertCircle,
@@ -99,7 +98,7 @@ export default function TabsAdminPage() {
           setActiveTabsEn(Array.isArray(first.content.tabs) ? (first.content.tabs as TabItem[]) : []);
           setActiveTabsBn(Array.isArray(first.contentBn.tabs) ? (first.contentBn.tabs as TabItem[]) : []);
         }
-      } catch (err) {
+      } catch (_err) {
         setErrorMsg("Failed to load tab sections.");
       } finally {
         setLoading(false);

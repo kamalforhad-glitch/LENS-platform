@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { getAnalyticsOverview, getMonthlyActivity, getCategoryTrends, getAuthorImpact, getTopArticles, getSearchTrends } from "@/lib/actions/analytics";

@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
-import type { SearchResult, AutocompleteResult, RelatedContent, AdminResearchArticle } from "@/lib/admin-types";
+import type { AutocompleteResult, RelatedContent, AdminResearchArticle } from "@/lib/admin-types";
 
 export interface LibraryFilters {
   search?: string;

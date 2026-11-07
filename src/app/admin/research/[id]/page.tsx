@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { getResearchArticle, createResearchArticle, updateResearchArticle, saveVersion, getVersions, getCitations, addCitation, deleteCitation } from "@/lib/actions/research";
-import { getAuthorProfiles, linkAuthorToArticle } from "@/lib/actions/authors";
+import { getAuthorProfiles } from "@/lib/actions/authors";
 import { assignReviewer, getArticleReviews } from "@/lib/actions/review";
 
 const CATEGORIES = ["Research Report", "Working Paper", "Policy Brief", "Data Analysis"];

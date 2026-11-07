@@ -4,14 +4,11 @@ import { useState, useEffect, useCallback, useTransition } from "react";
 import Link from "next/link";
 import {
   Send,
-  Eye,
   CheckCircle,
   Clock,
   Archive,
   RefreshCw,
   ExternalLink,
-  ShieldCheck,
-  AlertCircle,
 } from "lucide-react";
 import { updatePage } from "@/lib/actions/cms";
 

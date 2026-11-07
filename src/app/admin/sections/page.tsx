@@ -2,16 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  Layers,
-  FileText,
-  Search,
-  ExternalLink,
-  ChevronRight,
-  Plus,
-  Layout,
-  Filter,
-} from "lucide-react";
+import { Search, ChevronRight } from "lucide-react";
 import { SECTION_TYPE_DEFS } from "@/components/admin/PageSectionEditor";
 
 interface PageOption {

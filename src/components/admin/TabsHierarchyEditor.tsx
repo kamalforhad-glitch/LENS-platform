@@ -5,11 +5,6 @@ import {
   Layers,
   Plus,
   Trash2,
-  ChevronDown,
-  ChevronUp,
-  Eye,
-  EyeOff,
-  Copy,
   FolderTree,
   FileText,
   Image as ImageIcon,
@@ -18,7 +13,6 @@ import {
   List,
   Download,
   MousePointerClick,
-  Sparkles,
 } from "lucide-react";
 import type { TabItem, InnerTabItem, ContentBlockItem } from "@/components/page/TabsSection";
 import MediaPickerModal from "./MediaPickerModal";

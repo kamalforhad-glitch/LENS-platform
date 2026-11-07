@@ -70,7 +70,7 @@ export default function RevisionsAdminPage() {
           status: (r.status as string) || null,
         }))
       );
-    } catch (err) {
+    } catch (_err) {
       setError("Failed to load revisions for this page.");
     } finally {
       setRevisionsLoading(false);

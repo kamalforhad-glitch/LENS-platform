@@ -93,7 +93,7 @@ function AccountsTab({ setNotice }: { setNotice: (n: Notice | null) => void }) {
       const res = await listAdminUsers();
       setUsers(res.users as unknown as AdminUser[]);
       setIsSuperAdmin(res.isSuperAdmin);
-    } catch (e) {
+    } catch (_e) {
       setUsers([]);
       setIsSuperAdmin(false);
     }

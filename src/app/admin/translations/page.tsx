@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Globe,
-  Search,
-  Plus,
-  Save,
-  Trash2,
-  CheckCircle,
-  AlertCircle,
-  Filter,
-} from "lucide-react";
+import { Globe, Search, Plus, CheckCircle, AlertCircle } from "lucide-react";
 import {
   getTranslations,
   upsertTranslation,
@@ -40,7 +31,7 @@ export default function TranslationsAdminPage() {
     try {
       const data = await getTranslations();
       setItems(data);
-    } catch (err) {
+    } catch (_err) {
       setError("Failed to load translations.");
     } finally {
       setLoading(false);
