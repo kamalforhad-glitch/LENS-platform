@@ -206,7 +206,6 @@ export function validateFileSize(mimeType: string, size: number): { valid: boole
 }
 
 export function generateStorageKey(originalName: string): string {
-  const ext = originalName.split(".").pop() || "";
   const date = new Date();
   const datePath = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}`;
   const randomId = crypto.randomUUID().slice(0, 8);
@@ -304,7 +303,7 @@ export async function getSignedUploadUrl(
     // In production, fail clearly if R2 is not configured rather than silently
     // falling back to ephemeral local storage. In development, allow the
     // local fallback so the UI remains functional without credentials.
-    if (process.env.NEXT_PUBLIC_NODE_ENV === "production") {
+    if (process.env.NODE_ENV === "production") {
       throw new Error(
         "R2 storage is not configured (R2_ACCESS_KEY_ID missing) and is required in production."
       );

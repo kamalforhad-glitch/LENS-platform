@@ -8,7 +8,6 @@ import {
   sniffImageDimensions,
   generateStorageKey,
   getPublicUrl,
-  getSignedUploadUrl,
 } from "@/lib/storage";
 
 export async function POST(request: Request) {
@@ -69,7 +68,7 @@ export async function POST(request: Request) {
     // ephemeral local disk, which does not survive redeployments.
     const s3Key = process.env.R2_ACCESS_KEY_ID;
 
-    if (process.env.NEXT_PUBLIC_NODE_ENV === "production" && !s3Key) {
+    if (process.env.NODE_ENV === "production" && !s3Key) {
       throw new Error(
         "R2 storage is required in production (R2_ACCESS_KEY_ID environment variable missing)."
       );
