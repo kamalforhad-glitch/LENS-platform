@@ -36,6 +36,7 @@ const SECTION_LABELS: Record<string, string> = {
   featured_research: "Featured Research & Highlights",
   impact: "Impact Statistics",
   events_newsletter: "Events & Newsletter",
+  globe_network: "Globe Network",
   tabs: "Tabs & Nested Tabs",
   nested_tabs: "Nested Tabs Hierarchy",
   logo_cloud: "Partner Logos",
@@ -171,6 +172,9 @@ export default function HomepageCMS() {
       prefillEditorKeys(contentBnObj, SECTION_TEXT_PAIRS);
       prefillEditorKeys(contentObj, NEWSLETTER_PAIRS);
       prefillEditorKeys(contentBnObj, NEWSLETTER_PAIRS);
+    } else if (section.type === "globe_network") {
+      prefillEditorKeys(contentObj, SECTION_TEXT_PAIRS);
+      prefillEditorKeys(contentBnObj, SECTION_TEXT_PAIRS);
     }
 
     setEditingId(section.id);
@@ -483,6 +487,8 @@ export default function HomepageCMS() {
                     { type: "impact", label: "Impact Statistics" },
                     { type: "featured_research", label: "Featured Highlights" },
                     { type: "events_newsletter", label: "Events & Newsletter" },
+                    { type: "globe_network", label: "Globe Network" },
+                    { type: "indexing_scanner", label: "Indexing Scanner" },
                     { type: "logo_cloud", label: "Partner Logos" },
                     { type: "testimonial", label: "Testimonials" },
                     { type: "cta", label: "Call to Action Banner" },
@@ -1823,8 +1829,414 @@ export default function HomepageCMS() {
                     </div>
                   )}
 
+                  {/* Globe Network Form */}
+                  {section.type === "globe_network" && (
+                    <div className="space-y-4">
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Section Title (EN)</label>
+                          <input
+                            type="text"
+                            value={editFormData.title}
+                            onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Section Title (BN)</label>
+                          <input
+                            type="text"
+                            value={editFormData.titleBn}
+                            onChange={(e) => setEditFormData({ ...editFormData, titleBn: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bangla"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Section Description (EN)</label>
+                          <textarea
+                            rows={2}
+                            value={(editFormData.content.description as string) || ""}
+                            onChange={(e) =>
+                              setEditFormData({
+                                ...editFormData,
+                                content: { ...editFormData.content, description: e.target.value },
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm resize-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Section Description (BN)</label>
+                          <textarea
+                            rows={2}
+                            value={(editFormData.contentBn.description as string) || ""}
+                            onChange={(e) =>
+                              setEditFormData({
+                                ...editFormData,
+                                contentBn: { ...editFormData.contentBn, description: e.target.value },
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm resize-none font-bangla"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Media Hubs List */}
+                      <div className="mt-4 pt-4 border-t border-slate-200">
+                        <h4 className="text-xs font-bold text-slate-700 uppercase mb-3">Media Hubs</h4>
+                        <p className="text-xs text-slate-500 mb-3">
+                          Configure LENS global media hubs with name, coordinates, and gold status.
+                        </p>
+                        <div className="space-y-3">
+                          {Array.isArray(editFormData.content.hubs)
+                            ? (editFormData.content.hubs as Array<Record<string, unknown>>).map((hub, hIdx) => {
+                                const hubBn = Array.isArray(editFormData.contentBn.hubs)
+                                  ? (editFormData.contentBn.hubs as Array<Record<string, unknown>>)[hIdx] || {}
+                                  : {};
+                                return (
+                                  <div key={hIdx} className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold text-slate-800">Hub #{hIdx + 1}</span>
+                                    </div>
+                                    <div className="grid sm:grid-cols-2 gap-3">
+                                      <input
+                                        type="text"
+                                        placeholder="Name (English)"
+                                        value={String(hub.name || "")}
+                                        onChange={(e) => {
+                                          const newHubs = [...(editFormData.content.hubs as Array<Record<string, unknown>>)];
+                                          newHubs[hIdx] = { ...newHubs[hIdx], name: e.target.value };
+                                          setEditFormData({
+                                            ...editFormData,
+                                            content: { ...editFormData.content, hubs: newHubs },
+                                          });
+                                        }}
+                                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                                      />
+                                      <input
+                                        type="text"
+                                        placeholder="Name (Bengali)"
+                                        value={String(hubBn.name || "")}
+                                        onChange={(e) => {
+                                          const newHubsBn = Array.isArray(editFormData.contentBn.hubs)
+                                            ? [...(editFormData.contentBn.hubs as Array<Record<string, unknown>>)]
+                                            : [];
+                                          newHubsBn[hIdx] = { ...newHubsBn[hIdx], name: e.target.value };
+                                          setEditFormData({
+                                            ...editFormData,
+                                            contentBn: { ...editFormData.contentBn, hubs: newHubsBn },
+                                          });
+                                        }}
+                                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bangla"
+                                      />
+                                    </div>
+                                    <div className="grid sm:grid-cols-4 gap-3">
+                                      <div>
+                                        <label className="block text-[10px] text-slate-400 uppercase font-semibold mb-1">Longitude</label>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={String(hub.lon || "")}
+                                          onChange={(e) => {
+                                            const newHubs = [...(editFormData.content.hubs as Array<Record<string, unknown>>)];
+                                            newHubs[hIdx] = { ...newHubs[hIdx], lon: parseFloat(e.target.value) || 0 };
+                                            setEditFormData({
+                                              ...editFormData,
+                                              content: { ...editFormData.content, hubs: newHubs },
+                                            });
+                                          }}
+                                          className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-slate-400 uppercase font-semibold mb-1">Latitude</label>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={String(hub.lat || "")}
+                                          onChange={(e) => {
+                                            const newHubs = [...(editFormData.content.hubs as Array<Record<string, unknown>>)];
+                                            newHubs[hIdx] = { ...newHubs[hIdx], lat: parseFloat(e.target.value) || 0 };
+                                            setEditFormData({
+                                              ...editFormData,
+                                              content: { ...editFormData.content, hubs: newHubs },
+                                            });
+                                          }}
+                                          className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-slate-400 uppercase font-semibold mb-1">Gold</label>
+                                        <input
+                                          type="checkbox"
+                                          checked={Boolean(hub.gold)}
+                                          onChange={(e) => {
+                                            const newHubs = [...(editFormData.content.hubs as Array<Record<string, unknown>>)];
+                                            newHubs[hIdx] = { ...newHubs[hIdx], gold: e.target.checked };
+                                            setEditFormData({
+                                              ...editFormData,
+                                              content: { ...editFormData.content, hubs: newHubs },
+                                            });
+                                          }}
+                                          className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                                        />
+                                      </div>
+                                      <div className="flex items-end">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newHubs = [...(editFormData.content.hubs as Array<Record<string, unknown>>)];
+                                            newHubs.splice(hIdx, 1);
+                                            setEditFormData({
+                                              ...editFormData,
+                                              content: { ...editFormData.content, hubs: newHubs },
+                                            });
+                                          }}
+                                          className="px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg"
+                                        >
+                                          Remove
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            : []
+                          }
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newHubs = [...(Array.isArray(editFormData.content.hubs)
+                                ? (editFormData.content.hubs as Array<Record<string, unknown>>)
+                                : [])];
+                              newHubs.push({ name: "", lon: 0, lat: 0, gold: false });
+                              setEditFormData({
+                                ...editFormData,
+                                content: { ...editFormData.content, hubs: newHubs },
+                              });
+                            }}
+                            className="px-3 py-2 text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-lg border border-teal-200"
+                          >
+                            + Add Hub
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Hub Connections List */}
+                      <div className="mt-4 pt-4 border-t border-slate-200">
+                        <h4 className="text-xs font-bold text-slate-700 uppercase mb-3">Hub Connections</h4>
+                        <p className="text-xs text-slate-500 mb-3">
+                          Define great-circle arcs between hubs by index pairs (e.g., [0, 1] connects hub 0 to hub 1).
+                        </p>
+                        <div className="space-y-3">
+                          {Array.isArray(editFormData.content.connections)
+                            ? (editFormData.content.connections as Array<unknown>).map((conn, cIdx) => {
+                                const pair = Array.isArray(conn) && conn.length === 2 ? conn : [0, 0];
+                                return (
+                                  <div key={cIdx} className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold text-slate-800">Connection #{cIdx + 1}</span>
+                                    </div>
+                                    <div className="grid sm:grid-cols-3 gap-3">
+                                      <div>
+                                        <label className="block text-[10px] text-slate-400 uppercase font-semibold mb-1">Hub A Index</label>
+                                        <input
+                                          type="number"
+                                          value={String(pair[0] || 0)}
+                                          onChange={(e) => {
+                                            const newConns = [...(editFormData.content.connections as Array<unknown>)];
+                                            newConns[cIdx] = [parseInt(e.target.value) || 0, pair[1]];
+                                            setEditFormData({
+                                              ...editFormData,
+                                              content: { ...editFormData.content, connections: newConns },
+                                            });
+                                          }}
+                                          className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-slate-400 uppercase font-semibold mb-1">Hub B Index</label>
+                                        <input
+                                          type="number"
+                                          value={String(pair[1] || 0)}
+                                          onChange={(e) => {
+                                            const newConns = [...(editFormData.content.connections as Array<unknown>)];
+                                            newConns[cIdx] = [pair[0], parseInt(e.target.value) || 0];
+                                            setEditFormData({
+                                              ...editFormData,
+                                              content: { ...editFormData.content, connections: newConns },
+                                            });
+                                          }}
+                                          className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                                        />
+                                      </div>
+                                      <div className="flex items-end">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newConns = [...(editFormData.content.connections as Array<unknown>)];
+                                            newConns.splice(cIdx, 1);
+                                            setEditFormData({
+                                              ...editFormData,
+                                              content: { ...editFormData.content, connections: newConns },
+                                            });
+                                          }}
+                                          className="px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg"
+                                        >
+                                          Remove
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            : []
+                          }
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newConns = [...(Array.isArray(editFormData.content.connections)
+                                ? (editFormData.content.connections as Array<unknown>)
+                                : [])];
+                              newConns.push([0, 0]);
+                              setEditFormData({
+                                ...editFormData,
+                                content: { ...editFormData.content, connections: newConns },
+                              });
+                            }}
+                            className="px-3 py-2 text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-lg border border-teal-200"
+                          >
+                            + Add Connection
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Indexing Scanner Form */}
+                  {section.type === "indexing_scanner" && (
+                    <div className="space-y-4">
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Kicker / Badge (EN)</label>
+                          <input
+                            type="text"
+                            value={(editFormData.content.kicker as string) || ""}
+                            onChange={(e) =>
+                              setEditFormData({
+                                ...editFormData,
+                                content: { ...editFormData.content, kicker: e.target.value },
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Kicker / Badge (BN)</label>
+                          <input
+                            type="text"
+                            value={(editFormData.contentBn.kicker as string) || ""}
+                            onChange={(e) =>
+                              setEditFormData({
+                                ...editFormData,
+                                contentBn: { ...editFormData.contentBn, kicker: e.target.value },
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bangla"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Lead Description (EN)</label>
+                          <textarea
+                            rows={2}
+                            value={(editFormData.content.lead as string) || ""}
+                            onChange={(e) =>
+                              setEditFormData({
+                                ...editFormData,
+                                content: { ...editFormData.content, lead: e.target.value },
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm resize-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Lead Description (BN)</label>
+                          <textarea
+                            rows={2}
+                            value={(editFormData.contentBn.lead as string) || ""}
+                            onChange={(e) =>
+                              setEditFormData({
+                                ...editFormData,
+                                contentBn: { ...editFormData.contentBn, lead: e.target.value },
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm resize-none font-bangla"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">CTA Label (EN)</label>
+                          <input
+                            type="text"
+                            value={(editFormData.content.openText as string) || ""}
+                            onChange={(e) =>
+                              setEditFormData({
+                                ...editFormData,
+                                content: { ...editFormData.content, openText: e.target.value },
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">CTA Label (BN)</label>
+                          <input
+                            type="text"
+                            value={(editFormData.contentBn.openText as string) || ""}
+                            onChange={(e) =>
+                              setEditFormData({
+                                ...editFormData,
+                                contentBn: { ...editFormData.contentBn, openText: e.target.value },
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bangla"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Section Title (EN)</label>
+                          <input
+                            type="text"
+                            value={editFormData.title}
+                            onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Section Title (BN)</label>
+                          <input
+                            type="text"
+                            value={editFormData.titleBn}
+                            onChange={(e) => setEditFormData({ ...editFormData, titleBn: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bangla"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Fallback Form for any Custom Added Section Types */}
-                  {!["hero", "focus", "impact", "featured_research", "events_newsletter"].includes(section.type) && (
+                  {!["hero", "focus", "impact", "featured_research", "events_newsletter", "globe_network", "indexing_scanner"].includes(section.type) && (
                     <div className="space-y-4">
                       <div className="grid sm:grid-cols-2 gap-4">
                         <div>

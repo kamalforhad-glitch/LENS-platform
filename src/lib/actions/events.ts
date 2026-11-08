@@ -3,6 +3,7 @@
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth } from "@/lib/auth";
 import type { PaginatedResult, ContentStatus, AdminEvent } from "@/lib/admin-types";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function getEvents(
   page: number = 1,
@@ -94,6 +95,10 @@ export async function createEvent(data: {
     },
   });
 
+  revalidatePath("/events");
+  revalidatePath("/");
+  revalidateTag("public-events", { expire: 0 });
+
   return { id, slug };
 }
 
@@ -145,6 +150,9 @@ export async function updateEvent(
   if (data.status !== undefined) updateData.status = data.status;
 
   await db.event.update({ where: { id }, data: updateData });
+  revalidatePath("/events");
+  revalidatePath("/");
+  revalidateTag("public-events", { expire: 0 });
   return { success: true };
 }
 
@@ -152,5 +160,8 @@ export async function deleteEvent(id: string) {
   const user = await getCurrentUser();
   requireAuth(user, "admin");
   await db.event.delete({ where: { id } });
+  revalidatePath("/events");
+  revalidatePath("/");
+  revalidateTag("public-events", { expire: 0 });
   return { success: true };
 }

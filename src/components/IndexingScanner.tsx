@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
+import { resolveCmsValue } from "@/lib/cms-content";
 
 export const INDEX_SCAN_EVENT = "lens:index-scan";
 
@@ -27,6 +28,10 @@ export function requestIndexScan() {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(INDEX_SCAN_EVENT));
   }
+}
+
+function asString(v: unknown): string {
+  return typeof v === "string" ? v : "";
 }
 
 // 24 perimeter degree tick marks around the 360-degree circumference
@@ -59,11 +64,40 @@ const RADAR_NODES = [
   { id: 8, x: 397.3, y: 188.7, angle: 350, gold: false },
 ];
 
-export default function IndexingScanner() {
+export interface IndexingScannerCmsData {
+  id?: string;
+  type?: string;
+  title?: string;
+  titleBn?: string;
+  description?: string;
+  descriptionBn?: string;
+  sortOrder?: number;
+  visible?: boolean;
+  settings?: string | Record<string, unknown>;
+  content?: string | Record<string, unknown>;
+  contentBn?: string | Record<string, unknown>;
+}
+
+function parseJsonSafe(val: unknown): Record<string, any> {
+  if (!val) return {};
+  if (typeof val === "object") return val as Record<string, any>;
+  try { return JSON.parse(val as string); } catch { return {}; }
+}
+
+export default function IndexingScanner({ cmsData }: { cmsData?: IndexingScannerCmsData } = {}) {
   const { t } = useTranslation();
   const [active, setActive] = useState(false);
   const [inView, setInView] = useState(true);
   const sectionRef = useRef<HTMLElement>(null);
+
+  const cEn = parseJsonSafe(cmsData?.content);
+  const cBn = parseJsonSafe(cmsData?.contentBn);
+
+  const isBn = false; // IndexingScanner renders English UI; locale handled via i18n keys
+  const kicker = asString(resolveCmsValue(isBn, cEn, cBn, ["kicker", "sectionLabel", "badge"])) || t("indexScan.kicker");
+  const lead = asString(resolveCmsValue(isBn, cEn, cBn, ["lead", "sectionDescription", "description"])) || t("indexScan.lead");
+  const openText = asString(resolveCmsValue(isBn, cEn, cBn, ["openText", "sectionTitle", "title"])) || t("indexScan.open");
+  const scannerLabel = asString(resolveCmsValue(isBn, cEn, cBn, ["scannerLabel", "ariaLabel"])) || t("indexScan.scanner_label");
 
   useEffect(() => {
     const onScan = () => {
@@ -124,7 +158,7 @@ export default function IndexingScanner() {
             {/* Eyebrow */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/50 border border-cyan-500/30 text-cyan-400 text-xs font-bold tracking-[0.25em] uppercase mb-5 backdrop-blur-sm shadow-[0_0_15px_rgba(6,182,212,0.12)]">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" aria-hidden="true" />
-              {t("indexScan.kicker")}
+              {kicker}
             </div>
 
             {/* Main Heading */}
@@ -137,7 +171,7 @@ export default function IndexingScanner() {
 
             {/* Description */}
             <p className="text-base sm:text-lg text-slate-300/85 leading-relaxed max-w-xl mb-8">
-              {t("indexScan.lead")}
+              {lead}
             </p>
 
             {/* Primary CTA and Live Scan Status */}
@@ -146,7 +180,7 @@ export default function IndexingScanner() {
                 href="/indexing/press-freedom-index"
                 className="group inline-flex items-center gap-2.5 px-6 sm:px-7 py-3.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-navy-950 text-sm font-semibold transition-all duration-300 shadow-[0_0_24px_rgba(6,182,212,0.32)] hover:shadow-[0_0_32px_rgba(6,182,212,0.5)] hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-navy-950"
               >
-                <span>{t("indexScan.open")}</span>
+                <span>{openText}</span>
                 <svg
                   className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
                   fill="none"
@@ -176,7 +210,7 @@ export default function IndexingScanner() {
             <div
               className={`pfi-radar ${active ? "is-active" : "is-ambient"} ${inView ? "" : "is-paused"}`}
               role="img"
-              aria-label={t("indexScan.scanner_label")}
+              aria-label={scannerLabel}
             >
               {/* Layer 1: Static Base in Nighttime Darkness (Subtle rings, crosshairs, degree ticks, nodes) */}
               <svg

@@ -492,7 +492,7 @@ function HeroContent({ cmsData }: { cmsData?: CmsSectionData }) {
               ) : showGlobe ? (
                 <div className="globe-container relative w-full aspect-square max-w-[240px] xs:max-w-[270px] sm:max-w-[340px] md:max-w-[420px] lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[650px] mx-auto flex items-center justify-center pointer-events-auto">
                   <Suspense fallback={<div className="w-full h-full" />}>
-                    <GlobeNetwork />
+                    <GlobeNetwork cmsData={cmsData} />
                   </Suspense>
 
                   {/* Tagline Card — glass backdrop */}

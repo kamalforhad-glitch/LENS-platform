@@ -74,13 +74,13 @@ export default function HomeClient({
               <FocusAreas cmsData={sec} />
             </section>
             {/* Auto-render IndexingScanner after focus if not an explicit custom section */}
-            {!hasExplicitScanner && <IndexingScanner />}
+            {!hasExplicitScanner && <IndexingScanner cmsData={sec} />}
           </div>
         );
 
       case "indexing_scanner":
       case "indexing":
-        return <IndexingScanner key={sec.id || `scanner-${index}`} />;
+        return <IndexingScanner key={sec.id || `scanner-${index}`} cmsData={sec} />;
 
       case "featured_research":
         return (

@@ -3,6 +3,7 @@
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth } from "@/lib/auth";
 import type { PaginatedResult, ContentStatus, AdminPublication } from "@/lib/admin-types";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function getPublications(
   page: number = 1,
@@ -83,6 +84,10 @@ export async function createPublication(data: {
     },
   });
 
+  revalidatePath("/publications");
+  revalidatePath("/");
+  revalidateTag("public-publications", { expire: 0 });
+
   return { id, slug };
 }
 
@@ -121,6 +126,11 @@ export async function updatePublication(
   }
 
   await db.publication.update({ where: { id }, data: updateData });
+
+  revalidatePath("/publications");
+  revalidatePath("/");
+  revalidateTag("public-publications", { expire: 0 });
+
   return { success: true };
 }
 
@@ -128,5 +138,8 @@ export async function deletePublication(id: string) {
   const user = await getCurrentUser();
   requireAuth(user, "admin");
   await db.publication.delete({ where: { id } });
+  revalidatePath("/publications");
+  revalidatePath("/");
+  revalidateTag("public-publications", { expire: 0 });
   return { success: true };
 }

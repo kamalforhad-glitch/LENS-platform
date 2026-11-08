@@ -18,6 +18,11 @@ vi.mock("@/lib/db", () => ({
   slugify: (value: string) => value,
 }));
 
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+}));
+
 vi.mock("@/lib/auth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/auth")>();
   return { ...actual, getCurrentUser: mocks.getCurrentUser };

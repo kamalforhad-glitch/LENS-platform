@@ -80,6 +80,7 @@ const navItems: NavItemConfig[] = [
   { label: "Careers", href: "/admin/careers", icon: Briefcase, group: "Content" },
   { label: "Team", href: "/admin/team", icon: UserCheck, group: "Content" },
   { label: "Contact Form", href: "/admin/contact", icon: Mail, group: "Content" },
+  { label: "Newsletter Subscribers", href: "/admin/newsletter-subscribers", icon: Send, group: "Content" },
 
   // Admin & Security
   { label: "Admin Accounts", href: "/admin/users", icon: ShieldCheck, superOnly: true, group: "Admin" },

@@ -1475,6 +1475,406 @@ export function getDefaultSectionsForSlug(slug: string): DefaultSection[] | null
           contentBn: {},
         },
       ];
+    case "about/governance":
+      return [
+        {
+          type: "hero",
+          title: "Governance Hero",
+          titleBn: "শাসনব্যবস্থা হিরো",
+          description: "Governance page hero section",
+          descriptionBn: "শাসনব্যবস্থা পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Governance",
+            eyebrowBn: "শাসনব্যবস্থা",
+            title: "Governance & Accountability",
+            titleBn: "শাসনব্যবস্থা ও জবাবদিহিতা",
+            subtitle: "LENS is governed by an independent board and advisory council committed to transparency, integrity and public trust.",
+            subtitleBn: "লেন্স একটি স্বাধীন বোর্ড ও পরামর্শকীয় পরিষদ দ্বারা শাসিত, যা পারদর্শিতা, দąb থাকা এবং জনবিশ্বাসের प्रति প্রতিশ্রুতিবদ্ধ।",
+            ctaLabel: "Learn More",
+            ctaLabelBn: "আরও জানুন",
+            ctaUrl: "/about",
+          },
+          contentBn: {},
+        },
+      ];
+    case "about/vision":
+      return [
+        {
+          type: "hero",
+          title: "Vision Hero",
+          titleBn: "দৃষ্টিভঙ্গি হিরো",
+          description: "Vision page hero section",
+          descriptionBn: "দৃষ্টিভঙ্গি পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Our Vision",
+            eyebrowBn: "আমাদের দৃষ্টিভঙ্গি",
+            title: "An Informed, Inclusive and Resilient Bangladesh",
+            titleBn: "একটি তথ্যপ্রামাণিক, অন্তর্ভুক্তিমূলক ও স্থিতিস্থাপক বাংলাদেশ",
+            subtitle: "LENS envisions a Bangladesh where every citizen has access to reliable information, media literacy skills, and the ability to participate meaningfully in public discourse.",
+            subtitleBn: "লেন্স এমন বাংলাদেশের স্বপ্ন দেখে যেখানে প্রতিটি নাগরিকের উপর বিশ্বাসযোগ্য তথ্য, মিডিয়া সাক্ষরতা দক্ষতা এবং জনগ Increasing ন_flag話চে অংশ নেওয়ার ক্ষমতা থাকবে।",
+            ctaLabel: "Our Mission",
+            ctaLabelBn: "আমাদের মিশন",
+            ctaUrl: "/about",
+          },
+          contentBn: {},
+        },
+      ];
+    case "careers":
+      return [
+        {
+          type: "hero",
+          title: "Careers Hero",
+          titleBn: "ক্যারিয়ার হিরো",
+          description: "Careers page hero section",
+          descriptionBn: "ক্যারিয়ার পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Join Our Team",
+            eyebrowBn: "আমাদের টিমে যোগ দিন",
+            title: "Careers at LENS",
+            titleBn: "লেন্সে ক্যারিয়ার",
+            subtitle: "We are looking for passionate researchers, media professionals and policy advocates to join our growing team.",
+            subtitleBn: "আমরা নافذة জজ্বালো গবেষক, মিডিয়া পেশাজীবী ও নীতি অ্যাডভোকেট খুঁজছি যারা আমাদের বেড়ে ওঠা টিমে যোগ দিতে চায়।",
+            ctaLabel: "View Open Positions",
+            ctaLabelBn: "খোলা পদগুলি দেখুন",
+            ctaUrl: "/careers",
+          },
+          contentBn: {},
+        },
+      ];
+    case "clubs":
+      return [
+        {
+          type: "hero",
+          title: "Clubs Hero",
+          titleBn: "ক্লাব হিরো",
+          description: "Clubs page hero section",
+          descriptionBn: "ক্লাব পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Student Clubs",
+            eyebrowBn: "ছাত্র ক্লাব",
+            title: "LENS Student Clubs",
+            titleBn: "লেন্স ছাত্র ক্লাব",
+            subtitle: "Student-led clubs promoting media literacy, research and civic engagement across campuses.",
+            subtitleBn: "ক্যাম্পাস জুড়ে মিডিয়া সাক্ষরতা, গবেষণা ও নাগরিক সম্পৃক্ততাকে ত্বরান্বিত করার ছাত্র-নেতৃত্বাধীন ক্লাব।",
+            ctaLabel: "Explore Clubs",
+            ctaLabelBn: "ক্লাব অন্বেষণ করুন",
+            ctaUrl: "/clubs",
+          },
+          contentBn: {},
+        },
+      ];
+    case "courses":
+      return [
+        {
+          type: "hero",
+          title: "Courses Hero",
+          titleBn: "কোর্স হিরো",
+          description: "Courses page hero section",
+          descriptionBn: "কোর্স পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Learning Programs",
+            eyebrowBn: "শিক্ষার কর্মসূচি",
+            title: "LENS Courses & Training",
+            titleBn: "লেন্স কোর্স ও প্রশিক্ষণ",
+            subtitle: "Build skills in media literacy, research methods, digital rights and narrative strategy through our expert-led courses.",
+            subtitleBn: "আমাদের বিশেষজ্ঞ-নেতৃত्वাধীন কোর্সের মাধ্যমে মিডিয়া সাক্ষরতা, গবেষণার পদ্ধতি, ডিজিটাল অধিকার এবং ন্যারেটিভ কৌশলে দক্ষতা তৈরি করুন।",
+            ctaLabel: "Browse Courses",
+            ctaLabelBn: "কোর্স ব্রাউজ করুন",
+            ctaUrl: "/courses",
+          },
+          contentBn: {},
+        },
+      ];
+    case "impact":
+      return [
+        {
+          type: "hero",
+          title: "Impact Hero",
+          titleBn: "প্রভাব হিরো",
+          description: "Impact page hero section",
+          descriptionBn: "প্রভাব পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Our Impact",
+            eyebrowBn: "আমাদের প্রভাব",
+            title: "Measuring What Matters",
+            titleBn: "যা গুরুত্বপূর্ণ তার মাপন",
+            subtitle: "LENS tracks research reach, training outcomes, policy engagement and media literacy impact across Bangladesh.",
+            subtitleBn: "লেন্স বাংলাদেশ জুড়ে গবেষণার পৌঁছানো, প্রশিক্ষণের ফলাফল, নীতি সম্পৃক্ততা এবং মিডিয়া সাক্ষরতার প্রভাবকে ট্রैक করে।",
+            ctaLabel: "View Impact Stats",
+            ctaLabelBn: "প্রभावের পরিসংখ্যান দেখুন",
+            ctaUrl: "/impact",
+          },
+          contentBn: {},
+        },
+      ];
+    case "indexing":
+      return [
+        {
+          type: "hero",
+          title: "Indexing Hero",
+          titleBn: "ইনডেক্সিং হিরো",
+          description: "Indexing page hero section",
+          descriptionBn: "ইনডেক্সিং পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Media Indexing",
+            eyebrowBn: "মিডিয়া ইনডেক্সিং",
+            title: "Media Index Bangladesh",
+            titleBn: "মিডিয়া ইন্ডেক্স বাংলাদেশ",
+            subtitle: "Tracking media freedom, press freedom and narrative health indicators across Bangladesh.",
+            subtitleBn: "বাংলাদেশ জুড়ে মিডিয়া স্বাধীনতা, প্রেস স্বাধীনতা ও ন্যারেটিভ স্বাস্থ্য সহায়ককে ট্রैक করা।",
+            ctaLabel:"View Index",
+            ctaLabelBn:"ইনডেক্স দেখুন",
+            ctaUrl:"/indexing",
+          },
+          contentBn: {},
+        },
+      ];
+    case "indexing/bpfi":
+      return [
+        {
+          type: "hero",
+          title: "BPFI Hero",
+          titleBn: "বিপিএফআই হিরো",
+          description: "Bangladesh Press Freedom Index hero section",
+          descriptionBn: "বাংলাদেশ প্রেস ফ്രീডম ইন্ডেক্স হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Bangladesh Press Freedom Index",
+            eyebrowBn: "বাংলাদেশ প্রেস ফ್ರೀডম ইন্ডেক্স",
+            title: "Press Freedom in Bangladesh",
+            titleBn: "বাংলাদেশে প্রেস স্বাধীনতা",
+            subtitle: "Annual assessment of press freedom conditions, media ownership and journalist safety in Bangladesh.",
+            subtitleBn: "বাংলাদেশে প্রেস স্বাধীনতার 對 situación, মিডিয়ার মালিকানাপত্র এবং সাংবাদিক নিরাপত্তার বার্ষিক মূল্যায়ন।",
+            ctaLabel:"Read Report",
+            ctaLabelBn:"রিপোর্ট পড়ুন",
+            ctaUrl:"/indexing/press-freedom-index",
+          },
+          contentBn: {},
+        },
+      ];
+    case "indexing/press-freedom-index":
+      return [
+        {
+          type: "hero",
+          title: "Press Freedom Index Hero",
+          titleBn: "প্রেস ফ್ರೀডম ইন্ডেক্স হিরো",
+          description: "Press Freedom Index page hero section",
+          descriptionBn: "প্রেস ফ್ರೀডম ইন্ডেক্স পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Press Freedom Index",
+            eyebrowBn: "প্রেস ফ್ರೀডম ইন্ডেক্স",
+            title: "Media Freedom in Bangladesh",
+            titleBn: "বাংলাদেশে মিডিয়া স্বাধীনতা",
+            subtitle: "Comprehensive data on media freedom, censorship incidents and journalist protection across Bangladesh.",
+            subtitleBn: "বাংলাদেশ জুড়ে মিডিয়া স্বাধীনতা, সেন্সরশিপ ঘটনা এবং সাংবাদিক সুরক্ষার 완벽 তথ্য।",
+            ctaLabel:"Open Scanner",
+            ctaLabelBn:"স্ক্যানার খুলুন",
+            ctaUrl:"/indexing/press-freedom-index",
+          },
+          contentBn: {},
+        },
+      ];
+    case "resources/election":
+      return [
+        {
+          type: "hero",
+          title: "Election Resources Hero",
+          titleBn: "নির্বাচন রিসোর্স হিরো",
+          description: "Election resources page hero section",
+          descriptionBn: "নির্বাচন রিসোর্স পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Election Resources",
+            eyebrowBn: "নির্বাচন রিসোর্স",
+            title: "Election & Media Monitoring",
+            titleBn: "নির্বাচন ও মিডিয়া নিকড়ে",
+            subtitle: "Research, reports and resources on election coverage, media monitoring and electoral integrity in Bangladesh.",
+            subtitleBn: "বাংলাদেশে নির্বাচন কভারেজ, মিডিয়া নিকড়ে এবং নির্বাচনীACC 명예ের ওপর গবেষণা, রিপোর্ট ও রিসোর্স।",
+            ctaLabel:"Browse Resources",
+            ctaLabelBn:"রিসোর্স ব্রাউজ করুন",
+            ctaUrl:"/resources",
+          },
+          contentBn: {},
+        },
+      ];
+    case "resources/media":
+      return [
+        {
+          type: "hero",
+          title: "Media Resources Hero",
+          titleBn: "মিডিয়া রিসোর্স হিরো",
+          description: "Media resources page hero section",
+          descriptionBn: "মিডিয়া রিসোর্স পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Media Resources",
+            eyebrowBn: "মিডিয়া রিসোর্স",
+            title: "Media Coverage & Press",
+            titleBn: "মিডিয়া কভারেজ ও প্রেস",
+            subtitle: "Press releases, media mentions and coverage of LENS work across national and international outlets.",
+            subtitleBn: "দেশীয় ও আন্তর্জাতিক মিডিয়ার মাধ্যমে লেন্সের কাজের প্রেস রিলিজ, মিডিয়া কথা ও কভারেজ।",
+            ctaLabel:"Browse Media",
+            ctaLabelBn:"মিডিয়া ব্রাউজ করুন",
+            ctaUrl:"/media",
+          },
+          contentBn: {},
+        },
+      ];
+    case "resources/other":
+      return [
+        {
+          type: "hero",
+          title: "Other Resources Hero",
+          titleBn: "অন্যান্য রিসোর্স হিরো",
+          description: "Other resources page hero section",
+          descriptionBn: "অন্যান্য রিসোর্স পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Other Resources",
+            eyebrowBn: "অন্যান্য রিসোর্স",
+            title: "Additional Resources",
+            titleBn: "অতিরিক্ত রিসোর্স",
+            subtitle: "Supplementary materials, toolkits and reference documents for researchers and practitioners.",
+            subtitleBn: "গবেষক ও বহ professionnels-এর জন্য পরিপূরক সামগ্রী, টুলকিট এবং রেফারেন্স ডকুমেন্ট।",
+            ctaLabel:"Browse Resources",
+            ctaLabelBn:"রিসোর্স ব্রাউজ করুন",
+            ctaUrl:"/resources",
+          },
+          contentBn: {},
+        },
+      ];
+    case "resources/publications":
+      return [
+        {
+          type: "hero",
+          title: "Publications Resources Hero",
+          titleBn: "প্রকাশনা রিসোর্স হিরো",
+          description: "Publications resources page hero section",
+          descriptionBn: "প্রকাশনা রিসোর্স পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Publications",
+            eyebrowBn: "প্রকাশনা",
+            title: "LENS Publications",
+            titleBn: "লেন্স প্রকাশনা",
+            subtitle: "Research reports, policy briefs, working papers and other publications from LENS.",
+            subtitleBn: "লেন্সের গবেষণা রিপোর্ট, নীতি বিবরণী, ওয়ার্কিং পেপার ও অন্যান্য প্রকাশনা।",
+            ctaLabel:"Browse Publications",
+            ctaLabelBn:"প্রকাশনা ব্রাউজ করুন",
+            ctaUrl:"/publications",
+          },
+          contentBn: {},
+        },
+      ];
+    case "theme":
+      return [
+        {
+          type: "hero",
+          title: "Theme Hero",
+          titleBn: "থিম হিরো",
+          description: "Theme page hero section",
+          descriptionBn: "থিম পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Thematic Areas",
+            eyebrowBn: "থিম্যাটিক দাবি",
+            title: "LENS Thematic Areas",
+            titleBn: "লেন্স থিম্যাটিক দাবি",
+            subtitle: "Explore our work across research, media literacy, press freedom, digital rights and narrative strategy.",
+            subtitleBn: "গবেষণা, মিডিয়া সাক্ষরতা, প্রেস স্বাধীনতা, ডিজিটাল অধিকার ও ন্যারেটিভ কৌশলের{Z} জুড়ে আমাদের কাজ অন্বেষণ করুন।",
+            ctaLabel:"Explore Themes",
+            ctaLabelBn:"থিম অন্বেষণ করুন",
+            ctaUrl:"/theme",
+          },
+          contentBn: {},
+        },
+      ];
+    case "theme/literature":
+      return [
+        {
+          type: "hero",
+          title: "Theme Literature Hero",
+          titleBn: "থিম সাহিত্য হিরো",
+          description: "Theme literature page hero section",
+          descriptionBn: "থিম সাহিত্য পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Literature & Research",
+            eyebrowBn: "সাহিত্য ও গবেষণা",
+            title: "Research Literature",
+            titleBn: "গবেষণা সাহিত্য",
+            subtitle: "Curated research literature on media, democracy and public discourse in Bangladesh.",
+            subtitleBn: "বাংলাদেশে মিডিয়া, গণতন্ত্র ও জনগ 충분 বক্তব্য সম্পর্কে সংগৃহীত গবেষণা সাহিত্য।",
+            ctaLabel:"Browse Literature",
+            ctaLabelBn:"সাহিত্য ব্রাউজ করুন",
+            ctaUrl:"/theme/literature",
+          },
+          contentBn: {},
+        },
+      ];
+    case "theme/research":
+      return [
+        {
+          type: "hero",
+          title: "Theme Research Hero",
+          titleBn: "থিম গবেষণা হিরো",
+          description: "Theme research page hero section",
+          descriptionBn: "থিম গবেষণা পেজ হিরো সেকশন",
+          sortOrder: 0,
+          visible: true,
+          settings: { background: "navy" },
+          content: {
+            eyebrow: "Research Hub",
+            eyebrowBn: "গবেষণা হাব",
+            title: "Research Initiatives",
+            titleBn: "গবেষণা উদ্যোগ",
+            subtitle: "LENS research programs on media ecology, narrative analysis and information integrity.",
+            subtitleBn: "মিডিয়া ইকোসিস্টেম, ন্যারেটিভ বিশ্লেষণ ও তথ্য অখণ্ডতার ওপর লেন্স গবেষণা কর্মসূচি।",
+            ctaLabel:"Explore Research",
+            ctaLabelBn:"গবেষণা অন্বেষণ করুন",
+            ctaUrl:"/theme/research",
+          },
+          contentBn: {},
+        },
+      ];
     case "contact":
       return [
         {

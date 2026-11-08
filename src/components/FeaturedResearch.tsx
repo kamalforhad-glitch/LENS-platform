@@ -13,6 +13,10 @@ function asString(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
+function asNumber(v: unknown): number {
+  return typeof v === "number" ? v : 0;
+}
+
 function asCard(v: unknown): Record<string, unknown> | undefined {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined;
 }
@@ -169,58 +173,25 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
   const viewAllText = asString(resolveCmsValue(isBn, cEn, cBn, ["viewAllText"])) || t("research.view_all");
   const viewAllUrl = asString(resolveCmsValue(false, cEn, cBn, ["viewAllUrl"])) || "/publications";
 
-  const defaultPublications: PubItem[] = [
-    {
-      typeKey: "type_policy_brief",
-      titleEn: "Media Literacy for a Resilient Democracy",
-      titleBn: "স্থিতিশীল গণতন্ত্রের জন্য গণমাধ্যম সচেতনতা",
-      descEn: "Recommendations for a safer and more informed digital public sphere.",
-      descBn: "একটি নিরাপদ এবং আরও অবহিত ডিজিটাল পাবলিক স্ফেরারের জন্য সুপারিশ।",
-      date: "April 2025",
-      readMinutes: 8,
-      color: "text-teal-600",
-      accent: "#0891b2",
-    },
-    {
-      typeKey: "type_working_paper",
-      titleEn: "Youth, Narratives and Civic Engagement",
-      titleBn: "যুব, বর্ণনা এবং নাগরিক সম্পৃক্ততা",
-      descEn: "Insights from a national study on young people's media consumption and trust.",
-      descBn: "তরুণদের মিডিয়া খপ্পর এবং বিশ্বাস সম্পর্কে একটি জাতীয় গবেষণা থেকে অন্তর্দৃষ্টি।",
-      date: "March 2025",
-      readMinutes: 15,
-      color: "text-blue-600",
-      accent: "#3b82f6",
-    },
-    {
-      typeKey: "type_report",
-      titleEn: "Media Index Bangladesh 2025",
-      titleBn: "মিডিয়া ইন্ডেক্স বাংলাদেশ ২০২৫",
-      descEn: "Trends, risks and emerging narratives in the local media landscape.",
-      descBn: "স্থানীয় মিডিয়া ল্যান্ডস্কেপে প্রবণতা, ঝুঁকি এবং উদীয়মান বর্ণনা।",
-      date: "February 2025",
-      readMinutes: 20,
-      color: "text-emerald-600",
-      accent: "#10b981",
-    },
-  ];
+  // Resolved featured items from the database (passed via section.content.featuredItems by the
+  // homepage server component). Falls back to an empty array when no CMS data exists,
+  // rendering a clean empty state rather than any hardcoded content.
+  const rawFeaturedItems = Array.isArray(cEn.featuredItems) ? cEn.featuredItems : [];
+  const featuredItems: PubItem[] = rawFeaturedItems
+    .filter((item): item is Record<string, unknown> => item && typeof item === "object")
+    .map((item, _idx) => ({
+      typeKey: asString(item.typeKey || item.type || "type_report"),
+      titleEn: asString(item.titleEn || item.title || ""),
+      titleBn: asString(item.titleBn || ""),
+      descEn: asString(item.descEn || item.description || ""),
+      descBn: asString(item.descBn || item.descriptionBn || ""),
+      date: asString(item.date || item.dateLabel || "2025"),
+      readMinutes: asNumber(item.readMinutes) || 10,
+      color: asString(item.color || "text-teal-600"),
+      accent: asString(item.accent || "#0891b2"),
+    }));
 
-  const publications: PubItem[] = Array.isArray(cEn.publications) && cEn.publications.length > 0
-    ? cEn.publications.map((p: any, idx: number) => {
-        const pBn = Array.isArray(cBn.publications) && cBn.publications[idx] ? cBn.publications[idx] : {};
-        return {
-          typeKey: p.typeKey || "type_report",
-          titleEn: p.titleEn || p.title || "",
-          titleBn: pBn.titleBn || pBn.title || p.titleBn || p.title || "",
-          descEn: p.descEn || p.description || "",
-          descBn: pBn.descBn || pBn.description || p.descBn || p.description || "",
-          date: p.date || "2025",
-          readMinutes: p.readMinutes || 10,
-          color: p.color || "text-teal-600",
-          accent: p.accent || "#0891b2",
-        };
-      })
-    : defaultPublications;
+  const publications: PubItem[] = featuredItems.length > 0 ? featuredItems : [];
 
   useEffect(() => {
     const mm = gsap.matchMedia();
@@ -401,11 +372,17 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
             </div>
 
             <div className="pub-list flex flex-col gap-4">
-              {publications.map((pub) => (
-                <div key={pub.titleEn} className="pub-card-wrap" style={{ perspective: "600px" }}>
-                  <PublicationCard pub={pub} t={t} locale={locale} />
-                </div>
-              ))}
+              {publications.length > 0 ? (
+                publications.map((pub) => (
+                  <div key={pub.titleEn} className="pub-card-wrap" style={{ perspective: "600px" }}>
+                    <PublicationCard pub={pub} t={t} locale={locale} />
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-400 text-center py-8">
+                  {t("research.emptyMessage") || "No published research yet."}
+                </p>
+              )}
             </div>
           </div>
         </div>

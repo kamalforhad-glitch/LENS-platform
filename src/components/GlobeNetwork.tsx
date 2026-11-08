@@ -16,6 +16,10 @@ const subscribeReducedMotion = (callback: () => void) => {
   return () => mql.removeEventListener("change", callback);
 };
 
+function asString(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
 const useMounted = () => {
   return useSyncExternalStore(
     () => () => {},
@@ -414,31 +418,6 @@ function createEarthCloudsCanvas(): HTMLCanvasElement {
   return canvas;
 }
 
-// ============================================================
-// LENS Global Media Hubs (Institutional Identity)
-// ============================================================
-const MEDIA_HUBS = [
-  { name: "Dhaka", lon: 90.41, lat: 23.81, gold: true },
-  { name: "Tokyo", lon: 139.69, lat: 35.68, gold: false },
-  { name: "London", lon: -0.12, lat: 51.50, gold: false },
-  { name: "New York", lon: -74.00, lat: 40.71, gold: false },
-  { name: "Geneva", lon: 6.14, lat: 46.20, gold: true },
-  { name: "Nairobi", lon: 36.82, lat: -1.29, gold: false },
-  { name: "Singapore", lon: 103.81, lat: 1.35, gold: false },
-  { name: "Sao Paulo", lon: -46.63, lat: -23.55, gold: false },
-];
-
-const HUB_CONNECTIONS: [number, number][] = [
-  [0, 1], // Dhaka -> Tokyo
-  [0, 4], // Dhaka -> Geneva
-  [0, 6], // Dhaka -> Singapore
-  [2, 3], // London -> New York
-  [2, 4], // London -> Geneva
-  [4, 5], // Geneva -> Nairobi
-  [3, 7], // New York -> Sao Paulo
-  [1, 6], // Tokyo -> Singapore
-];
-
 // Great circle arcing 3D line generator
 function createArcPoints(p1: THREE.Vector3, p2: THREE.Vector3, radius: number): THREE.Vector3[] {
   const points: THREE.Vector3[] = [];
@@ -507,10 +486,14 @@ function RealisticEarth({
   mouse,
   isMobile,
   isReducedMotion,
+  hubs,
+  connections,
 }: {
   mouse: React.MutableRefObject<{ x: number; y: number }>;
   isMobile: boolean;
   isReducedMotion: boolean;
+  hubs: Array<{ name: string; lon: number; lat: number; gold: boolean }>;
+  connections: [number, number][];
 }) {
   const earthGroupRef = useRef<THREE.Group>(null);
   const earthSurfaceRef = useRef<THREE.Mesh>(null);
@@ -539,8 +522,8 @@ function RealisticEarth({
 
   // Hub 3D positions on Earth's surface (radius = 2.46)
   const hubPositions = useMemo(() => {
-    return MEDIA_HUBS.map((h) => latLonToVector3(h.lat, h.lon, 2.465));
-  }, []);
+    return hubs.map((h) => latLonToVector3(h.lat, h.lon, 2.465));
+  }, [hubs]);
 
   // Great circle communication arcs
   const arcLines = useMemo(() => {
@@ -551,12 +534,12 @@ function RealisticEarth({
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-    return HUB_CONNECTIONS.map(([a, b]) => {
+    return connections.map(([a, b]) => {
       const pts = createArcPoints(hubPositions[a], hubPositions[b], 2.465);
       const geo = new THREE.BufferGeometry().setFromPoints(pts);
       return new THREE.Line(geo, mat);
     });
-  }, [hubPositions]);
+  }, [connections, hubPositions]);
 
   // Continuous smooth rotation around Earth's tilted polar axis
   useFrame((state, delta) => {
@@ -616,10 +599,9 @@ function RealisticEarth({
 
       {/* 3. LENS Global Narrative Intelligence Beacons & Arcs */}
       <group ref={hubsRef}>
-        {hubPositions.map((pos, i) => {
-          const hub = MEDIA_HUBS[i];
+        {hubs.map((hub, i) => {
           return (
-            <group key={hub.name} position={pos}>
+            <group key={hub.name} position={hubPositions[i]}>
               {/* Core signal point */}
               <mesh>
                 <sphereGeometry args={[0.028, 12, 12]} />
@@ -763,10 +745,14 @@ function Scene({
   mouse,
   isMobile,
   isReducedMotion,
+  hubs,
+  connections,
 }: {
   mouse: React.MutableRefObject<{ x: number; y: number }>;
   isMobile: boolean;
   isReducedMotion: boolean;
+  hubs: Array<{ name: string; lon: number; lat: number; gold: boolean }>;
+  connections: [number, number][];
 }) {
   return (
     <>
@@ -778,7 +764,7 @@ function Scene({
       <directionalLight position={[5, -2, -3]} intensity={0.35} color="#0284c7" />
 
       {/* Realistic 3D Earth assembly */}
-      <RealisticEarth mouse={mouse} isMobile={isMobile} isReducedMotion={isReducedMotion} />
+      <RealisticEarth mouse={mouse} isMobile={isMobile} isReducedMotion={isReducedMotion} hubs={hubs} connections={connections} />
 
       {/* Narrative data streams and ambient space particles */}
       <DataStreams isMobile={isMobile} />
@@ -790,7 +776,27 @@ function Scene({
 // ============================================================
 // GlobeNetwork — Canvas wrapper with responsive resizing & scroll pause
 // ============================================================
-export default function GlobeNetwork() {
+export interface GlobeNetworkCmsData {
+  id?: string;
+  type?: string;
+  title?: string;
+  titleBn?: string;
+  description?: string;
+  descriptionBn?: string;
+  sortOrder?: number;
+  visible?: boolean;
+  settings?: string | Record<string, unknown>;
+  content?: string | Record<string, unknown>;
+  contentBn?: string | Record<string, unknown>;
+}
+
+function parseJsonSafe(val: unknown): Record<string, any> {
+  if (!val) return {};
+  if (typeof val === "object") return val as Record<string, any>;
+  try { return JSON.parse(val as string); } catch { return {}; }
+}
+
+export default function GlobeNetwork({ cmsData }: { cmsData?: GlobeNetworkCmsData }) {
   const mouseRef = useRef({ x: 0, y: 0 });
   const mounted = useMounted();
   const isMobile = useIsMobile();
@@ -798,6 +804,30 @@ export default function GlobeNetwork() {
   const [frameloop, setFrameloop] = useState<"always" | "never">("always");
   const containerRef = useRef<HTMLDivElement>(null);
   const visibleRef = useRef(true);
+
+  const cEn = parseJsonSafe(cmsData?.content);
+  const cBn = parseJsonSafe(cmsData?.contentBn);
+
+  // CMS-provided media hubs are the source of truth. No hardcoded
+  // fallback is substituted when CMS data is absent — an empty
+  // array renders gracefully with no beacons or arcs.
+  const rawHubs = Array.isArray(cEn.hubs) ? cEn.hubs : (Array.isArray(cBn.hubs) ? cBn.hubs : []);
+  const mediaHubs: Array<{ name: string; nameBn?: string; lon: number; lat: number; gold: boolean }> = rawHubs
+    .filter((h): h is Record<string, unknown> => h && typeof h === "object")
+    .map((h) => ({
+      name: asString(h.name || h.title || ""),
+      nameBn: asString(h.nameBn || h.titleBn || ""),
+      lon: typeof h.lon === "number" ? h.lon : typeof h.lon === "string" ? parseFloat(h.lon) || 0 : 0,
+      lat: typeof h.lat === "number" ? h.lat : typeof h.lat === "string" ? parseFloat(h.lat) || 0 : 0,
+      gold: Boolean(h.gold),
+    }));
+
+  // CMS-provided hub connections are the source of truth. No hardcoded
+  // fallback is substituted when CMS data is absent.
+  const rawConnections = Array.isArray(cEn.connections) ? cEn.connections : (Array.isArray(cBn.connections) ? cBn.connections : []);
+  const hubConnections: [number, number][] = rawConnections
+    .filter((c): c is [unknown, unknown] => Array.isArray(c) && c.length === 2)
+    .map((c) => [Number(c[0]) || 0, Number(c[1]) || 0] as [number, number]);
 
   const updateFrameloop = useCallback(() => {
     setFrameloop((prev) => {
@@ -849,7 +879,7 @@ export default function GlobeNetwork() {
         style={{ background: "transparent", width: "100%", height: "100%" }}
         frameloop={frameloop}
       >
-        <Scene mouse={mouseRef} isMobile={isMobile} isReducedMotion={isReducedMotion} />
+        <Scene mouse={mouseRef} isMobile={isMobile} isReducedMotion={isReducedMotion} hubs={mediaHubs} connections={hubConnections} />
       </Canvas>
     </div>
   );

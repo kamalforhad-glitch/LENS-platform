@@ -3,6 +3,7 @@
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth } from "@/lib/auth";
 import type { AdminAuthorProfile, PaginatedResult } from "@/lib/admin-types";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function getAuthorProfiles(
   page: number = 1,
@@ -90,6 +91,10 @@ export async function createAuthorProfile(data: {
     },
   });
 
+  revalidatePath("/about/team");
+  revalidatePath("/");
+  revalidateTag("public-authors", { expire: 0 });
+
   return { id: profile.id, slug: profile.slug };
 }
 
@@ -129,13 +134,21 @@ export async function updateAuthorProfile(
   if (data.website !== undefined) updateData.website = data.website;
   if (data.social !== undefined) updateData.social = JSON.stringify(data.social);
 
+  revalidatePath("/about/team");
+  revalidatePath("/");
+  revalidateTag("public-authors", { expire: 0 });
+
   return db.authorProfile.update({ where: { id }, data: updateData });
 }
 
 export async function deleteAuthorProfile(id: string) {
   const user = await getCurrentUser();
   requireAuth(user, "admin");
-  return db.authorProfile.delete({ where: { id } });
+  await db.authorProfile.delete({ where: { id } });
+  revalidatePath("/about/team");
+  revalidatePath("/");
+  revalidateTag("public-authors", { expire: 0 });
+  return { success: true };
 }
 
 export async function linkAuthorToArticle(

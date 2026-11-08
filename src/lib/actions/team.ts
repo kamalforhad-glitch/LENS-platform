@@ -3,6 +3,7 @@
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth } from "@/lib/auth";
 import type { PaginatedResult, AdminTeamMember } from "@/lib/admin-types";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function getTeamMembers(
   page: number = 1,
@@ -85,6 +86,10 @@ export async function createTeamMember(data: {
     },
   });
 
+  revalidatePath("/about/team");
+  revalidatePath("/");
+  revalidateTag("public-team", { expire: 0 });
+
   return { id, slug };
 }
 
@@ -124,6 +129,11 @@ export async function updateTeamMember(
   if (data.active !== undefined) updateData.active = data.active;
 
   await db.teamMember.update({ where: { id }, data: updateData });
+
+  revalidatePath("/about/team");
+  revalidatePath("/");
+  revalidateTag("public-team", { expire: 0 });
+
   return { success: true };
 }
 
@@ -131,5 +141,8 @@ export async function deleteTeamMember(id: string) {
   const user = await getCurrentUser();
   requireAuth(user, "admin");
   await db.teamMember.delete({ where: { id } });
+  revalidatePath("/about/team");
+  revalidatePath("/");
+  revalidateTag("public-team", { expire: 0 });
   return { success: true };
 }

@@ -3,6 +3,7 @@
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth } from "@/lib/auth";
 import type { PaginatedResult, ContentStatus, ReviewStatus, AdminResearchArticle } from "@/lib/admin-types";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 // ============================================================
 // Research Articles — Server Actions
@@ -133,6 +134,10 @@ export async function createResearchArticle(data: {
     },
   });
 
+  revalidatePath("/research");
+  revalidatePath("/");
+  revalidateTag("public-research", { expire: 0 });
+
   return { id, slug };
 }
 
@@ -196,6 +201,10 @@ export async function updateResearchArticle(
 
   await db.researchArticle.update({ where: { id }, data: updateData });
 
+  revalidatePath("/research");
+  revalidatePath("/");
+  revalidateTag("public-research", { expire: 0 });
+
   return { success: true };
 }
 
@@ -203,6 +212,9 @@ export async function deleteResearchArticle(id: string) {
   const user = await getCurrentUser();
   requireAuth(user, "admin");
   await db.researchArticle.delete({ where: { id } });
+  revalidatePath("/research");
+  revalidatePath("/");
+  revalidateTag("public-research", { expire: 0 });
   return { success: true };
 }
 
@@ -221,6 +233,10 @@ export async function publishResearchArticle(id: string) {
       publishedVersion: article.version,
     },
   });
+
+  revalidatePath("/research");
+  revalidatePath("/");
+  revalidateTag("public-research", { expire: 0 });
 
   return { success: true };
 }

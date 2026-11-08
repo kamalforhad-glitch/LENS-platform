@@ -97,6 +97,7 @@ export interface EventCard {
   category: string;
   startDate: Date;
   dateLabel: string;
+  registrationUrl: string | null;
 }
 
 export interface ResearchCard {
@@ -276,12 +277,13 @@ export async function getPublicEvents(): Promise<PublicList<EventCard>> {
         time: true,
         category: true,
         startDate: true,
+        registrationUrl: true,
       },
     })
   );
   return {
     ...result,
-    items: result.items.map((event) => ({ ...event, dateLabel: formatFullDate(event.startDate) })),
+    items: result.items.map((event) => ({ ...event, dateLabel: formatFullDate(event.startDate), registrationUrl: event.registrationUrl ?? null })),
   };
 }
 
