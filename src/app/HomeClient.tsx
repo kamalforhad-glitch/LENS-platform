@@ -15,6 +15,7 @@ import ImpactStats from "@/components/ImpactStats";
 import EventsNewsletter from "@/components/EventsNewsletter";
 import IndexingScanner from "@/components/IndexingScanner";
 import PageSectionsView from "@/components/page/PageSectionsView";
+import type { FocusAreaDto } from "@/lib/focus-types";
 
 // Behavior-only widgets: client-side scroll/overlay chrome that would add
 // nothing to the first paint, so they stay out of the critical bundle.
@@ -74,10 +75,12 @@ export default function HomeClient({
   header,
   footer,
   pageData,
+  initialFocusAreas = [],
 }: {
   header: ReactNode;
   footer: ReactNode;
   pageData?: any;
+  initialFocusAreas?: FocusAreaDto[];
 }) {
   // Section prep is pure and only depends on `pageData`, so it runs once
   // per payload instead of on every render of the home tree.
@@ -108,7 +111,7 @@ export default function HomeClient({
           <div key={key}>
             <SectionSeparator />
             <section id="focus">
-              <FocusAreas cmsData={sec} />
+              <FocusAreas cmsData={sec} initialAreas={initialFocusAreas} />
             </section>
             {/* Auto-render IndexingScanner after focus if not an explicit custom section */}
             {!hasExplicitScanner && <IndexingScanner cmsData={sec} />}
@@ -184,7 +187,7 @@ export default function HomeClient({
           <>
             <Hero />
             <SectionSeparator />
-            <section id="focus"><FocusAreas /></section>
+            <section id="focus"><FocusAreas initialAreas={initialFocusAreas} /></section>
             <IndexingScanner />
             <section id="research"><FeaturedResearch /></section>
             <SectionSeparator />

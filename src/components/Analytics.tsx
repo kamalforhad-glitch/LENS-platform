@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import {
   trackEvent,
   trackPageView,
@@ -67,16 +67,10 @@ export function useAnalytics() {
 }
 
 export default function Analytics() {
-  const [consent, setConsent] = useState(false);
-
   useEffect(() => {
-    const stored = localStorage.getItem("analytics-consent");
-    if (stored === "true") {
-      setConsent(true);
-      initGA4();
-      initMetaPixel();
-      initSectionTracking();
-    }
+    initGA4();
+    initMetaPixel();
+    initSectionTracking();
 
     // Scroll depth tracking
     let maxDepth = 0;
@@ -89,29 +83,9 @@ export default function Analytics() {
         trackScrollDepth(depth);
       }
     };
-
-    if (stored === "true") {
-      window.addEventListener("scroll", handleScroll, { passive: true });
-    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Listen for consent changes
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.consent) {
-        setConsent(true);
-        initGA4();
-        initMetaPixel();
-        initSectionTracking();
-      } else {
-        setConsent(false);
-      }
-    };
-    window.addEventListener("analytics-consent", handler);
-    return () => window.removeEventListener("analytics-consent", handler);
   }, []);
 
   return null;

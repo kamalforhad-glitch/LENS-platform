@@ -923,6 +923,26 @@ model AuditLog {
 // Tokens are stored SHA-256 hashed and single-use.
 // ============================================================
 
+// ============================================================
+// Focus Areas (homepage cards + /focus/[slug] sub-pages)
+// ============================================================
+
+model FocusArea {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  title       String
+  description String
+  icon        String?  // SVG name, icon alias, or Lucide identifier
+  content     String?  @db.Text // Markdown/structured copy for /focus/[slug]
+  imageUrl    String?  @map("image_url")
+  order       Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([order])
+  @@map("focus_areas")
+}
+
 model PasswordResetToken {
   id        String    @id @default(uuid())
   userId    String    @map("user_id")

@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import MagneticButton from "./MagneticButton";
-import EditorialInsightGrid from "./EditorialInsightGrid";
+import LensWorldTelemetry from "./LensWorldTelemetry";
 import { resolveCmsValue } from "@/lib/cms-content";
 
 function asString(v: unknown): string {
@@ -18,15 +16,6 @@ function asWordList(v: unknown): string[] {
   return [];
 }
 
-gsap.registerPlugin(ScrollTrigger);
-
-// ============================================================
-// Hero Component
-//
-// Performance contract: the hero is static markup — no entrance
-// timeline hides it, no canvas blocks it, and no dynamic import
-// delays hydration. First Contentful Paint = the headline.
-// ============================================================
 export interface CmsSectionData {
   id?: string;
   type?: string;
@@ -48,7 +37,6 @@ function parseJsonSafe(val: unknown): Record<string, any> {
 }
 
 export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
-  const sectionRef = useRef<HTMLElement>(null);
   const { t, i18n } = useTranslation();
   const isBn = i18n.language === "bn";
 
@@ -64,8 +52,6 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
   const ctaNetworkText = asString(resolveCmsValue(isBn, cEn, cBn, ["secondaryCtaText", "cta_network"])) || t("hero.cta_network");
   const ctaResearchLink = asString(resolveCmsValue(false, cEn, cBn, ["primaryCtaLink"])) || "/research";
   const ctaNetworkLink = asString(resolveCmsValue(false, cEn, cBn, ["secondaryCtaLink"])) || "/contact";
-  const taglineBetterText = asString(resolveCmsValue(isBn, cEn, cBn, ["taglineBetter", "tagline_better"])) || t("hero.tagline_better");
-  const taglineStrongerText = asString(resolveCmsValue(isBn, cEn, cBn, ["taglineStronger", "tagline_stronger"])) || t("hero.tagline_stronger");
   const announcementText = asString(resolveCmsValue(isBn, cEn, cBn, ["announcementText"]));
   const announcementLink = asString(resolveCmsValue(false, cEn, cBn, ["announcementLink"]));
   const scrollText = asString(resolveCmsValue(isBn, cEn, cBn, ["scrollText"])) || t("hero.scroll");
@@ -98,8 +84,8 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
   const layoutVariant = asString(cEn.layoutVariant || sSettings.layoutVariant || "split");
   const textAlignment = asString(cEn.textAlignment || sSettings.textAlignment || "left");
   const isCentered = layoutVariant === "centered" || textAlignment === "center";
-  // Legacy CMS flag (`showBackgroundGlobe`) now toggles the editorial
-  // insight board that replaced the 3D globe.
+  // Legacy CMS flag (`showBackgroundGlobe`) now toggles the world
+  // telemetry interface that replaced the 3D globe / bento board.
   const showInsightBoard = sSettings.showBackgroundGlobe !== false && cEn.showBackgroundGlobe !== false;
 
   const headlineFromArray = asWordList(resolveCmsValue(isBn, cEn, cBn, ["headlineWords"]));
@@ -111,56 +97,29 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
       ? headlineFromString.trim().split(/\s+/)
       : asWordList(fallbackTranslation);
 
-  // Scroll-linked motion only: nothing here hides content on load, so
-  // the headline is painted (and measurable as LCP) immediately.
+  // Left column enters with a single gentle opacity fade at FCP —
+  // zero translateY / position changes so nothing can climb or overlap.
+  const [fadeIn, setFadeIn] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
-    const mm = gsap.matchMedia();
-    mm.add("(prefers-reduced-motion: no-preference)", () => {
-      if (!sectionRef.current) return;
-
-      gsap.to(".hero-content", {
-        y: -100,
-        opacity: 0,
-        ease: "none",
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top top",
-          end: "60% top",
-          scrub: 1.5,
-        },
-      });
-
-      gsap.to(".hero-bg-gradient", {
-        opacity: 0.8,
-        ease: "none",
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: 1,
-        },
-      });
-
-      gsap.to(".scroll-indicator", {
-        opacity: 0,
-        y: -20,
-        ease: "none",
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "5% top",
-          end: "15% top",
-          scrub: 1,
-        },
-      });
-    });
-
-    return () => mm.revert();
+    const mq = typeof window !== "undefined" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+    if (mq?.matches) {
+      setReduceMotion(true);
+      setFadeIn(true);
+      return;
+    }
+    const raf = requestAnimationFrame(() => setFadeIn(true));
+    return () => cancelAnimationFrame(raf);
   }, []);
+
+  const fadeStyle = {
+    opacity: fadeIn ? 1 : 0,
+    ...(reduceMotion || fadeIn ? {} : { transition: "opacity 900ms cubic-bezier(0.22, 1, 0.36, 1)" }),
+  };
 
   return (
     <section
-      ref={sectionRef}
-      className="relative min-h-[100vh] flex items-center overflow-x-clip"
+      className="relative min-h-[100vh] overflow-x-clip"
       aria-label="Hero"
     >
       {/* Background Media: Video (WebM/MP4) with Poster and Reduced Motion Fallback */}
@@ -237,11 +196,14 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
       <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#030810] to-transparent pointer-events-none z-[3]" />
       <div className="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-[#030810]/70 to-transparent pointer-events-none z-[3]" />
 
-      {/* Responsive Content Grid */}
-      <div className="hero-content relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 pt-20 pb-10 sm:pt-24 sm:pb-16 lg:py-20 w-full z-10">
-        <div className={`grid grid-cols-1 ${isCentered ? "lg:grid-cols-12 justify-center" : "lg:grid-cols-12"} gap-6 sm:gap-8 lg:gap-8 xl:gap-12 items-center`}>
-          {/* Editorial Column */}
-          <div className={`${isCentered ? "lg:col-span-12 max-w-4xl mx-auto text-center items-center" : "lg:col-span-7 xl:col-span-6"} min-w-0 z-10 flex flex-col justify-center`}>
+      {/* Responsive Content Grid — vertically centered, zero CLS layout */}
+      <div className="relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 w-full z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center min-h-[calc(100vh-80px)] py-12 lg:py-20">
+          {/* Editorial Column — statically anchored on the Y axis; fade-in only */}
+          <div
+            className={`${isCentered ? "lg:col-span-12 max-w-4xl mx-auto text-center items-center" : "col-span-1 lg:col-span-6 xl:col-span-5 lg:pr-8 min-w-0 z-10 flex flex-col justify-center"}`}
+            style={fadeStyle}
+          >
             {/* Optional Announcement Banner Badge */}
             {announcementText && (
               <div className={`mb-3 sm:mb-4 ${isCentered ? "flex justify-center" : ""}`}>
@@ -328,15 +290,15 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
 
           {/* Visual Column: foreground photograph OR editorial insight board */}
           {!isCentered && showInsightBoard && (
-            <div className="lg:col-span-5 xl:col-span-6 min-w-0 relative flex flex-col items-center justify-center mt-4 lg:mt-0">
-              {foregroundImage ? (
-                <div className="relative w-full max-w-lg aspect-4/3 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+            <div className="col-span-1 lg:col-span-6 xl:col-span-7 flex justify-center items-center w-full">
+              <div className="relative w-full max-w-2xl xl:max-w-3xl aspect-[4/3] max-h-[520px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950/40 backdrop-blur-sm shadow-2xl">
+                {foregroundImage ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={foregroundImage} alt={imageAlt} className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                <EditorialInsightGrid cmsData={cmsData} statement={taglineBetterText} statementAccent={taglineStrongerText} />
-              )}
+                ) : (
+                  <LensWorldTelemetry />
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -34,6 +34,7 @@ import {
   Mail,
   ShieldCheck,
   Database,
+  Target,
   ExternalLink,
   LogOut,
   X,
@@ -57,6 +58,7 @@ const navItems: NavItemConfig[] = [
   // Visual CMS & Dynamic Page Builder
   { label: "Pages", href: "/admin/pages", icon: Layers, group: "Visual CMS" },
   { label: "Homepage Builder", href: "/admin/pages/home", icon: Home, group: "Visual CMS" },
+  { label: "Focus Areas", href: "/admin/focus", icon: Target, group: "Visual CMS" },
   { label: "Sections Library", href: "/admin/sections", icon: LayoutGrid, group: "Visual CMS" },
   { label: "Tabs & Inner Tabs", href: "/admin/tabs", icon: FolderTree, group: "Visual CMS" },
   { label: "Navigation & Menus", href: "/admin/navigation", icon: Menu, group: "Visual CMS" },

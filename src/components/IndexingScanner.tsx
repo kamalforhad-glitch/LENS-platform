@@ -34,6 +34,10 @@ function asString(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
+// Round trig output so the serialized coordinates are deterministic across
+// JS engines (prevents float-formatting differences in SVG attributes).
+const roundCoord = (value: number) => Math.round(value * 1000) / 1000;
+
 // 24 perimeter degree tick marks around the 360-degree circumference
 const RADAR_TICKS = Array.from({ length: 24 }).map((_, i) => {
   const angle = (i * 15 * Math.PI) / 180;
@@ -43,10 +47,10 @@ const RADAR_TICKS = Array.from({ length: 24 }).map((_, i) => {
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   return {
-    x1: 220 + 200 * cos,
-    y1: 220 + 200 * sin,
-    x2: 220 + (200 - tickLen) * cos,
-    y2: 220 + (200 - tickLen) * sin,
+    x1: roundCoord(220 + 200 * cos),
+    y1: roundCoord(220 + 200 * sin),
+    x2: roundCoord(220 + (200 - tickLen) * cos),
+    y2: roundCoord(220 + (200 - tickLen) * sin),
     isMajor,
   };
 });
@@ -88,7 +92,15 @@ export default function IndexingScanner({ cmsData }: { cmsData?: IndexingScanner
   const { t } = useTranslation();
   const [active, setActive] = useState(false);
   const [inView, setInView] = useState(true);
+  // Hydration guard: the radar geometry below is client-owned markup. Rendering
+  // it only after mount guarantees the server HTML and first client render are
+  // byte-identical (no SVG x1/y1/x2/y2 mismatches).
+  const [isMounted, setIsMounted] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const cEn = parseJsonSafe(cmsData?.content);
   const cBn = parseJsonSafe(cmsData?.contentBn);
@@ -207,6 +219,11 @@ export default function IndexingScanner({ cmsData }: { cmsData?: IndexingScanner
 
           {/* RIGHT COLUMN — Realistic Cinematic Flashlight Radar */}
           <div className="lg:col-span-6 xl:col-span-5 flex justify-center lg:justify-end w-full">
+            {!isMounted ? (
+              /* Static, predictable placeholder matching the radar footprint so
+                 the server and first client paint are identical (zero CLS). */
+              <div className="pfi-radar" aria-hidden="true" />
+            ) : (
             <div
               className={`pfi-radar ${active ? "is-active" : "is-ambient"} ${inView ? "" : "is-paused"}`}
               role="img"
@@ -554,6 +571,7 @@ export default function IndexingScanner({ cmsData }: { cmsData?: IndexingScanner
               <div className="pfi-origin-core" aria-hidden="true" />
               <div className="pfi-ripple" aria-hidden="true" />
             </div>
+            )}
           </div>
         </div>
       </div>

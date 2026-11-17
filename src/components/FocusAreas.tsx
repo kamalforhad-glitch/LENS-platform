@@ -1,38 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import useSWR from "swr";
 import { useTranslation } from "react-i18next";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import {
-  BarChart3,
-  Megaphone,
-  FileText,
-  Database,
-  Shield,
-  Users,
-  Lock,
-  ArrowRight,
-} from "lucide-react";
-import { requestIndexScan } from "./IndexingScanner";
+import { ArrowRight, Pencil } from "lucide-react";
 import { resolveCmsValue } from "@/lib/cms-content";
+import { focusAccent, resolveFocusIcon } from "@/lib/focus-icons";
+import {
+  FOCUS_I18N_KEY_BY_SLUG,
+  FOCUS_LIST_KEY,
+  type FocusAreaDto,
+  type FocusListResponse,
+} from "@/lib/focus-types";
 
-function asString(v: unknown): string {
-  return typeof v === "string" ? v : "";
-}
+const FocusCmsDrawer = dynamic(() => import("@/components/admin/FocusCmsDrawer"), { ssr: false });
 
 gsap.registerPlugin(ScrollTrigger);
-
-const focusAreaKeys = [
-  { key: "research_insights", icon: BarChart3, glowColor: "rgba(59, 130, 246, 0.12)", accentColor: "#3b82f6" },
-  { key: "media_literacy", icon: Users, glowColor: "rgba(16, 185, 129, 0.12)", accentColor: "#10b981" },
-  { key: "strategic_comm", icon: Megaphone, glowColor: "rgba(20, 184, 166, 0.12)", accentColor: "#14b8a6" },
-  { key: "policy_advocacy", icon: FileText, glowColor: "rgba(245, 158, 11, 0.12)", accentColor: "#f59e0b" },
-  { key: "media_indexing", icon: Database, glowColor: "rgba(16, 185, 129, 0.12)", accentColor: "#10b981" },
-  { key: "press_freedom", icon: Shield, glowColor: "rgba(59, 130, 246, 0.12)", accentColor: "#3b82f6" },
-  { key: "journalist_protection", icon: Users, glowColor: "rgba(20, 184, 166, 0.12)", accentColor: "#14b8a6" },
-  { key: "cybersecurity", icon: Lock, glowColor: "rgba(245, 158, 11, 0.12)", accentColor: "#f59e0b" },
-];
 
 export interface CmsSectionData {
   id?: string;
@@ -48,80 +35,125 @@ export interface CmsSectionData {
   contentBn?: string | Record<string, unknown>;
 }
 
-function parseJsonSafe(val: unknown): Record<string, any> {
-  if (!val) return {};
-  if (typeof val === "object") return val as Record<string, any>;
-  try { return JSON.parse(val as string); } catch { return {}; }
+interface CardOverride {
+  title?: string;
+  desc?: string;
+  detail?: string;
+}
+
+type JsonRecord = Record<string, unknown>;
+
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function parseJsonSafe(value: unknown): JsonRecord {
+  if (!value) return {};
+  if (typeof value === "object" && !Array.isArray(value)) return value as JsonRecord;
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as JsonRecord)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function cardMap(value: unknown): JsonRecord {
+  if (Array.isArray(value)) {
+    return Object.fromEntries(
+      value
+        .filter((item): item is JsonRecord => Boolean(item) && typeof item === "object")
+        .map((item) => [(asString(item.key) || asString(item.id)), item])
+    );
+  }
+  return parseJsonSafe(value);
+}
+
+function readOverride(value: unknown): CardOverride | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as JsonRecord;
+  const title = asString(record.title);
+  const desc = asString(record.desc || record.description);
+  const detail = asString(record.detail);
+  return title || desc || detail ? { title, desc, detail } : undefined;
+}
+
+async function fetchFocusAreas(): Promise<FocusListResponse> {
+  const response = await fetch(FOCUS_LIST_KEY);
+  if (!response.ok) throw new Error("Could not load focus areas");
+  return response.json() as Promise<FocusListResponse>;
 }
 
 function FocusCard({
   area,
-  t,
   cardOverride,
+  detail,
+  learnMore,
 }: {
-  area: typeof focusAreaKeys[0];
-  t: (key: string) => string;
-  cardOverride?: { title?: string; desc?: string; detail?: string };
+  area: FocusAreaDto;
+  cardOverride?: CardOverride;
+  detail: string;
+  learnMore: string;
 }) {
-  const cardRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLAnchorElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLDivElement>(null);
-  const isExpanded = useRef(false);
+  const Icon = resolveFocusIcon(area.icon, area.order);
+  const { accent, glow } = focusAccent(area.order);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const card = cardRef.current;
-    const glow = glowRef.current;
-    if (!card || !glow) return;
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      const card = cardRef.current;
+      const glowEl = glowRef.current;
+      if (!card || !glowEl) return;
 
-    const rect = card.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    const tiltX = ((y - 50) / 50) * -6;
-    const tiltY = ((x - 50) / 50) * 6;
+      const rect = card.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 100;
+      const y = ((event.clientY - rect.top) / rect.height) * 100;
+      const tiltX = ((y - 50) / 50) * -6;
+      const tiltY = ((x - 50) / 50) * 6;
 
-    gsap.to(card, {
-      rotateX: tiltX,
-      rotateY: tiltY,
-      transformPerspective: 800,
-      duration: 0.3,
-      ease: "power2.out",
-    });
-
-    gsap.to(glow, {
-      opacity: 1,
-      background: `radial-gradient(circle at ${x}% ${y}%, ${area.glowColor} 0%, transparent 55%)`,
-      duration: 0.3,
-    });
-  }, [area.glowColor]);
+      gsap.to(card, {
+        rotateX: tiltX,
+        rotateY: tiltY,
+        transformPerspective: 800,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+      gsap.to(glowEl, {
+        opacity: 1,
+        background: `radial-gradient(circle at ${x}% ${y}%, ${glow} 0%, transparent 55%)`,
+        duration: 0.3,
+      });
+    },
+    [glow]
+  );
 
   const handleMouseEnter = useCallback(() => {
     const card = cardRef.current;
-    const detail = detailRef.current;
-    if (!card) return;
-
-    gsap.to(card, {
-      scale: 1.02,
-      boxShadow: `0 20px 60px -12px ${area.glowColor}`,
-      duration: 0.4,
-      ease: "power2.out",
-    });
-
-    if (detail) {
-      gsap.to(detail, {
-        height: "auto",
-        opacity: 1,
-        marginTop: 12,
+    const detailEl = detailRef.current;
+    if (card) {
+      gsap.to(card, {
+        scale: 1.02,
+        boxShadow: `0 20px 60px -12px ${glow}`,
         duration: 0.4,
         ease: "power2.out",
       });
     }
-    isExpanded.current = true;
-  }, [area.glowColor]);
+    if (detailEl) {
+      gsap.to(detailEl, { height: "auto", opacity: 1, marginTop: 12, duration: 0.4, ease: "power2.out" });
+    }
+  }, [glow]);
 
   const handleMouseLeave = useCallback(() => {
     const card = cardRef.current;
-    const glow = glowRef.current;
-    const detail = detailRef.current;
+    const glowEl = glowRef.current;
+    const detailEl = detailRef.current;
 
     if (card) {
       gsap.to(card, {
@@ -133,138 +165,130 @@ function FocusCard({
         ease: "power2.out",
       });
     }
-
-    if (glow) {
-      gsap.to(glow, { opacity: 0, duration: 0.3 });
+    if (glowEl) gsap.to(glowEl, { opacity: 0, duration: 0.3 });
+    if (detailEl) {
+      gsap.to(detailEl, { height: 0, opacity: 0, marginTop: 0, duration: 0.3, ease: "power2.in" });
     }
-
-    if (detail) {
-      gsap.to(detail, {
-        height: 0,
-        opacity: 0,
-        marginTop: 0,
-        duration: 0.3,
-        ease: "power2.in",
-      });
-    }
-    isExpanded.current = false;
   }, []);
-
-  // The Press Freedom Index card doubles as the trigger for the
-  // homepage indexing scanner (no route is attached to this card, so
-  // activation + smooth scroll is the entire interaction). Keyboard
-  // support is added here so the trigger is not pointer-only.
-  const isScanTrigger = area.key === "press_freedom";
-
-  const handleActivateScan = useCallback(() => {
-    requestIndexScan();
-  }, []);
-
-  const handleTriggerKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        requestIndexScan();
-      }
-    },
-    []
-  );
 
   return (
-    <div
+    <Link
       ref={cardRef}
+      href={`/focus/${area.slug}`}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={isScanTrigger ? handleActivateScan : undefined}
-      onKeyDown={isScanTrigger ? handleTriggerKeyDown : undefined}
-      role={isScanTrigger ? "button" : undefined}
-      tabIndex={isScanTrigger ? 0 : undefined}
-      className="group relative min-h-full rounded-2xl border border-slate-100 bg-white hover:border-slate-200 transition-colors duration-300 cursor-pointer overflow-hidden"
+      className="group relative flex min-h-full overflow-hidden rounded-2xl border border-slate-100 bg-white transition-colors duration-300 hover:border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/60"
       style={{ transformStyle: "preserve-3d" }}
     >
-      <div
-        ref={glowRef}
-        className="absolute inset-0 opacity-0 pointer-events-none rounded-2xl z-0"
-      />
+      <div ref={glowRef} className="pointer-events-none absolute inset-0 z-0 rounded-2xl opacity-0" />
 
       <div
-        className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        style={{ background: `linear-gradient(90deg, transparent, ${area.accentColor}, transparent)` }}
+        className="absolute inset-x-0 top-0 h-[2px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
       />
 
-      <div className="relative z-10 p-5 flex gap-4">
-        <div className="w-12 h-12 shrink-0 rounded-2xl bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center transition-colors duration-300">
-          <area.icon
-            className="w-6 h-6 transition-all duration-500 group-hover:scale-110"
-            style={{ color: area.accentColor }}
+      <div className="relative z-10 flex gap-4 p-5">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-50 transition-colors duration-300 group-hover:bg-slate-100">
+          <Icon
+            className="h-6 w-6 transition-all duration-500 group-hover:scale-110"
+            style={{ color: accent }}
             strokeWidth={1.5}
           />
         </div>
 
         <div className="min-w-0 flex-1">
-          <h3 className="text-base font-bold text-slate-900 mb-1 group-hover:text-slate-950 transition-colors">
-            {cardOverride?.title || t(`focus.${area.key}.title`)}
+          <h3 className="mb-1 text-base font-bold text-slate-900 transition-colors group-hover:text-slate-950">
+            {cardOverride?.title || area.title}
           </h3>
-          <p className="text-sm text-slate-500 leading-relaxed mb-2">
-            {cardOverride?.desc || t(`focus.${area.key}.description`)}
+          <p className="mb-2 text-sm leading-relaxed text-slate-500">
+            {cardOverride?.desc || area.description}
           </p>
 
-          <div
-            ref={detailRef}
-            className="overflow-hidden"
-            style={{ height: 0, opacity: 0, marginTop: 0 }}
-          >
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {cardOverride?.detail || t(`focus.${area.key}.detail`)}
-            </p>
+          <div ref={detailRef} className="overflow-hidden" style={{ height: 0, opacity: 0, marginTop: 0 }}>
+            <p className="text-xs leading-relaxed text-slate-400">{detail}</p>
           </div>
 
-          <span className="text-sm font-semibold text-teal-600 group-hover:text-teal-500 transition-colors inline-flex items-center gap-1">
-            {t("focus.learn_more")}
-            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-teal-600 transition-colors group-hover:text-teal-500">
+            {learnMore}
+            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
           </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
-export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
+export default function FocusAreas({
+  cmsData,
+  initialAreas = [],
+}: {
+  cmsData?: CmsSectionData;
+  initialAreas?: FocusAreaDto[];
+}) {
   const sectionRef = useRef<HTMLElement>(null);
   const { t, i18n } = useTranslation();
   const isBn = i18n.language === "bn";
+  const [editMode, setEditMode] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const fallback = { areas: initialAreas, count: initialAreas.length };
+  const { data } = useSWR<FocusListResponse>(FOCUS_LIST_KEY, fetchFocusAreas, {
+    fallbackData: fallback,
+    revalidateOnFocus: false,
+  });
+  const areas = data?.areas ?? initialAreas;
+
+  useEffect(() => {
+    const isEdit = new URLSearchParams(window.location.search).get("editFocus") === "1";
+    setEditMode(isEdit);
+    if (!isEdit) return;
+
+    let cancelled = false;
+    fetch("/api/auth/check", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Unauthorized"))))
+      .then((payload: { authenticated?: boolean; user?: { role?: string } }) => {
+        if (cancelled) return;
+        const role = payload.user?.role;
+        setCanEdit(
+          Boolean(payload.authenticated) &&
+            (role === "admin" || role === "super_admin")
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setCanEdit(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const cEn = parseJsonSafe(cmsData?.content);
   const cBn = parseJsonSafe(cmsData?.contentBn);
 
-  // Key-compatibility resolution (see lib/cms-content.ts): the Landing
-  // Page Editor writes `sectionLabel`/`sectionTitle`/`sectionDescription`,
-  // while older saved sections used the legacy renderer keys `label`,
-  // `title`, `description`. Editor keys take precedence; legacy keys
-  // keep previously saved content rendering; the section's row title
-  // (an internal label such as "Focus Areas") and then i18n follow.
-  const sectionLabel = asString(resolveCmsValue(isBn, cEn, cBn, ["sectionLabel", "label"])) || t("focus.section_label");
-
-  const rowTitle = asString(isBn ? (cmsData?.titleBn || cmsData?.title) : cmsData?.title);
+  const sectionLabel =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionLabel", "label"])) ||
+    t("focus.section_label");
+  const rowTitle = asString(isBn ? cmsData?.titleBn || cmsData?.title : cmsData?.title);
   const sectionTitle =
-    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionTitle", "title"])) || rowTitle || t("focus.section_title");
-
-  const rowDesc = asString(isBn ? (cmsData?.descriptionBn || cmsData?.description) : cmsData?.description);
+    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionTitle", "title"])) ||
+    rowTitle ||
+    t("focus.section_title");
+  const rowDesc = asString(isBn ? cmsData?.descriptionBn || cmsData?.description : cmsData?.description);
   const sectionDesc =
-    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionDescription", "description"])) || rowDesc || t("focus.section_description");
+    asString(resolveCmsValue(isBn, cEn, cBn, ["sectionDescription", "description"])) ||
+    rowDesc ||
+    t("focus.section_description");
 
-  // Saved CTA for the "About LENS" link; falls back to the previous
-  // hardcoded destination when no link was saved.
-  const aboutLinkText = asString(resolveCmsValue(isBn, cEn, cBn, ["aboutLinkText"])) || t("focus.about_lens");
-  const aboutLinkUrl = asString(resolveCmsValue(false, cEn, cBn, ["aboutLinkUrl"])) || "/about";
+  const aboutLinkText =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["aboutLinkText"])) || t("focus.about_lens");
+  const aboutLinkUrl =
+    asString(resolveCmsValue(false, cEn, cBn, ["aboutLinkUrl"])) || "/about";
 
-  const cardsMapEn: Record<string, any> = Array.isArray(cEn.cards)
-    ? Object.fromEntries(cEn.cards.map((c: any) => [c.key || c.id, c]))
-    : (cEn.cards || {});
-  const cardsMapBn: Record<string, any> = Array.isArray(cBn.cards)
-    ? Object.fromEntries(cBn.cards.map((c: any) => [c.key || c.id, c]))
-    : (cBn.cards || {});
+  const cardsMapEn = cardMap(cEn.cards);
+  const cardsMapBn = cardMap(cBn.cards);
 
   useEffect(() => {
     const mm = gsap.matchMedia();
@@ -281,7 +305,6 @@ export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
           scrollTrigger: { trigger: sectionRef.current, start: "top 70%" },
         }
       );
-
       gsap.fromTo(
         ".focus-title",
         { opacity: 0, y: 25, filter: "blur(8px)" },
@@ -294,7 +317,6 @@ export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
           scrollTrigger: { trigger: sectionRef.current, start: "top 70%" },
         }
       );
-
       gsap.fromTo(
         ".focus-desc",
         { opacity: 0, y: 20 },
@@ -306,7 +328,6 @@ export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
           scrollTrigger: { trigger: sectionRef.current, start: "top 65%" },
         }
       );
-
       gsap.fromTo(
         ".focus-link",
         { opacity: 0, x: -10 },
@@ -320,7 +341,7 @@ export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
       );
 
       const cards = gsap.utils.toArray<HTMLElement>(".focus-card-wrap");
-      cards.forEach((card, i) => {
+      cards.forEach((card, index) => {
         gsap.fromTo(
           card,
           { opacity: 0, y: 60, rotateX: -15, scale: 0.92 },
@@ -332,7 +353,7 @@ export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
             duration: 0.7,
             ease: "power3.out",
             scrollTrigger: { trigger: card, start: "top 85%" },
-            delay: i * 0.06,
+            delay: index * 0.06,
           }
         );
       });
@@ -350,57 +371,85 @@ export default function FocusAreas({ cmsData }: { cmsData?: CmsSectionData }) {
     }, sectionRef);
 
     return () => mm.revert();
-  }, []);
+  }, [areas.length]);
 
   return (
-    <section ref={sectionRef} className="py-24 lg:py-32 bg-white relative overflow-hidden" id="about">
-      <div className="absolute inset-0 opacity-[0.02]" style={{
-        backgroundImage: `radial-gradient(circle at 1px 1px, #0891b2 1px, transparent 0)`,
-        backgroundSize: "40px 40px"
-      }} />
+    <section ref={sectionRef} className="relative overflow-hidden bg-white py-24 lg:py-32" id="focus-areas">
+      <div
+        className="absolute inset-0 opacity-[0.02]"
+        style={{
+          backgroundImage: "radial-gradient(circle at 1px 1px, #0891b2 1px, transparent 0)",
+          backgroundSize: "40px 40px",
+        }}
+      />
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-500/[0.02] blur-3xl" />
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-teal-500/[0.02] rounded-full blur-3xl pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div className="grid lg:grid-cols-[340px_1fr] gap-12 lg:gap-16">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-12 lg:grid-cols-[340px_1fr] lg:gap-16">
           <div>
-            <span className="focus-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-600 mb-3 block">
+            <span id="about" className="focus-label mb-3 block text-xs font-semibold uppercase tracking-[0.2em] text-teal-600">
               {sectionLabel}
             </span>
-            <h2 className="focus-title text-3xl lg:text-4xl font-bold text-slate-900 leading-tight mb-5">
+            <h2 className="focus-title mb-5 text-3xl font-bold leading-tight text-slate-900 lg:text-4xl">
               {sectionTitle}
             </h2>
-            <p className="focus-desc text-slate-500 leading-relaxed mb-6">
-              {sectionDesc}
-            </p>
+            <p className="focus-desc mb-6 leading-relaxed text-slate-500">{sectionDesc}</p>
             <a
               href={aboutLinkUrl}
-              className="focus-link inline-flex items-center gap-2 text-teal-600 font-semibold hover:text-teal-500 transition-colors group"
+              className="focus-link group inline-flex items-center gap-2 font-semibold text-teal-600 transition-colors hover:text-teal-500"
             >
               {aboutLinkText}
-              <span className="group-hover:translate-x-1 transition-transform">→</span>
+              <span className="transition-transform group-hover:translate-x-1">→</span>
             </a>
+
+            {editMode && canEdit && (
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="mt-6 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-semibold text-teal-700 transition-colors hover:bg-teal-100"
+              >
+                <Pencil size={14} /> Edit focus areas
+              </button>
+            )}
           </div>
 
-          <div className="focus-grid grid sm:grid-cols-2 gap-5 relative">
-            <div className="focus-grid-line absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-teal-400/10 to-transparent -translate-y-1/2 origin-left pointer-events-none hidden lg:block" />
+          <div className="focus-grid relative grid gap-5 sm:grid-cols-2">
+            <div className="focus-grid-line pointer-events-none absolute left-0 right-0 top-1/2 hidden h-px -translate-y-1/2 origin-left bg-gradient-to-r from-transparent via-teal-400/10 to-transparent lg:block" />
 
-            {focusAreaKeys.map((area) => {
-              const cardData = isBn ? (cardsMapBn[area.key] || cardsMapEn[area.key]) : cardsMapEn[area.key];
-              const cardOverride = cardData ? {
-                title: cardData.title,
-                desc: cardData.desc || cardData.description,
-                detail: cardData.detail,
-              } : undefined;
+            {areas.map((area) => {
+              const i18nKey = FOCUS_I18N_KEY_BY_SLUG[area.slug] || "";
+              const override = isBn
+                ? readOverride(cardsMapBn[i18nKey] ?? cardsMapEn[i18nKey])
+                : readOverride(cardsMapEn[i18nKey]);
+              const translatedDetail = i18nKey ? String(t(`focus.${i18nKey}.detail`)) : "";
+              const detail =
+                override?.detail ||
+                (isBn && translatedDetail && !translatedDetail.startsWith("focus.")
+                  ? translatedDetail
+                  : area.description);
+
               return (
-                <div key={area.key} className="focus-card-wrap" style={{ perspective: "800px" }}>
-                  <FocusCard area={area} t={t} cardOverride={cardOverride} />
+                <div key={area.id} className="focus-card-wrap" style={{ perspective: "800px" }}>
+                  <FocusCard
+                    area={area}
+                    cardOverride={override}
+                    detail={detail}
+                    learnMore={t("focus.learn_more")}
+                  />
                 </div>
               );
             })}
           </div>
         </div>
       </div>
+
+      {drawerOpen && (
+        <FocusCmsDrawer
+          open
+          areas={areas}
+          onClose={() => setDrawerOpen(false)}
+        />
+      )}
     </section>
   );
 }

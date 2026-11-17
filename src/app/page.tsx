@@ -2,6 +2,7 @@ import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import HomeClient from "./HomeClient";
 import { getPublicPage } from "@/lib/actions/cms";
+import { getFocusAreas } from "@/lib/focus-areas";
 import { getPublicEvents, getPublicResearch } from "@/lib/public-content";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,10 @@ type HomeFeaturedItem = {
 };
 
 export default async function Home() {
-  const pageData = await getPublicPage("home");
+  const [pageData, focusAreas] = await Promise.all([
+    getPublicPage("home"),
+    getFocusAreas(),
+  ]);
 
   // Resolve published events for the homepage events_newsletter section.
   let eventsItems: HomeEventItem[] = [];
@@ -112,6 +116,7 @@ export default async function Home() {
       header={<SiteHeader />}
       footer={<SiteFooter />}
       pageData={{ ...pageData, sections: sectionsWithData }}
+      initialFocusAreas={focusAreas}
     />
   );
 }
