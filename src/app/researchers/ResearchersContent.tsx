@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslation } from "react-i18next";
+import { useApiQuery } from "@/lib/api/client";
 
 interface Researcher {
   id: string;
@@ -30,50 +31,37 @@ interface Researcher {
 
 type Props = {
   initialResearchers?: Researcher[];
-  researchersError?: boolean;
 };
 
-export default function ResearchersPage({ initialResearchers = [], researchersError = false }: Props) {
+/** Server and client payloads disagree on optional Bengali fields — normalize once. */
+const normalize = (items: Researcher[] = []): Researcher[] =>
+  items.map((r) => ({
+    ...r,
+    nameBn: r.nameBn || "",
+    affiliationBn: r.affiliationBn || "",
+    positionBn: r.positionBn || "",
+    bioBn: r.bioBn || "",
+  }));
+
+export default function ResearchersPage({ initialResearchers = [] }: Props) {
   const { t, i18n } = useTranslation();
   const isBn = String(i18n.language || "en").toLowerCase().startsWith("bn");
-  const [researchers, setResearchers] = useState<Researcher[]>(initialResearchers);
-  const [loading, setLoading] = useState(!initialResearchers || initialResearchers.length === 0);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState(researchersError);
 
-  // Fetch researchers server-side on mount if no initial data was provided.
-  useEffect(() => {
-    if (initialResearchers && initialResearchers.length > 0) return;
-    if (loading === false && !error) return;
+  // Cached GET: the server-rendered list seeds the cache so the first paint
+  // is already populated, and returning to this route renders instantly.
+  const { data, error, isLoading } = useApiQuery<{ researchers?: Researcher[] }>(
+    "/api/researchers",
+    initialResearchers.length > 0
+      ? { fallbackData: { researchers: initialResearchers } }
+      : undefined
+  );
 
-    const abort = new AbortController();
-    fetch("/api/researchers", { signal: abort.signal })
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load researchers");
-        return r.json();
-      })
-      .then((data) => {
-        const items: Researcher[] = (data.researchers || []).map((r: any) => ({
-          ...r,
-          nameBn: r.nameBn || "",
-          affiliationBn: r.affiliationBn || "",
-          positionBn: r.positionBn || "",
-          bioBn: r.bioBn || "",
-        }));
-        setResearchers(items);
-        setLoading(false);
-        setError(false);
-      })
-      .catch(() => {
-        setLoading(false);
-        setError(true);
-      });
+  const researchers = useMemo(() => normalize(data?.researchers), [data]);
 
-    return () => abort.abort();
-  }, [initialResearchers]);
-
-  const filtered = useCallback(() => {
+  const filtered = useMemo(() => {
     const q = search.toLowerCase();
+    if (!q) return researchers;
     return researchers.filter((r) =>
       r.name.toLowerCase().includes(q) ||
       r.nameBn.toLowerCase().includes(q) ||
@@ -88,17 +76,22 @@ export default function ResearchersPage({ initialResearchers = [], researchersEr
     try { return JSON.parse(str); } catch { return []; }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-navy-950 via-[#061224] to-navy-950">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24 relative z-10">
-          <div className="text-center py-20 text-slate-400">Loading researchers…</div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-48 rounded-2xl bg-white/[0.03] border border-white/[0.06] animate-pulse" />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  // Only surface the failure when nothing is cached to fall back on.
+  if (error && researchers.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-navy-950 via-[#061224] to-navy-950">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24 relative z-10">
@@ -110,7 +103,7 @@ export default function ResearchersPage({ initialResearchers = [], researchersEr
     );
   }
 
-  const items = filtered();
+  const items = filtered;
   const heading = isBn ? "গবেষক নেটওয়ার্ক" : "Researcher Network";
   const subheading = isBn
     ? "আমাদের সংশ্লিষ্ট গবেষকগণ এবং মিডিয়া গবেষণায় তাদের অবদান"

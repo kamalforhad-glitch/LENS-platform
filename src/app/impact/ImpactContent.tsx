@@ -1,78 +1,91 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
+import { useApiQuery } from "@/lib/api/client";
 
 const COLORS = ["#0d9488", "#2563eb", "#d97706", "#dc2626", "#7c3aed", "#059669"];
 
+interface Overview {
+  totalArticles: number;
+  totalDownloads: number;
+  totalCitations: number;
+  totalAuthors: number;
+  totalSearches: number;
+}
+
 interface ImpactData {
-  overview: {
-    totalArticles: number;
-    totalDownloads: number;
-    totalCitations: number;
-    totalAuthors: number;
-    totalSearches: number;
-  };
+  overview: Overview;
   monthly: { month: string; articles: number; downloads: number }[];
   categories: { category: string; count: number; downloads: number }[];
   topArticles: { title: string; downloads: number; category: string }[];
 }
 
-export default function ImpactPage() {
-  const [data, setData] = useState<ImpactData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+const EMPTY_OVERVIEW: Overview = {
+  totalArticles: 0,
+  totalDownloads: 0,
+  totalCitations: 0,
+  totalAuthors: 0,
+  totalSearches: 0,
+};
 
-  function load() {
-    setLoading(true);
-    setError(false);
-    Promise.all([
-      fetch("/api/analytics/overview").then((r) => {
-        if (!r.ok) throw new Error(`overview ${r.status}`);
-        return r.json();
-      }),
-      fetch("/api/analytics/monthly").then((r) => {
-        if (!r.ok) throw new Error(`monthly ${r.status}`);
-        return r.json();
-      }),
-      fetch("/api/analytics/categories").then((r) => {
-        if (!r.ok) throw new Error(`categories ${r.status}`);
-        return r.json();
-      }),
-      fetch("/api/analytics/top-articles").then((r) => {
-        if (!r.ok) throw new Error(`top-articles ${r.status}`);
-        return r.json();
-      }),
-    ]).then(([overview, monthly, categories, topArticles]) => {
-      setData({
-        overview: overview || { totalArticles: 0, totalDownloads: 0, totalCitations: 0, totalAuthors: 0, totalSearches: 0 },
-        monthly: monthly?.data || [],
-        categories: categories?.data || [],
-        topArticles: topArticles?.data || [],
-      });
-      setLoading(false);
-    }).catch(() => {
-      setLoading(false);
-      setError(true);
-    });
-  }
+type ListResponse<T> = { data?: T } | null;
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-navy-950 flex items-center justify-center">
-        <div className="text-white">Loading impact data...</div>
+/** Non-blocking placeholder so the page shell paints before the charts. */
+function ImpactSkeleton() {
+  return (
+    <div className="min-h-screen bg-navy-950">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24">
+        <div className="text-center mb-12">
+          <div className="h-9 w-64 mx-auto rounded-lg bg-white/[0.06] animate-pulse" />
+          <div className="h-4 w-96 max-w-full mx-auto mt-4 rounded bg-white/[0.04] animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-24 rounded-2xl bg-white/[0.03] border border-white/[0.06] animate-pulse" />
+          ))}
+        </div>
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="h-80 rounded-2xl bg-white/[0.03] border border-white/[0.06] animate-pulse" />
+          <div className="h-80 rounded-2xl bg-white/[0.03] border border-white/[0.06] animate-pulse" />
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  if (!data || error) {
+export default function ImpactPage() {
+  const overviewQuery = useApiQuery<Overview | null>("/api/analytics/overview");
+  const monthlyQuery = useApiQuery<ListResponse<ImpactData["monthly"]>>("/api/analytics/monthly");
+  const categoriesQuery = useApiQuery<ListResponse<ImpactData["categories"]>>("/api/analytics/categories");
+  const topArticlesQuery = useApiQuery<ListResponse<ImpactData["topArticles"]>>("/api/analytics/top-articles");
+
+  const queries = [overviewQuery, monthlyQuery, categoriesQuery, topArticlesQuery];
+  const loading = queries.some((q) => q.isLoading);
+  // Only surface a failure when that query has nothing cached to show —
+  // a failed background revalidation must not blank out known-good data.
+  const failed = queries.some((q) => q.error && q.data === undefined);
+
+  // Cached payloads are read directly; the assembled shape is derived once
+  // per response instead of being copied into component state.
+  const data = useMemo<ImpactData | null>(() => {
+    if (overviewQuery.data === undefined) return null;
+    return {
+      overview: overviewQuery.data ?? EMPTY_OVERVIEW,
+      monthly: monthlyQuery.data?.data ?? [],
+      categories: categoriesQuery.data?.data ?? [],
+      topArticles: topArticlesQuery.data?.data ?? [],
+    };
+  }, [overviewQuery.data, monthlyQuery.data, categoriesQuery.data, topArticlesQuery.data]);
+
+  const retry = () => queries.forEach((q) => void q.mutate());
+
+  if (loading) return <ImpactSkeleton />;
+
+  if (!data || failed) {
     return (
       <div className="min-h-screen bg-navy-950 flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
@@ -80,7 +93,7 @@ export default function ImpactPage() {
           <p className="text-sm text-slate-400 mb-4">We couldn&apos;t load the latest metrics. Please try again.</p>
           <button
             type="button"
-            onClick={load}
+            onClick={retry}
             className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-lg transition-colors"
           >
             Retry

@@ -14,22 +14,8 @@ export default function AboutContent() {
   useEffect(() => {
     const mm = gsap.matchMedia();
     mm.add("(prefers-reduced-motion: no-preference)", () => {
-      // Hero text reveal
-      gsap.fromTo(
-        ".about-hero-label",
-        { opacity: 0, y: 20, filter: "blur(6px)" },
-        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out", delay: 0.2 }
-      );
-      gsap.fromTo(
-        ".about-hero-title",
-        { opacity: 0, y: 30, filter: "blur(8px)" },
-        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, ease: "power3.out", delay: 0.4 }
-      );
-      gsap.fromTo(
-        ".about-hero-desc",
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.7, ease: "power2.out", delay: 0.6 }
-      );
+      // Page hero copy is intentionally not animated on load: it must be
+      // painted on first contentful paint instead of waiting on JS.
 
       // Mission section
       gsap.fromTo(

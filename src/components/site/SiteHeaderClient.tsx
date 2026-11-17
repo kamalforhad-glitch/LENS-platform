@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher";
+import { usePrefetchRoute } from "../PrefetchLink";
 import {
   DONATE_CTA,
   type NavChild,
@@ -212,6 +213,19 @@ export default function SiteHeaderClient({
 
   const isHome = pathname === "/";
   const solid = scrolled || !isHome;
+
+  // Warm the route of whatever nav link the pointer/focus lands on. Delegated
+  // on the header once instead of per-link, so desktop nav, mobile nav, the
+  // announcement bar and the CTA all prefetch without touching their markup.
+  const prefetchRoute = usePrefetchRoute();
+  const prefetchFromEvent = useCallback(
+    (event: { target: EventTarget | null }) => {
+      const target = event.target as Element | null;
+      const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (anchor) prefetchRoute(anchor.getAttribute("href") ?? "");
+    },
+    [prefetchRoute],
+  );
 
   // Filter out items not visible on desktop
   const desktopEntries = entries.filter((e) => e.desktopVisible !== false);
@@ -487,6 +501,9 @@ export default function SiteHeaderClient({
   return (
     <header
       ref={headerRef}
+      onMouseOver={prefetchFromEvent}
+      onFocus={prefetchFromEvent}
+      onTouchStart={prefetchFromEvent}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         solid
           ? "bg-navy-950/80 backdrop-blur-xl shadow-lg shadow-navy-950/20 border-b border-white/5"

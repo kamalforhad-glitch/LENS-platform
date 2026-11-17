@@ -8,6 +8,7 @@ import { MapPin, Clock, ArrowRight, Mail } from "lucide-react";
 import MagneticButton from "./MagneticButton";
 import { isValidEmail } from "@/lib/validation";
 import { resolveCmsValue } from "@/lib/cms-content";
+import { useApiMutation } from "@/lib/api/client";
 
 function asString(v: unknown): string {
   return typeof v === "string" ? v : "";
@@ -119,10 +120,26 @@ function parseJsonSafe(val: unknown): Record<string, any> {
 export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData }) {
   const sectionRef = useRef<HTMLElement>(null);
   const [emailFocused, setEmailFocused] = useState(false);
-  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [submitState, setSubmitState] = useState<"idle" | "success" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("");
   const { t, i18n } = useTranslation();
   const isBn = i18n.language === "bn";
+
+  // Optimistic subscribe: the success message shows immediately and is
+  // rolled back only if the API rejects the address.
+  const subscribe = useApiMutation<{ email: string }, { success?: boolean; message?: string; error?: string }>(
+    (input, signal) =>
+      fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+        signal,
+      }).then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+        return data;
+      }),
+  );
 
   const cEn = parseJsonSafe(cmsData?.content);
   const cBn = parseJsonSafe(cmsData?.contentBn);
@@ -159,7 +176,7 @@ export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData
   async function handleSubscribe(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // Guard against duplicate submissions.
-    if (submitState === "submitting") return;
+    if (subscribe.isPending) return;
 
     const form = event.currentTarget;
     const email = String(new FormData(form).get("email") ?? "").trim();
@@ -170,32 +187,15 @@ export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData
       return;
     }
 
-    setSubmitState("submitting");
-    setStatusMessage("");
+    // Optimistic: show the success state before the round trip starts.
+    setSubmitState("success");
+    setStatusMessage(t("newsletter.success") || "Thank you for subscribing! Check your inbox for confirmation.");
+    form.reset();
 
-    try {
-      const response = await fetch("/api/newsletter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data: { success?: boolean; message?: string; error?: string } = await response
-        .json()
-        .catch(() => ({}));
-
-      if (!response.ok) {
-        setSubmitState("error");
-        setStatusMessage(data.error || "Something went wrong. Please try again.");
-        return;
-      }
-
-      setSubmitState("success");
-      setStatusMessage(data.message || "Thank you for subscribing! Check your inbox for confirmation.");
-      form.reset();
-    } catch {
+    const result = await subscribe.mutate({ email });
+    if (!result.ok) {
       setSubmitState("error");
-      setStatusMessage("Network error. Please check your connection and try again.");
+      setStatusMessage(result.error?.message || "Something went wrong. Please try again.");
     }
   }
 
@@ -403,18 +403,13 @@ export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData
                   />
                   <button
                     type="submit"
-                    disabled={submitState === "submitting"}
+                    disabled={subscribe.isPending}
                     className="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-r-full transition-all shadow-lg shadow-teal-500/20 hover:shadow-teal-400/30 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
                   >
                     {t("newsletter.subscribe")}
                   </button>
                 </form>
 
-                {submitState === "submitting" && (
-                  <p role="status" className="text-xs text-slate-400 mt-3">
-                    Subscribing…
-                  </p>
-                )}
                 {submitState === "error" && (
                   <p role="alert" className="text-xs text-red-300 mt-3">
                     {statusMessage}

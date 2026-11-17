@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Hind_Siliguri } from "next/font/google";
 import "./globals.css";
 import Analytics from "@/components/Analytics";
+import ApiProvider from "@/components/ApiProvider";
 import CookieConsent from "@/components/CookieConsent";
 import I18nProvider from "@/components/I18nProvider";
 import HomeCanonical from "@/components/HomeCanonical";
@@ -218,7 +219,9 @@ export default function RootLayout({
         </a>
         <Analytics />
         <CookieConsent />
-        <I18nProvider>{children}</I18nProvider>
+        <ApiProvider>
+          <I18nProvider>{children}</I18nProvider>
+        </ApiProvider>
       </body>
     </html>
   );

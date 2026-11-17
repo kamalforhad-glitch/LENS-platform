@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import useSWR from "swr";
+import { API_CACHE_DEFAULTS } from "@/lib/api/client";
 import { searchLibrary, type LibraryFilters } from "@/lib/actions/library";
 import { trackDownload } from "@/lib/actions/research";
 
@@ -36,38 +38,60 @@ interface AutocompleteSuggestion {
 function LibraryContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [data, setData] = useState<LibraryData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"grid" | "list">("grid");
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchInput, setSearchInput] = useState(searchParams.get("q") || "");
   const autocompleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autocompleteAbort = useRef<AbortController | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const filters: LibraryFilters = {
-    search: searchParams.get("q") || "",
-    category: searchParams.get("category") || "all",
-    year: searchParams.get("year") || "all",
-    topic: searchParams.get("topic") || "all",
-    sort: (searchParams.get("sort") as LibraryFilters["sort"]) || "newest",
-  };
+  const filters: LibraryFilters = useMemo(
+    () => ({
+      search: searchParams.get("q") || "",
+      category: searchParams.get("category") || "all",
+      year: searchParams.get("year") || "all",
+      topic: searchParams.get("topic") || "all",
+      sort: (searchParams.get("sort") as LibraryFilters["sort"]) || "newest",
+    }),
+    [searchParams]
+  );
 
-  // Debounced autocomplete
+  // Cached search: one key per filter combination, so navigating back to a
+  // previously viewed combination paints instantly from cache and the server
+  // action still runs for background revalidation.
+  const filterKey = JSON.stringify(filters);
+  const { data, error, isLoading, mutate } = useSWR<LibraryData>(
+    ["library-search", filterKey],
+    ([, key]) => searchLibrary(JSON.parse(key as string) as LibraryFilters),
+    { ...API_CACHE_DEFAULTS, keepPreviousData: true }
+  );
+  const loading = isLoading;
+
+  // Debounced autocomplete — the previous in-flight request is cancelled so a
+  // slow response can never overwrite suggestions for a newer query.
   const fetchSuggestions = useCallback((query: string) => {
     if (autocompleteTimer.current) clearTimeout(autocompleteTimer.current);
+    autocompleteAbort.current?.abort();
     if (!query || query.trim().length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
     }
     autocompleteTimer.current = setTimeout(async () => {
+      const abort = new AbortController();
+      autocompleteAbort.current = abort;
       try {
-        const res = await fetch(`/api/search/autocomplete?q=${encodeURIComponent(query)}`);
+        const res = await fetch(
+          `/api/search/autocomplete?q=${encodeURIComponent(query)}`,
+          { signal: abort.signal }
+        );
         const result = await res.json();
         setSuggestions(result.suggestions || []);
         setShowSuggestions(true);
-      } catch { setSuggestions([]); }
+      } catch {
+        if (!abort.signal.aborted) setSuggestions([]);
+      }
     }, 300);
   }, []);
 
@@ -82,14 +106,14 @@ function LibraryContent() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const result = await searchLibrary(filters);
-    setData(result);
-    setLoading(false);
-  }, [filters.search, filters.category, filters.year, filters.topic, filters.sort]);
-
-  useEffect(() => { load(); }, [load]);
+  // Cancel any pending autocomplete request on unmount.
+  useEffect(
+    () => () => {
+      if (autocompleteTimer.current) clearTimeout(autocompleteTimer.current);
+      autocompleteAbort.current?.abort();
+    },
+    []
+  );
 
   const updateFilter = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -282,7 +306,7 @@ function LibraryContent() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-6">
               <span className="text-sm text-slate-400">
-                {data ? `${data.total} result${data.total !== 1 ? "s" : ""}` : "Loading..."}
+                {data ? `${data.total} result${data.total !== 1 ? "s" : ""}` : loading ? "Loading..." : "—"}
               </span>
               <div className="flex gap-1">
                 <button onClick={() => setView("grid")} className={`p-2 rounded-lg transition-colors ${view === "grid" ? "bg-white/10 text-white" : "text-slate-400 hover:text-white"}`}>
@@ -304,6 +328,18 @@ function LibraryContent() {
                     <div className="h-3 bg-white/10 rounded w-1/3" />
                   </div>
                 ))}
+              </div>
+            ) : error && !data ? (
+              <div className="text-center py-16">
+                <h3 className="text-lg font-bold text-white mb-2">We couldn&apos;t load the library</h3>
+                <p className="text-slate-400 text-sm mb-4">Please check your connection and try again.</p>
+                <button
+                  type="button"
+                  onClick={() => mutate()}
+                  className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  Retry
+                </button>
               </div>
             ) : !data || data.articles.length === 0 ? (
               <div className="text-center py-16">

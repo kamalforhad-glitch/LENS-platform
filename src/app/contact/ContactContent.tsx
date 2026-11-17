@@ -1,25 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { isValidEmail } from "@/lib/validation";
+import { useContactForm } from "@/lib/api/useContactForm";
 
 gsap.registerPlugin(ScrollTrigger);
 
-type SubmitState = "idle" | "submitting" | "success" | "error";
-
 export default function ContactContent() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [submitState, setSubmitState] = useState<SubmitState>("idle");
-  const [statusMessage, setStatusMessage] = useState("");
+  const { submitState, statusMessage, handleSubmit, isPending } = useContactForm();
 
   useEffect(() => {
     const mm = gsap.matchMedia();
     mm.add("(prefers-reduced-motion: no-preference)", () => {
-      gsap.fromTo(".contact-hero-label", { opacity: 0, y: 20, filter: "blur(6px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out", delay: 0.2 });
-      gsap.fromTo(".contact-hero-title", { opacity: 0, y: 30, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, ease: "power3.out", delay: 0.4 });
-      gsap.fromTo(".contact-hero-desc", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out", delay: 0.6 });
+      // Page hero copy is intentionally not animated on load: it must be
+      // painted on first contentful paint instead of waiting on JS.
 
       gsap.fromTo(".contact-info", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: ".contact-form-section", start: "top 70%" } });
       gsap.fromTo(".contact-form", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: ".contact-form-section", start: "top 70%" } });
@@ -29,68 +25,6 @@ export default function ContactContent() {
 
     return () => mm.revert();
   }, []);
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    // Guard against duplicate submissions (double-click / Enter spam).
-    if (submitState === "submitting") return;
-
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const payload = {
-      name: String(formData.get("name") ?? "").trim(),
-      email: String(formData.get("email") ?? "").trim(),
-      subject: String(formData.get("subject") ?? "").trim(),
-      message: String(formData.get("message") ?? "").trim(),
-    };
-
-    // Mirror the server rules so feedback is announced in the live region
-    // instead of relying only on native browser tooltips.
-    const clientError =
-      payload.name.length < 2
-        ? "Name must be at least 2 characters."
-        : !isValidEmail(payload.email)
-          ? "Please enter a valid email address."
-          : payload.subject.length < 3
-            ? "Subject must be at least 3 characters."
-            : payload.message.length < 10
-              ? "Message must be at least 10 characters."
-              : null;
-
-    if (clientError) {
-      setSubmitState("error");
-      setStatusMessage(clientError);
-      return;
-    }
-
-    setSubmitState("submitting");
-    setStatusMessage("");
-
-    try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data: { success?: boolean; message?: string; error?: string } = await response
-        .json()
-        .catch(() => ({}));
-
-      if (!response.ok) {
-        setSubmitState("error");
-        setStatusMessage(data.error || "Something went wrong. Please try again.");
-        return;
-      }
-
-      setSubmitState("success");
-      setStatusMessage(data.message || "Thank you for your message. We will get back to you soon.");
-      form.reset();
-    } catch {
-      setSubmitState("error");
-      setStatusMessage("Network error. Please check your connection and try again.");
-    }
-  }
 
   return (
     <div ref={sectionRef}>
@@ -209,10 +143,10 @@ export default function ContactContent() {
                 )}
                 <button
                   type="submit"
-                  disabled={submitState === "submitting"}
+                  disabled={isPending}
                   className="w-full px-6 py-3 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-teal-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {submitState === "submitting" ? "Sending…" : "Send Message"}
+                  {isPending ? "Sending…" : "Send Message"}
                 </button>
               </form>
             </div>

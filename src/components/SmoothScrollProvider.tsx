@@ -4,7 +4,6 @@ import { useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { usePathname } from "next/navigation";
-import { markScrollActive } from "@/lib/scroll-activity";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -65,8 +64,6 @@ export default function SmoothScrollProvider({
       ScrollTrigger.config({ ignoreMobileResize: true });
 
       lenis.on("scroll", () => {
-        // Shared scroll-activity signal (canvases pause while scrolling).
-        markScrollActive();
         ScrollTrigger.update();
       });
 

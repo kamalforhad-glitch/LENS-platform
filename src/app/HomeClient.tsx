@@ -6,16 +6,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import Hero from "@/components/Hero";
+import FocusAreas from "@/components/FocusAreas";
+import FeaturedResearch from "@/components/FeaturedResearch";
+import ImpactStats from "@/components/ImpactStats";
+import EventsNewsletter from "@/components/EventsNewsletter";
 import IndexingScanner from "@/components/IndexingScanner";
+import PageSectionsView from "@/components/page/PageSectionsView";
 
-const Hero = dynamic(() => import("@/components/Hero"));
-const FocusAreas = dynamic(() => import("@/components/FocusAreas"));
-const FeaturedResearch = dynamic(() => import("@/components/FeaturedResearch"));
-const ImpactStats = dynamic(() => import("@/components/ImpactStats"));
-const EventsNewsletter = dynamic(() => import("@/components/EventsNewsletter"));
-const PageSectionsView = dynamic(() => import("@/components/page/PageSectionsView"));
+// Behavior-only widgets: client-side scroll/overlay chrome that would add
+// nothing to the first paint, so they stay out of the critical bundle.
 const SmoothScrollProvider = dynamic(() => import("@/components/SmoothScrollProvider"), { ssr: false });
 const ScrollProgress = dynamic(() => import("@/components/ScrollProgress"), { ssr: false });
 const BackToTop = dynamic(() => import("@/components/BackToTop"), { ssr: false });
@@ -42,6 +44,32 @@ export interface HomeSectionData {
   contentBn?: any;
 }
 
+/** Coerce a CMS blob field into an object (CMS may store null/scalar). */
+const asObject = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+
+/**
+ * Normalize a raw CMS section for PageSectionsView: every field it reads
+ * must be present, so defaults are applied once here rather than being
+ * re-inlined at each call site.
+ */
+function toPageSection(sec: HomeSectionData, index: number): HomeSectionData {
+  return {
+    ...sec,
+    title: sec.title || "",
+    titleBn: sec.titleBn || "",
+    description: sec.description || "",
+    descriptionBn: sec.descriptionBn || "",
+    sortOrder: sec.sortOrder ?? index,
+    visible: true,
+    settings: asObject(sec.settings),
+    content: asObject(sec.content),
+    contentBn: asObject(sec.contentBn),
+  };
+}
+
 export default function HomeClient({
   header,
   footer,
@@ -51,24 +79,33 @@ export default function HomeClient({
   footer: ReactNode;
   pageData?: any;
 }) {
-  const rawSections: HomeSectionData[] = Array.isArray(pageData?.sections) ? pageData.sections : [];
-  
-  // Sort sections by sortOrder
-  const sortedSections = [...rawSections].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-  const isVisible = (sec?: HomeSectionData) => (sec ? sec.visible !== false : true);
-  const visibleSections = sortedSections.filter(isVisible);
-
-  // Check if indexing_scanner is an explicit section in DB
-  const hasExplicitScanner = visibleSections.some((s) => s.type === "indexing_scanner" || s.type === "indexing");
+  // Section prep is pure and only depends on `pageData`, so it runs once
+  // per payload instead of on every render of the home tree.
+  const { visibleSections, hasExplicitScanner } = useMemo(() => {
+    const rawSections: HomeSectionData[] = Array.isArray(pageData?.sections)
+      ? pageData.sections
+      : [];
+    const sorted = [...rawSections].sort(
+      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+    );
+    const visible = sorted.filter((sec) => sec.visible !== false);
+    return {
+      visibleSections: visible,
+      hasExplicitScanner: visible.some(
+        (s) => s.type === "indexing_scanner" || s.type === "indexing"
+      ),
+    };
+  }, [pageData]);
 
   const renderSection = (sec: HomeSectionData, index: number) => {
+    const key = sec.id || `sec-${index}`;
     switch (sec.type) {
       case "hero":
-        return <Hero key={sec.id || `hero-${index}`} cmsData={sec} />;
+        return <Hero key={key} cmsData={sec} />;
 
       case "focus":
         return (
-          <div key={sec.id || `focus-${index}`}>
+          <div key={key}>
             <SectionSeparator />
             <section id="focus">
               <FocusAreas cmsData={sec} />
@@ -80,20 +117,18 @@ export default function HomeClient({
 
       case "indexing_scanner":
       case "indexing":
-        return <IndexingScanner key={sec.id || `scanner-${index}`} cmsData={sec} />;
+        return <IndexingScanner key={key} cmsData={sec} />;
 
       case "featured_research":
         return (
-          <div key={sec.id || `research-${index}`}>
-            <section id="research">
-              <FeaturedResearch cmsData={sec} />
-            </section>
-          </div>
+          <section key={key} id="research">
+            <FeaturedResearch cmsData={sec} />
+          </section>
         );
 
       case "impact":
         return (
-          <div key={sec.id || `impact-${index}`}>
+          <div key={key}>
             <SectionSeparator />
             <section id="impact">
               <ImpactStats cmsData={sec} />
@@ -103,7 +138,7 @@ export default function HomeClient({
 
       case "events_newsletter":
         return (
-          <div key={sec.id || `events-${index}`}>
+          <div key={key}>
             <SectionSeparator />
             <section id="events">
               <EventsNewsletter cmsData={sec} />
@@ -114,23 +149,10 @@ export default function HomeClient({
       case "tabs":
       case "nested_tabs":
         return (
-          <div key={sec.id || `tabs-${index}`}>
+          <div key={key}>
             <SectionSeparator />
             <section id="tabs" className="relative">
-              <PageSectionsView sections={[{
-                ...sec,
-                id: sec.id,
-                type: sec.type,
-                title: sec.title || "",
-                titleBn: sec.titleBn || "",
-                description: sec.description || "",
-                descriptionBn: sec.descriptionBn || "",
-                sortOrder: sec.sortOrder ?? index,
-                visible: true,
-                settings: typeof sec.settings === "object" ? sec.settings : {},
-                content: typeof sec.content === "object" ? sec.content : {},
-                contentBn: typeof sec.contentBn === "object" ? sec.contentBn : {},
-              } as any]} />
+              <PageSectionsView sections={[toPageSection(sec, index) as any]} />
             </section>
           </div>
         );
@@ -138,22 +160,9 @@ export default function HomeClient({
       default:
         // Render any reusable block added from the CMS library
         return (
-          <div key={sec.id || `sec-${index}`}>
+          <div key={key}>
             <SectionSeparator />
-            <PageSectionsView sections={[{
-              ...sec,
-              id: sec.id,
-              type: sec.type,
-              title: sec.title || "",
-              titleBn: sec.titleBn || "",
-              description: sec.description || "",
-              descriptionBn: sec.descriptionBn || "",
-              sortOrder: sec.sortOrder ?? index,
-              visible: true,
-              settings: typeof sec.settings === "object" ? sec.settings : {},
-              content: typeof sec.content === "object" ? sec.content : {},
-              contentBn: typeof sec.contentBn === "object" ? sec.contentBn : {},
-            } as any]} />
+            <PageSectionsView sections={[toPageSection(sec, index) as any]} />
           </div>
         );
     }

@@ -1,76 +1,15 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { isValidEmail } from "@/lib/validation";
+import { useContactForm } from "@/lib/api/useContactForm";
 
 import { asString } from "./PageSectionsView";
-
-type SubmitState = "idle" | "submitting" | "success" | "error";
 
 export default function ContactFormBlock({ content }: { content: Record<string, unknown> }) {
   const title = asString(content.title);
   const description = asString(content.description);
   const submitLabel = asString(content.submitLabel) || "Send Message";
   const fields = Array.isArray(content.fields) ? content.fields : [];
-  const [submitState, setSubmitState] = useState<SubmitState>("idle");
-  const [statusMessage, setStatusMessage] = useState("");
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (submitState === "submitting") return;
-
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const payload = {
-      name: String(formData.get("name") ?? "").trim(),
-      email: String(formData.get("email") ?? "").trim(),
-      subject: String(formData.get("subject") ?? "").trim(),
-      message: String(formData.get("message") ?? "").trim(),
-    };
-
-    const clientError =
-      payload.name.length < 2
-        ? "Name must be at least 2 characters."
-        : !isValidEmail(payload.email)
-          ? "Please enter a valid email address."
-          : payload.subject.length < 3
-            ? "Subject must be at least 3 characters."
-            : payload.message.length < 10
-              ? "Message must be at least 10 characters."
-              : null;
-
-    if (clientError) {
-      setSubmitState("error");
-      setStatusMessage(clientError);
-      return;
-    }
-
-    setSubmitState("submitting");
-    setStatusMessage("");
-
-    try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data: { success?: boolean; message?: string; error?: string } = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        setSubmitState("error");
-        setStatusMessage(data.error || "Something went wrong. Please try again.");
-        return;
-      }
-
-      setSubmitState("success");
-      setStatusMessage(data.message || "Thank you for your message. We will get back to you soon.");
-      form.reset();
-    } catch {
-      setSubmitState("error");
-      setStatusMessage("Network error. Please check your connection and try again.");
-    }
-  }
+  const { submitState, statusMessage, handleSubmit, isPending } = useContactForm();
 
   return (
     <form className="space-y-6 max-w-xl" onSubmit={handleSubmit} noValidate>
@@ -117,10 +56,10 @@ export default function ContactFormBlock({ content }: { content: Record<string, 
       )}
       <button
         type="submit"
-        disabled={submitState === "submitting"}
+        disabled={isPending}
         className="w-full px-6 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {submitState === "submitting" ? "Sending…" : submitLabel}
+        {isPending ? "Sending…" : submitLabel}
       </button>
     </form>
   );

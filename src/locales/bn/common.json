@@ -57,7 +57,20 @@
     "cta_network": "আমাদের নেটওয়ার্কে যোগ দিন",
     "tagline_better": "ভালো তথ্য।",
     "tagline_stronger": "শক্তিশালী গণতন্ত্র।",
-    "scroll": "স্ক্রল"
+    "scroll": "স্ক্রল",
+    "insight": {
+      "eyebrow": "প্রমাণ ডেস্ক",
+      "statement_source": "LENS গবেষণা ডেস্ক · ঢাকা",
+      "outlets_label": "সূচিবদ্ধ গণমাধ্যম আউটলেট",
+      "signals_label": "ট্র্যাক করা কথোপকথন সংকেত",
+      "briefs_label": "চলমান নীতিমূলক সংক্ষেপপত্র",
+      "evidence_title": "প্রমাণ, শব্দনয় নয়",
+      "evidence_index": "সংবাদ স্বাধীনতা সূচক — বাংলাদেশ প্রোফাইল",
+      "evidence_literacy": "গণমাধ্যম সাক্ষরতা অভিযান — ৬ বিভাগ",
+      "nodes_title": "ইকোসিস্টেম নোড",
+      "photo_caption": "ক্ষেত্রনথিপত্র — ঢাকা, বাংলাদেশ",
+      "photo_alt": "LENS গবেষণা কাজের প্রামাণিক ক্ষেত্রআলোকচিত্র"
+    }
   },
   "focus": {
     "section_label": "আমাদের ফোকাস",

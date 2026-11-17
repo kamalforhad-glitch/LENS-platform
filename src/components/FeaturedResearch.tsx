@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -33,6 +34,8 @@ interface PubItem {
   readMinutes: number;
   color: string;
   accent: string;
+  href?: string;
+  slug?: string;
 }
 
 function PublicationCard({ pub, t, locale }: { pub: PubItem; t: (key: string) => string; locale: string }) {
@@ -189,6 +192,8 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
       readMinutes: asNumber(item.readMinutes) || 10,
       color: asString(item.color || "text-teal-600"),
       accent: asString(item.accent || "#0891b2"),
+      href: asString(item.href),
+      slug: asString(item.slug),
     }));
 
   const publications: PubItem[] = featuredItems.length > 0 ? featuredItems : [];
@@ -373,11 +378,23 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
 
             <div className="pub-list flex flex-col gap-4">
               {publications.length > 0 ? (
-                publications.map((pub) => (
-                  <div key={pub.titleEn} className="pub-card-wrap" style={{ perspective: "600px" }}>
-                    <PublicationCard pub={pub} t={t} locale={locale} />
-                  </div>
-                ))
+                publications.map((pub) => {
+                  // Only link when we have a real destination — an empty slug
+                  // would otherwise emit a broken `/research/` href.
+                  const href = pub.href || (pub.slug ? `/research/${pub.slug}` : "");
+                  const card = <PublicationCard pub={pub} t={t} locale={locale} />;
+                  return (
+                    <div key={pub.titleEn} className="pub-card-wrap" style={{ perspective: "600px" }}>
+                      {href ? (
+                        <Link href={href} className="block">
+                          {card}
+                        </Link>
+                      ) : (
+                        card
+                      )}
+                    </div>
+                  );
+                })
               ) : (
                 <p className="text-sm text-slate-400 text-center py-8">
                   {t("research.emptyMessage") || "No published research yet."}

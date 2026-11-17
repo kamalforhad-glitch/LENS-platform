@@ -29,26 +29,23 @@ export default async function ResearchersPage() {
     return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
   }
 
-  // Server-side fetch of active researchers with bilingual fields.
-  // Falls back to client-side ResearchersContent if the fetch fails.
+  // Server-side fetch of active researchers with bilingual fields, used to
+  // seed the client cache. If it fails, ResearchersContent fetches on mount.
   let researchers: any[] = [];
-  let researchersError = false;
   try {
     const res = await getPublicResearchers();
     if (!res.error) {
       researchers = res.items;
-    } else {
-      researchersError = true;
     }
   } catch {
-    researchersError = true;
+    researchers = [];
   }
 
   return (
     <>
       <SiteHeader />
       <main id="main-content" className="flex-1">
-        <ResearchersContent initialResearchers={researchers} researchersError={researchersError} />
+        <ResearchersContent initialResearchers={researchers} />
       </main>
       <SiteFooter />
     </>

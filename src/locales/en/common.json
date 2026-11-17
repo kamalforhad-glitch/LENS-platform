@@ -57,7 +57,20 @@
     "cta_network": "Join Our Network",
     "tagline_better": "Better\nInformation.",
     "tagline_stronger": "Stronger\nDemocracies.",
-    "scroll": "Scroll"
+    "scroll": "Scroll",
+    "insight": {
+      "eyebrow": "Evidence Desk",
+      "statement_source": "LENS Research Desk · Dhaka",
+      "outlets_label": "Indexed media outlets",
+      "signals_label": "Narrative signals tracked",
+      "briefs_label": "Policy briefs in circulation",
+      "evidence_title": "Evidence, not noise",
+      "evidence_index": "Press Freedom Index — Bangladesh profile",
+      "evidence_literacy": "Media literacy drive — 6 divisions",
+      "nodes_title": "Ecosystem nodes",
+      "photo_caption": "Field documentation — Dhaka, Bangladesh",
+      "photo_alt": "Documentary field photograph from LENS research work"
+    }
   },
   "focus": {
     "section_label": "Our Focus",

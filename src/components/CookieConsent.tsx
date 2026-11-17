@@ -8,16 +8,13 @@ export default function CookieConsent() {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
+    let stored: string | null = null;
     try {
-      const stored = localStorage.getItem("analytics-consent");
-      if (!stored) {
-        const timer = setTimeout(() => setShow(true), 2000);
-        return () => clearTimeout(timer);
-      }
+      stored = localStorage.getItem("analytics-consent");
     } catch {
-      const timer = setTimeout(() => setShow(true), 2000);
-      return () => clearTimeout(timer);
+      stored = null;
     }
+    if (!stored) setShow(true);
   }, []);
 
   const handleAccept = () => {
