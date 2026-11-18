@@ -11,7 +11,7 @@ import {
   reorderSections,
   updatePage,
 } from "@/lib/actions/cms";
-import { firstUsable } from "@/lib/cms-content";
+import { firstUsable, syncImpactStatsSharedValues } from "@/lib/cms-content";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
 import { SECTION_TYPE_DEFS } from "@/components/admin/PageSectionEditor";
 import TabsHierarchyEditor from "@/components/admin/TabsHierarchyEditor";
@@ -177,6 +177,12 @@ export default function HomepageCMS() {
       prefillEditorKeys(contentBnObj, SECTION_TEXT_PAIRS);
     }
 
+    if (section.type === "impact") {
+      const syncedImpact = syncImpactStatsSharedValues(contentObj, contentBnObj);
+      contentObj = syncedImpact.content;
+      contentBnObj = syncedImpact.contentBn;
+    }
+
     setEditingId(section.id);
     setEditFormData({
       title: section.title,
@@ -191,24 +197,38 @@ export default function HomepageCMS() {
 
   const handleSaveSection = async (sectionId: string) => {
     if (!editFormData) return;
-    if (editFormData.content && typeof editFormData.content.headline === "string") {
-      editFormData.content.headlineWords = (editFormData.content.headline as string).trim().split(/\s+/);
+    const sectionType = sections.find((s) => s.id === sectionId)?.type;
+    const contentToSave = { ...editFormData.content };
+    const contentBnToSave = { ...editFormData.contentBn };
+    if (typeof contentToSave.headline === "string") {
+      contentToSave.headlineWords = contentToSave.headline.trim().split(/\s+/);
     }
-    if (editFormData.contentBn && typeof editFormData.contentBn.headline === "string") {
-      editFormData.contentBn.headlineWords = (editFormData.contentBn.headline as string).trim().split(/\s+/);
+    if (typeof contentBnToSave.headline === "string") {
+      contentBnToSave.headlineWords = contentBnToSave.headline.trim().split(/\s+/);
     }
+    if (sectionType === "impact") {
+      const syncedImpact = syncImpactStatsSharedValues(contentToSave, contentBnToSave);
+      Object.assign(contentToSave, syncedImpact.content);
+      Object.assign(contentBnToSave, syncedImpact.contentBn);
+    }
+    const nextEditFormData = {
+      ...editFormData,
+      content: contentToSave,
+      contentBn: contentBnToSave,
+    };
+    setEditFormData(nextEditFormData);
     setSavingId(sectionId);
     setSaveError(null);
     setSuccessMsg(null);
     try {
       await updateSection(sectionId, {
-        title: editFormData.title,
-        titleBn: editFormData.titleBn,
-        description: editFormData.description,
-        descriptionBn: editFormData.descriptionBn,
-        content: JSON.stringify(editFormData.content),
-        contentBn: JSON.stringify(editFormData.contentBn),
-        settings: JSON.stringify(editFormData.settings),
+        title: nextEditFormData.title,
+        titleBn: nextEditFormData.titleBn,
+        description: nextEditFormData.description,
+        descriptionBn: nextEditFormData.descriptionBn,
+        content: JSON.stringify(nextEditFormData.content),
+        contentBn: JSON.stringify(nextEditFormData.contentBn),
+        settings: JSON.stringify(nextEditFormData.settings),
       });
 
       setSections((prev) =>
@@ -216,23 +236,23 @@ export default function HomepageCMS() {
           s.id === sectionId
             ? {
                 ...s,
-                title: editFormData.title,
-                titleBn: editFormData.titleBn,
-                description: editFormData.description,
-                descriptionBn: editFormData.descriptionBn,
-                content: JSON.stringify(editFormData.content),
-                contentBn: JSON.stringify(editFormData.contentBn),
-                settings: JSON.stringify(editFormData.settings),
+                title: nextEditFormData.title,
+                titleBn: nextEditFormData.titleBn,
+                description: nextEditFormData.description,
+                descriptionBn: nextEditFormData.descriptionBn,
+                content: JSON.stringify(nextEditFormData.content),
+                contentBn: JSON.stringify(nextEditFormData.contentBn),
+                settings: JSON.stringify(nextEditFormData.settings),
               }
             : s
         )
       );
       setEditingId(null);
       setEditFormData(null);
-      setSuccessMsg("Section changes saved successfully.");
+      setSuccessMsg("Section saved successfully.");
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Save failed");
+      setSaveError(err instanceof Error ? err.message : "Failed to save section.");
     } finally {
       setSavingId(null);
     }
