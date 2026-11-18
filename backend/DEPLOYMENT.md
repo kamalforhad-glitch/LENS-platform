@@ -15,6 +15,8 @@ This file documents the local deployment contract only. It does not create or mo
 
 The build runs from the repository root so Prisma can use the existing root schema at `prisma/schema.prisma`. The backend `postinstall` script runs `prisma generate --schema ../prisma/schema.prisma` from `backend/`, then `scripts/sync-generated-prisma.cjs` ensures the standalone service has a generated client in `backend/node_modules`. Prisma may generate into either the repository-root or backend dependency tree; the sync script handles both layouts and skips copying when the backend-local client is already current.
 
+`backend/.npmrc` sets `include=dev` because Render may set `NODE_ENV=production` during builds. Without it, `npm ci` omits `devDependencies`, which removes TypeScript, Prisma CLI, and the `@types/*` declarations needed by the build.
+
 ## Environment variables
 
 Required for database-backed routes:
