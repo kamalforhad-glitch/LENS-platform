@@ -1,0 +1,30 @@
+{
+  "name": "lens-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Initial standalone LENS Node.js backend/API",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "postinstall": "prisma generate --schema ../prisma/schema.prisma && node scripts/sync-generated-prisma.cjs"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20",
+    "prisma": "^6.19.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}
