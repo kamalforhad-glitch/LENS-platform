@@ -113,6 +113,17 @@ const nextConfig: NextConfig = {
         destination: "/",
         permanent: true,
       },
+      // Canonical route aliases:
+      {
+        source: "/themes",
+        destination: "/theme",
+        permanent: true,
+      },
+      {
+        source: "/about/our-team",
+        destination: "/about/team",
+        permanent: true,
+      },
     ];
   },
 };
