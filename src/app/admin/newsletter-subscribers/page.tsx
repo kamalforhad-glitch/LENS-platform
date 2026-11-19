@@ -7,6 +7,7 @@ import {
   updateSubscriberStatus,
   deleteSubscriber,
 } from "@/lib/actions/newsletter";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { PaginatedResult, NewsletterSubscriberAdmin } from "@/lib/actions/newsletter";
 
 const STATUS_OPTIONS = ["all", "pending", "confirmed", "unsubscribed"] as const;
@@ -38,19 +39,30 @@ export default function AdminNewsletterSubscribersPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [loading, setLoading] = useState(true);
+  const [refreshToken, setRefreshToken] = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
+    setRefreshToken((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     setLoading(true);
-    const result = await getNewsletterSubscribers(page, 25, {
-      status: status === "all" ? undefined : status,
-      search: search || undefined,
-    });
-    setData(result);
-    setLoading(false);
-  }, [page, status, search]);
-
-  useEffect(() => { load(); }, [load]);
+    void (async () => {
+      const result = await getNewsletterSubscribers(page, 25, {
+        status: status === "all" ? undefined : status,
+        search: debouncedSearch || undefined,
+      });
+      if (!active) return;
+      setData(result);
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [page, status, debouncedSearch, refreshToken]);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     await updateSubscriberStatus(id, newStatus);

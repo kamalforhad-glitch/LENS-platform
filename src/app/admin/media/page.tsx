@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { getMediaLibrary, updateMediaFile, getMediaReferences, type MediaReference } from "@/lib/actions/media";
 import { deleteMediaFile } from "@/lib/actions/dashboard";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface MediaFile {
   id: string;
@@ -26,6 +27,7 @@ export default function AdminMediaPage() {
   const [data, setData] = useState<{ items: MediaFile[]; total: number; page: number; pages: number } | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -35,20 +37,31 @@ export default function AdminMediaPage() {
   const [refsLoading, setRefsLoading] = useState(false);
   const [toast, setToast] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
+    setRefreshToken((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     setLoading(true);
-    try {
-      const result = await getMediaLibrary(page, 24, search || undefined);
-      setData({ items: result.items as MediaFile[], total: result.total, page: result.page, pages: result.pages });
-    } catch {
-      setError("Failed to load media files.");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search]);
-
-  useEffect(() => { load(); }, [load]);
+    void (async () => {
+      try {
+        const result = await getMediaLibrary(page, 24, debouncedSearch || undefined);
+        if (!active) return;
+        setData({ items: result.items as MediaFile[], total: result.total, page: result.page, pages: result.pages });
+      } catch {
+        if (!active) return;
+        setError("Failed to load media files.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [page, debouncedSearch, refreshToken]);
 
   const handleUpload = async (file: File) => {
     setUploading(true);

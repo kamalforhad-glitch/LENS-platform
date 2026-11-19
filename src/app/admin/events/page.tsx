@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getEvents, deleteEvent } from "@/lib/actions/events";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { AdminEvent, PaginatedResult } from "@/lib/admin-types";
 
 const CATEGORIES = ["All", "Summit", "Workshop", "Conference", "Launch", "Webinar"];
@@ -42,20 +43,31 @@ export default function AdminEventsPage() {
   const [status, setStatus] = useState("all");
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [loading, setLoading] = useState(true);
+  const [refreshToken, setRefreshToken] = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
+    setRefreshToken((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     setLoading(true);
-    const result = await getEvents(page, 15, {
-      status: status === "All" ? "all" : status,
-      category: category === "All" ? "all" : category,
-      search,
-    });
-    setData(result);
-    setLoading(false);
-  }, [page, status, category, search]);
-
-  useEffect(() => { load(); }, [load]);
+    void (async () => {
+      const result = await getEvents(page, 15, {
+        status: status === "All" ? "all" : status,
+        category: category === "All" ? "all" : category,
+        search: debouncedSearch,
+      });
+      if (!active) return;
+      setData(result);
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [page, status, category, debouncedSearch, refreshToken]);
 
   return (
     <div>

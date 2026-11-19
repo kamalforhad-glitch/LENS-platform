@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface Researcher {
   id: string;
@@ -67,6 +68,7 @@ export default function ResearchersAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [editingItem, setEditingItem] = useState<Researcher | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -99,16 +101,16 @@ export default function ResearchersAdmin() {
     status: "active",
   });
 
-  const loadItems = useCallback(() => {
+  const loadItems = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
     params.set("page", String(currentPage));
     params.set("limit", String(limit));
-    if (search) params.set("search", search);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (filter !== "all") params.set("status", filter);
 
-    fetch(`/api/admin/researchers?${params.toString()}`)
+    fetch(`/api/admin/researchers?${params.toString()}`, { signal })
       .then(async (r) => {
         if (!r.ok) {
           const err = await r.json().catch(() => ({ error: `Request failed (${r.status})` }));
@@ -123,18 +125,23 @@ export default function ResearchersAdmin() {
         setHasMore(d.hasMore || false);
       })
       .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : "Failed to load researchers");
       })
       .finally(() => {
-        setLoading(false);
+        if (!signal?.aborted) setLoading(false);
       });
-  }, [currentPage, limit, search, filter]);
+  }, [currentPage, limit, debouncedSearch, filter]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filter]);
+  }, [debouncedSearch, filter]);
 
-  useEffect(() => { loadItems(); }, [loadItems]);
+  useEffect(() => {
+    const controller = new AbortController();
+    loadItems(controller.signal);
+    return () => controller.abort();
+  }, [loadItems]);
 
   const saveItem = async (payload: Researcher | Record<string, unknown>) => {
     setError(null);

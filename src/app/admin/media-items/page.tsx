@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface MediaItem { id: string; slug: string; title: string; titleBn: string; type: string; source: string; status: string; }
 
@@ -25,6 +26,7 @@ export default function MediaItemsAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -33,16 +35,16 @@ export default function MediaItemsAdmin() {
   const [hasMore, setHasMore] = useState(false);
   const [counts, setCounts] = useState<MediaItemCounts>(DEFAULT_COUNTS);
 
-  const load = useCallback(() => {
+  const load = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
     params.set("page", String(currentPage));
     params.set("limit", String(limit));
-    if (search) params.set("search", search);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (filter !== "all") params.set("status", filter);
 
-    fetch(`/api/admin/media-items?${params.toString()}`)
+    fetch(`/api/admin/media-items?${params.toString()}`, { signal })
       .then(async (r) => {
         if (!r.ok) {
           const err = await r.json().catch(() => ({ error: `Request failed (${r.status})` }));
@@ -59,16 +61,21 @@ export default function MediaItemsAdmin() {
         setLoading(false);
       })
       .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : "Failed to load media items.");
         setLoading(false);
       });
-  }, [currentPage, limit, search, filter]);
+  }, [currentPage, limit, debouncedSearch, filter]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filter]);
+  }, [debouncedSearch, filter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   const deleteItem = async (id: string) => {
     if (!confirm("Delete this media item?")) return;

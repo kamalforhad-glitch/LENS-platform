@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getResearchArticles, deleteResearchArticle, publishResearchArticle, unpublishResearchArticle } from "@/lib/actions/research";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { AdminResearchArticle, PaginatedResult } from "@/lib/admin-types";
 
 const CATEGORIES = ["All", "Research Report", "Working Paper", "Policy Brief", "Data Analysis"];
@@ -49,20 +50,31 @@ export default function AdminResearchPage() {
   const [status, setStatus] = useState("all");
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [loading, setLoading] = useState(true);
+  const [refreshToken, setRefreshToken] = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
+    setRefreshToken((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     setLoading(true);
-    const result = await getResearchArticles(page, 15, {
-      status: status === "All" ? "all" : status,
-      category: category === "All" ? "all" : category,
-      search,
-    });
-    setData(result);
-    setLoading(false);
-  }, [page, status, category, search]);
-
-  useEffect(() => { load(); }, [load]);
+    void (async () => {
+      const result = await getResearchArticles(page, 15, {
+        status: status === "All" ? "all" : status,
+        category: category === "All" ? "all" : category,
+        search: debouncedSearch,
+      });
+      if (!active) return;
+      setData(result);
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [page, status, category, debouncedSearch, refreshToken]);
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;

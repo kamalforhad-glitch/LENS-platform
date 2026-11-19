@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getTeamMembers, deleteTeamMember } from "@/lib/actions/team";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { AdminTeamMember, PaginatedResult } from "@/lib/admin-types";
 
 function SkeletonCard() {
@@ -29,16 +30,27 @@ export default function AdminTeamPage() {
   const router = useRouter();
   const [data, setData] = useState<PaginatedResult<AdminTeamMember> | null>(null);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [loading, setLoading] = useState(true);
+  const [refreshToken, setRefreshToken] = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
+    setRefreshToken((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     setLoading(true);
-    const result = await getTeamMembers(1, 50, { search });
-    setData(result);
-    setLoading(false);
-  }, [search]);
-
-  useEffect(() => { load(); }, [load]);
+    void (async () => {
+      const result = await getTeamMembers(1, 50, { search: debouncedSearch });
+      if (!active) return;
+      setData(result);
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [debouncedSearch, refreshToken]);
 
   return (
     <div>

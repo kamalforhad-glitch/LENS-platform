@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getPublications, deletePublication } from "@/lib/actions/publications";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { AdminPublication, PaginatedResult } from "@/lib/admin-types";
 
 const TYPES = ["All", "Policy Brief", "Working Paper", "Research Report", "Report"];
@@ -42,20 +43,31 @@ export default function AdminPublicationsPage() {
   const [status, setStatus] = useState("all");
   const [type, setType] = useState("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [loading, setLoading] = useState(true);
+  const [refreshToken, setRefreshToken] = useState(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
+    setRefreshToken((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     setLoading(true);
-    const result = await getPublications(page, 15, {
-      status: status === "All" ? "all" : status,
-      type: type === "All" ? "all" : type,
-      search,
-    });
-    setData(result);
-    setLoading(false);
-  }, [page, status, type, search]);
-
-  useEffect(() => { load(); }, [load]);
+    void (async () => {
+      const result = await getPublications(page, 15, {
+        status: status === "All" ? "all" : status,
+        type: type === "All" ? "all" : type,
+        search: debouncedSearch,
+      });
+      if (!active) return;
+      setData(result);
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [page, status, type, debouncedSearch, refreshToken]);
 
   return (
     <div>
