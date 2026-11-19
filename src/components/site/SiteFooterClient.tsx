@@ -106,26 +106,86 @@ export default function SiteFooterClient({
     return bn ? s.valueBn || s.value : s.value;
   };
 
-  const socialUrl = (key: string, fallback: string) => {
-    const check = sanitizeUrl(getSetting(key));
-    return check.ok && check.url ? check.url : fallback;
+  const isValueDisabled = (val: string | undefined | null): boolean => {
+    if (val === undefined || val === null) return false;
+    const trimmed = val.trim();
+    return trimmed === "" || trimmed === "__DISABLED__" || trimmed.startsWith("__DISABLED__:");
+  };
+
+  const getCleanSocialUrl = (val: string | undefined | null): string | null => {
+    if (!val) return null;
+    const url = val.trim();
+    if (url === "__DISABLED__" || url.startsWith("__DISABLED__:")) {
+      return null;
+    }
+    const check = sanitizeUrl(url);
+    return check.ok && check.url ? check.url : null;
+  };
+
+  const socialUrl = (key: string, fallback: string): string | null => {
+    const entry = settings?.[key];
+    if (entry !== undefined) {
+      const raw = isBn ? entry.valueBn || entry.value : entry.value;
+      if (isValueDisabled(raw)) {
+        return null;
+      }
+      return getCleanSocialUrl(raw);
+    }
+    // Only fall back to defaults when key was never configured in settings
+    return getCleanSocialUrl(fallback);
   };
 
   const logoCheck = sanitizeUrl(getSetting("site_logo_url"));
   const logoUrl = logoCheck.ok && logoCheck.url ? logoCheck.url : "/images/logo/lens-logo.png";
-  const rssCheck = sanitizeUrl(getSetting("social_rss"));
-  const rssHref = rssCheck.ok && rssCheck.url ? rssCheck.url : "/rss.xml";
+
+  const fbUrl = socialUrl("social_facebook", "https://www.facebook.com/lensorgbd");
+  const xUrl = socialUrl("social_twitter", "https://twitter.com/lensorgbd");
+  const inUrl = socialUrl("social_linkedin", "https://www.linkedin.com/company/lensorgbd");
+  const ytUrl = socialUrl("social_youtube", "https://www.youtube.com/@lensorgbd");
+  const rssUrl = socialUrl("social_rss", "/rss.xml");
 
   const dynamicSocials = [
-    { Icon: FacebookIcon, href: socialUrl("social_facebook", "https://www.facebook.com/lensorgbd"), label: "Facebook" },
-    { Icon: XIcon, href: socialUrl("social_twitter", "https://twitter.com/lensorgbd"), label: "X" },
-    { Icon: LinkedinIcon, href: socialUrl("social_linkedin", "https://www.linkedin.com/company/lensorgbd"), label: "LinkedIn" },
-    { Icon: YoutubeIcon, href: socialUrl("social_youtube", "https://www.youtube.com/@lensorgbd"), label: "YouTube" },
-    { Icon: RssIcon, href: rssHref, label: "RSS" },
-  ];
+    fbUrl ? { Icon: FacebookIcon, href: fbUrl, label: "Facebook" } : null,
+    xUrl ? { Icon: XIcon, href: xUrl, label: "X" } : null,
+    inUrl ? { Icon: LinkedinIcon, href: inUrl, label: "LinkedIn" } : null,
+    ytUrl ? { Icon: YoutubeIcon, href: ytUrl, label: "YouTube" } : null,
+    rssUrl ? { Icon: RssIcon, href: rssUrl, label: "RSS" } : null,
+  ].filter((s): s is { Icon: () => React.JSX.Element; href: string; label: string } => s !== null);
 
   const subtitle = getSetting("site_subtitle", isBn) || t("site.subtitle");
-  const tagline = (isBn ? (getSetting("footer_description", true) || getSetting("site_tagline", true)) : (getSetting("footer_description") || getSetting("site_tagline"))) || t("footer.about_text");
+
+  const footerDescEntry = settings?.["footer_description"];
+  const isFooterDescExplicit = footerDescEntry !== undefined;
+  const rawFooterDesc = isFooterDescExplicit
+    ? (isBn ? footerDescEntry.valueBn || footerDescEntry.value : footerDescEntry.value) || ""
+    : "";
+  const isFooterDescDisabled = isFooterDescExplicit && isValueDisabled(rawFooterDesc);
+
+  let tagline = "";
+  if (!isFooterDescDisabled) {
+    if (isFooterDescExplicit && rawFooterDesc.trim()) {
+      tagline = rawFooterDesc;
+    } else {
+      const siteTagline = getSetting("site_tagline", isBn);
+      tagline = siteTagline || t("footer.about_text");
+    }
+  }
+
+  const copyrightEntry = settings?.["footer_copyright"];
+  const isCopyrightExplicit = copyrightEntry !== undefined;
+  const rawCopyright = isCopyrightExplicit
+    ? (isBn ? copyrightEntry.valueBn || copyrightEntry.value : copyrightEntry.value) || ""
+    : "";
+  const isCopyrightDisabled = isCopyrightExplicit && isValueDisabled(rawCopyright);
+
+  let copyrightText = "";
+  if (!isCopyrightDisabled) {
+    if (isCopyrightExplicit && rawCopyright.trim()) {
+      copyrightText = rawCopyright;
+    } else {
+      copyrightText = t("footer.copyright", { year: new Date().getFullYear() });
+    }
+  }
 
   return (
     <footer className="bg-navy-950 text-slate-300 pt-16 pb-8 relative overflow-hidden">
@@ -150,32 +210,36 @@ export default function SiteFooterClient({
               </Link>
               <span className="block text-[10px] text-slate-400 leading-tight">{subtitle}</span>
             </div>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-xs">{tagline}</p>
-            <div className="flex gap-3 mt-6">
-              {dynamicSocials.map((social) =>
-                social.href.startsWith("/") ? (
-                  <Link
-                    key={social.label}
-                    href={social.href}
-                    aria-label={social.label}
-                    className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-teal-500/20 hover:text-teal-400 transition-all duration-300"
-                  >
-                    <social.Icon />
-                  </Link>
-                ) : (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={social.label}
-                    className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-teal-500/20 hover:text-teal-400 transition-all duration-300"
-                  >
-                    <social.Icon />
-                  </a>
-                ),
-              )}
-            </div>
+            {tagline ? (
+              <p className="text-sm text-slate-400 leading-relaxed max-w-xs">{tagline}</p>
+            ) : null}
+            {dynamicSocials.length > 0 && (
+              <div className="flex gap-3 mt-6">
+                {dynamicSocials.map((social) =>
+                  social.href.startsWith("/") ? (
+                    <Link
+                      key={social.label}
+                      href={social.href}
+                      aria-label={social.label}
+                      className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-teal-500/20 hover:text-teal-400 transition-all duration-300"
+                    >
+                      <social.Icon />
+                    </Link>
+                  ) : (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={social.label}
+                      className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-teal-500/20 hover:text-teal-400 transition-all duration-300"
+                    >
+                      <social.Icon />
+                    </a>
+                  ),
+                )}
+              </div>
+            )}
           </div>
 
           {/* CMS-driven / fallback link columns */}
@@ -197,7 +261,7 @@ export default function SiteFooterClient({
 
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between pt-6 gap-4 text-xs text-slate-500">
-          <span>{getSetting("footer_copyright", isBn) || t("footer.copyright", { year: new Date().getFullYear() })}</span>
+          {copyrightText ? <span>{copyrightText}</span> : <span />}
           <div className="flex gap-4 items-center">
             <Link href="/privacy" className="hover:text-teal-400 transition-colors duration-300">
               {t("footer.privacy_policy")}
