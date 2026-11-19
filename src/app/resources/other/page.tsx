@@ -3,6 +3,7 @@ import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageHero from "@/components/site/PageHero";
+import SectionSubnav from "@/components/site/SectionSubnav";
 import ContentListState from "@/components/ContentListState";
 import { getPublicResources } from "@/lib/public-content";
 import { isOverflowResource } from "@/lib/resource-taxonomy";
@@ -10,19 +11,16 @@ import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
 import { resolveSectionItems } from "@/components/page/resolveSectionItems";
 import type { SectionWithResolved } from "@/components/page/PageSectionsView";
 import CmsPageView from "@/components/page/CmsPageView";
+import { Layers, ArrowRight, FolderKanban } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Other Resources",
+  title: "Other Resources & Toolkits — LENS",
   description:
     "Additional LENS resources — datasets, tools, guides and materials outside the named collections.",
 };
 
-// Overflow bucket: every published Resource whose category has no
-// dedicated view. Existing categories (including Datasets, Tools,
-// Guides) keep rendering here so no published resource is orphaned
-// by the taxonomy. Stored data is never renamed or migrated.
 async function resolveCmsSections(sections: PublicSectionData[]) {
   return Promise.all(
     sections.map(async (s) => ({
@@ -47,9 +45,16 @@ export default async function OtherResourcesPage() {
       <SiteHeader />
       <main className="flex-1 pt-24">
         <PageHero
-          eyebrow="Resources"
-          title="Other Resources"
-          description="Datasets, tools, guides and materials outside the named collections."
+          accent="emerald"
+          eyebrow="Resources Hub"
+          title="Datasets, Toolkits & Guides"
+          description="Specialized civic toolkits, open research datasets, methodology guides, and educational materials supporting media literacy in Bangladesh."
+          badge={
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <Layers className="w-3.5 h-3.5" />
+              Toolkits & Guides
+            </span>
+          }
           breadcrumbItems={[
             { label: "Home", href: "/" },
             { label: "Resources", href: "/resources" },
@@ -57,32 +62,52 @@ export default async function OtherResourcesPage() {
           ]}
         />
 
-        <section className="py-16 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionSubnav section="resources" activeHref="/resources/other" />
+
+        <section className="py-16 sm:py-20 bg-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             {items.length === 0 ? (
               <ContentListState
                 variant={error ? "error" : "empty"}
-                emptyMessage="No additional resources have been published yet."
+                accent="emerald"
+                icon={<Layers className="w-6 h-6 text-emerald-600" />}
+                emptyMessage="Technical toolkits, public datasets, and guides are being formatted for download."
+                action={
+                  <Link
+                    href="/resources"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-500 transition-colors shadow-xs"
+                  >
+                    <FolderKanban className="w-3.5 h-3.5" />
+                    View All Resources
+                  </Link>
+                }
               />
             ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 {items.map((item) => (
                   <Link
                     key={item.slug}
                     href={`/resources/${item.slug}`}
-                    className="group flex flex-col p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300"
+                    className="group relative flex flex-col p-7 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-emerald-200 hover:-translate-y-1 transition-all duration-300"
                   >
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-teal-600">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="inline-block text-[10px] font-bold tracking-[0.15em] uppercase text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
                         {item.category}
                       </span>
                     </div>
-                    <h2 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">
+
+                    <h2 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-emerald-600 transition-colors leading-snug">
                       {item.title}
                     </h2>
-                    <p className="text-sm text-slate-500 leading-relaxed flex-1 line-clamp-3">
+
+                    <p className="text-xs text-slate-500 leading-relaxed flex-1 line-clamp-3 mb-6">
                       {item.description}
                     </p>
+
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 group-hover:translate-x-1 transition-transform pt-4 border-t border-slate-100">
+                      <span>Access Material</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
                   </Link>
                 ))}
               </div>

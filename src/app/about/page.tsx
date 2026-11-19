@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import AboutContent from "./AboutContent";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
+import SectionSubnav from "@/components/site/SectionSubnav";
 import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
 import { resolveSectionItems } from "@/components/page/resolveSectionItems";
 import type { SectionWithResolved } from "@/components/page/PageSectionsView";
@@ -32,6 +33,7 @@ export default async function AboutPage() {
     <>
       <SiteHeader />
       <main className="flex-1 pt-24">
+        <SectionSubnav section="about" activeHref="/about" />
         <AboutContent />
       </main>
       <SiteFooter />

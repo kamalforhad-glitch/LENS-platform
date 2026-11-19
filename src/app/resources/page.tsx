@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
+import PageHero from "@/components/site/PageHero";
+import SectionSubnav from "@/components/site/SectionSubnav";
 import ContentListState from "@/components/ContentListState";
 import { getPublicResources } from "@/lib/public-content";
 import { RESOURCE_TAXONOMY_VIEWS } from "@/lib/resource-taxonomy";
@@ -9,13 +11,28 @@ import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
 import { resolveSectionItems } from "@/components/page/resolveSectionItems";
 import type { SectionWithResolved } from "@/components/page/PageSectionsView";
 import CmsPageView from "@/components/page/CmsPageView";
+import {
+  FolderKanban,
+  Vote,
+  BookOpen,
+  Newspaper,
+  Layers,
+  ArrowRight,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Resources",
+  title: "Research & Resources — LENS",
   description:
-    "LENS resources - research tools, datasets, media literacy guides, and educational materials for journalists, researchers, and civil society.",
+    "LENS resources — research tools, datasets, media literacy guides, and educational materials for journalists, researchers, and civil society.",
+};
+
+const TAXONOMY_ICONS: Record<string, typeof Vote> = {
+  election: Vote,
+  publications: BookOpen,
+  media: Newspaper,
+  other: Layers,
 };
 
 async function resolveCmsSections(sections: PublicSectionData[]) {
@@ -47,60 +64,125 @@ export default async function ResourcesPage() {
     <>
       <SiteHeader />
       <main className="flex-1 pt-24">
-        <section className="py-20 bg-navy-950">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <span className="text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-4 block">
-              Resources
+        <PageHero
+          accent="emerald"
+          eyebrow="Knowledge & Datasets"
+          title="Open Research Resources"
+          description="Access our empirical research tools, open datasets, media literacy guides, and methodological reference materials for researchers, journalists, and civic advocates."
+          badge={
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <FolderKanban className="w-3.5 h-3.5" />
+              Open Knowledge Base
             </span>
-            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-              Research & Resources
-            </h1>
-            <p className="text-lg text-slate-300/80 leading-relaxed max-w-2xl mx-auto">
-              Access our research tools, datasets, educational materials, and
-              methodological guides for media studies and policy analysis.
-            </p>
+          }
+          breadcrumbItems={[{ label: "Home", href: "/" }, { label: "Resources" }]}
+        />
+
+        <SectionSubnav section="resources" activeHref="/resources" />
+
+        {/* Taxonomy Collections Cards */}
+        <section className="py-16 sm:py-20 bg-white border-b border-slate-100">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <span className="text-xs font-bold tracking-[0.2em] uppercase text-emerald-600 mb-3 block">
+                Resource Taxonomy
+              </span>
+              <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
+                Curated Collections
+              </h2>
+              <p className="mt-3 text-slate-600 text-base">
+                Explore specialized repositories tailored for electoral integrity, scholarly publications, and media releases.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {RESOURCE_TAXONOMY_VIEWS.map((view) => {
+                const Icon = TAXONOMY_ICONS[view.slug] || FolderKanban;
+                return (
+                  <Link
+                    key={view.slug}
+                    href={view.href}
+                    className="group relative flex flex-col p-7 rounded-3xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:border-emerald-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center mb-5 shadow-2xs group-hover:scale-110 transition-transform">
+                      <Icon className="w-6 h-6" />
+                    </div>
+
+                    <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors">
+                      {view.name}
+                    </h3>
+
+                    <p className="text-xs text-slate-500 leading-relaxed flex-1 mb-6">
+                      {view.description}
+                    </p>
+
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 group-hover:translate-x-1 transition-transform">
+                      <span>View Collection</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </section>
 
-        <section className="py-20 bg-white">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
-              {RESOURCE_TAXONOMY_VIEWS.map((view) => (
-                <Link
-                  key={view.slug}
-                  href={view.href}
-                  className="group p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:border-teal-500/40 hover:shadow-md transition-all duration-300"
-                >
-                  <h2 className="text-base font-bold text-slate-900 mb-1 group-hover:text-teal-600 transition-colors">
-                    {view.name}
-                  </h2>
-                  <p className="text-xs text-slate-500 leading-relaxed">{view.description}</p>
-                </Link>
-              ))}
+        {/* Grouped Catalog View */}
+        <section className="py-20 bg-slate-50/70">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between gap-4 mb-12">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  Resource Library Index
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Categorized repository of all public toolkits, guides, and research materials.
+                </p>
+              </div>
             </div>
+
             {resources.length === 0 ? (
               <ContentListState
                 variant={error ? "error" : "empty"}
-                emptyMessage="No resources have been published yet."
+                accent="emerald"
+                icon={<FolderKanban className="w-6 h-6 text-emerald-600" />}
+                emptyMessage="Resource toolkits, datasets, and guides are currently being packaged for open access."
               />
             ) : (
-              <div className="space-y-12">
+              <div className="space-y-14">
                 {Array.from(categories.entries()).map(([category, items]) => (
-                  <div key={category}>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-6">{category}</h2>
+                  <div key={category} className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      <h3 className="text-xl font-bold text-slate-900 tracking-tight">{category}</h3>
+                      <span className="text-xs font-bold text-slate-400 font-mono">({items.length})</span>
+                    </div>
+
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {items.map((item) => (
                         <Link
                           key={item.slug}
                           href={`/resources/${item.slug}`}
-                          className="group block p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300"
+                          className="group relative flex flex-col p-7 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-emerald-200 hover:-translate-y-1 transition-all duration-300"
                         >
-                          <h3 className="text-base font-bold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">
+                          <div className="flex items-center gap-2 mb-4">
+                            <span className="inline-block text-[10px] font-bold tracking-[0.15em] uppercase text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
+                              {item.category}
+                            </span>
+                          </div>
+
+                          <h4 className="text-base font-bold text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors leading-snug">
                             {item.title}
-                          </h3>
-                          <p className="text-sm text-slate-500 leading-relaxed">
+                          </h4>
+
+                          <p className="text-xs text-slate-500 leading-relaxed flex-1 line-clamp-3 mb-6">
                             {item.description}
                           </p>
+
+                          <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 group-hover:translate-x-1 transition-transform pt-4 border-t border-slate-100">
+                            <span>Open Resource</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </div>
                         </Link>
                       ))}
                     </div>
