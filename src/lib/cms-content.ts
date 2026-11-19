@@ -87,3 +87,75 @@ export function resolveCmsValue(
   }
   return firstUsable(contentEn, keys);
 }
+
+/**
+ * Impact Statistics stores a single shared numeric `value` (and display
+ * `suffix`) per stat across locales, while labels/titles remain
+ * locale-specific. The admin editor updates the English/content stats
+ * array; this helper propagates those shared fields into matching
+ * Bengali/contentBn stats so both payloads persist identical numbers.
+ *
+ * Matching is by stat `key` when available, with index fallback. Only
+ * existing matched Bengali entries are updated; unrelated fields/keys
+ * and non-impact content are preserved.
+ */
+export function syncImpactStatsSharedValues<T extends Record<string, unknown>>(
+  content: T | null | undefined,
+  contentBn: T | null | undefined,
+): { content: T; contentBn: T } {
+  const enObj = (
+    content && typeof content === "object" && !Array.isArray(content) ? { ...content } : {}
+  ) as T;
+  const bnObj = (
+    contentBn && typeof contentBn === "object" && !Array.isArray(contentBn)
+      ? { ...contentBn }
+      : {}
+  ) as T;
+
+  const enStats = Array.isArray((enObj as Record<string, unknown>).stats)
+    ? ([...(enObj as Record<string, unknown>).stats as unknown[]] as Array<Record<string, unknown>>)
+    : null;
+  const bnStatsRaw = Array.isArray((bnObj as Record<string, unknown>).stats)
+    ? ([...(bnObj as Record<string, unknown>).stats as unknown[]] as Array<Record<string, unknown>>)
+    : null;
+
+  if (!enStats || !bnStatsRaw) {
+    return { content: enObj, contentBn: bnObj };
+  }
+
+  const bnIndexByKey = new Map<string, number>();
+  bnStatsRaw.forEach((st, idx) => {
+    if (st && typeof st === "object") {
+      const key = (st as Record<string, unknown>).key;
+      if (typeof key === "string" && key && !bnIndexByKey.has(key)) {
+        bnIndexByKey.set(key, idx);
+      }
+    }
+  });
+
+  const syncedBnStats = bnStatsRaw.map((st) =>
+    st && typeof st === "object" ? { ...(st as Record<string, unknown>) } : st
+  ) as Array<Record<string, unknown>>;
+
+  enStats.forEach((enStat, idx) => {
+    if (!enStat || typeof enStat !== "object") return;
+    const en = enStat as Record<string, unknown>;
+    const key = typeof en.key === "string" ? en.key : "";
+    const bnIdx = key ? bnIndexByKey.get(key) ?? (idx < syncedBnStats.length ? idx : -1) : idx;
+    if (bnIdx == null || bnIdx < 0 || bnIdx >= syncedBnStats.length) return;
+    const bnStat = syncedBnStats[bnIdx];
+    if (!bnStat || typeof bnStat !== "object") return;
+
+    const nextBn = { ...bnStat };
+    if (en.value !== undefined) nextBn.value = en.value;
+    if (en.suffix !== undefined) nextBn.suffix = en.suffix;
+    syncedBnStats[bnIdx] = nextBn;
+  });
+
+  (enObj as Record<string, unknown>).stats = enStats.map((st) =>
+    st && typeof st === "object" ? { ...(st as Record<string, unknown>) } : st
+  );
+  (bnObj as Record<string, unknown>).stats = syncedBnStats;
+
+  return { content: enObj, contentBn: bnObj };
+}

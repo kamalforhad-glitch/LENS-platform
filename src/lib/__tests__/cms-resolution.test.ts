@@ -9,7 +9,13 @@
 // re-break it (an admin edit that never appeared on the site held one
 // of these mismatch pairs before).
 import { describe, expect, it } from "vitest";
-import { firstUsable, resolveCmsValue, hasUsableContent, pickLocale } from "@/lib/cms-content";
+import {
+  firstUsable,
+  resolveCmsValue,
+  hasUsableContent,
+  pickLocale,
+  syncImpactStatsSharedValues,
+} from "@/lib/cms-content";
 import { DEFAULT_HOME_SECTIONS } from "@/lib/cms-defaults";
 
 const EN = {
@@ -162,5 +168,123 @@ describe("step-1 helpers remain intact", () => {
     expect(hasUsableContent({ a: 1 })).toBe(true);
     expect(pickLocale(true, EN, {})).toBe(EN);
     expect(pickLocale(true, EN, BN)).toBe(BN);
+  });
+});
+
+describe("syncImpactStatsSharedValues", () => {
+  it("synchronizes shared numeric values and suffixes from EN to BN while keeping labels/titles independent", () => {
+    const content = {
+      sectionLabel: "Our Impact",
+      sectionTitle: "In Numbers",
+      stats: [
+        { key: "stat_research_briefs", value: 6, suffix: "+", label: "Research Briefs", icon: "FileText", color: "#22d3ee" },
+        { key: "stat_trained", value: 3, suffix: "+", label: "Trained Professionals", icon: "Users", color: "#0891b2" },
+        { key: "stat_digital_reach", value: 0, suffix: "%", label: "Digital Reach", icon: "Globe", color: "#d4a843" },
+        { key: "stat_partners", value: 0, suffix: "", label: "Partner Organizations", icon: "Handshake", color: "#14b8a6" },
+      ],
+    };
+    const contentBn = {
+      sectionLabel: "আমাদের প্রভাব",
+      sectionTitle: "সংখ্যায়",
+      stats: [
+        { key: "stat_research_briefs", value: 12, suffix: "+", label: "গবেষণা ব্রিফ", icon: "FileText", color: "#22d3ee" },
+        { key: "stat_trained", value: 500, suffix: "+", label: "প্রশিক্ষিত পেশাজীবী", icon: "Users", color: "#0891b2" },
+        { key: "stat_digital_reach", value: 50000, suffix: "+", label: "ডিজিটাল পৌঁছানো", icon: "Globe", color: "#d4a843" },
+        { key: "stat_partners", value: 25, suffix: "+", label: "অংশীদার প্রতিষ্ঠান", icon: "Handshake", color: "#14b8a6" },
+      ],
+    };
+
+    const synced = syncImpactStatsSharedValues(content, contentBn);
+
+    expect((synced.content.stats as Array<Record<string, unknown>>).map((s) => [s.value, s.suffix])).toEqual([
+      [6, "+"],
+      [3, "+"],
+      [0, "%"],
+      [0, ""],
+    ]);
+    expect((synced.contentBn.stats as Array<Record<string, unknown>>).map((s) => [s.value, s.suffix])).toEqual([
+      [6, "+"],
+      [3, "+"],
+      [0, "%"],
+      [0, ""],
+    ]);
+    expect((synced.content.stats as Array<Record<string, unknown>>).map((s) => s.label)).toEqual([
+      "Research Briefs",
+      "Trained Professionals",
+      "Digital Reach",
+      "Partner Organizations",
+    ]);
+    expect((synced.contentBn.stats as Array<Record<string, unknown>>).map((s) => s.label)).toEqual([
+      "গবেষণা ব্রিফ",
+      "প্রশিক্ষিত পেশাজীবী",
+      "ডিজিটাল পৌঁছানো",
+      "অংশীদার প্রতিষ্ঠান",
+    ]);
+    expect(synced.content.sectionTitle).toBe("In Numbers");
+    expect(synced.contentBn.sectionTitle).toBe("সংখ্যায়");
+    expect((synced.contentBn.stats as Array<Record<string, unknown>>)[0].icon).toBe("FileText");
+    expect((synced.content.stats as Array<Record<string, unknown>>)[2].key).toBe("stat_digital_reach");
+  });
+
+  it("normalizes stale stored Bengali values on refresh/load so editor and persisted payloads stay consistent", () => {
+    const storedAfterBuggySave = {
+      content: {
+        sectionLabel: "Our Impact",
+        sectionTitle: "Numbers",
+        stats: [
+          { key: "a", value: 6, suffix: "+", label: "A" },
+          { key: "b", value: 3, suffix: "+", label: "B" },
+          { key: "c", value: 0, suffix: "+", label: "C" },
+          { key: "d", value: 0, suffix: "+", label: "D" },
+        ],
+      },
+      contentBn: {
+        sectionLabel: "প্রভাব",
+        sectionTitle: "সংখ্যা",
+        stats: [
+          { key: "a", value: 12, suffix: "+", label: "ক" },
+          { key: "b", value: 500, suffix: "+", label: "খ" },
+          { key: "c", value: 50000, suffix: "+", label: "গ" },
+          { key: "d", value: 25, suffix: "+", label: "ঘ" },
+        ],
+      },
+    };
+
+    const normalized = syncImpactStatsSharedValues(storedAfterBuggySave.content, storedAfterBuggySave.contentBn);
+
+    expect(normalized.contentBn.stats).toEqual([
+      { key: "a", value: 6, suffix: "+", label: "ক" },
+      { key: "b", value: 3, suffix: "+", label: "খ" },
+      { key: "c", value: 0, suffix: "+", label: "গ" },
+      { key: "d", value: 0, suffix: "+", label: "ঘ" },
+    ]);
+    expect(JSON.parse(JSON.stringify(normalized.content.stats))).toEqual(
+      JSON.parse(JSON.stringify(normalized.contentBn.stats.map((s, i) => ({
+        ...(normalized.content.stats as Array<Record<string, unknown>>)[i],
+        label: (normalized.content.stats as Array<Record<string, unknown>>)[i].label,
+      })))).map((s: Record<string, unknown>, i: number) => ({
+        ...(normalized.content.stats as Array<Record<string, unknown>>)[i],
+        value: s.value,
+        suffix: s.suffix,
+      }))
+    );
+    const enNums = (normalized.content.stats as Array<Record<string, unknown>>).map((s) => [s.value, s.suffix]);
+    const bnNums = (normalized.contentBn.stats as Array<Record<string, unknown>>).map((s) => [s.value, s.suffix]);
+    expect(bnNums).toEqual(enNums);
+  });
+
+  it("matches by index fallback and preserves unrelated content fields when keys are missing", () => {
+    const synced = syncImpactStatsSharedValues(
+      { other: "keep", stats: [{ value: 9, suffix: "x", label: "EN" }] },
+      { otherBn: "keep-bn", stats: [{ value: 1, suffix: "y", label: "BN" }] }
+    );
+
+    expect(synced.content.other).toBe("keep");
+    expect(synced.contentBn.otherBn).toBe("keep-bn");
+    expect((synced.contentBn.stats as Array<Record<string, unknown>>)[0]).toEqual({
+      value: 9,
+      suffix: "x",
+      label: "BN",
+    });
   });
 });
