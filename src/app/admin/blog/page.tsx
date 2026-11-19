@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface BlogPost { id: string; slug: string; title: string; titleBn: string; description: string; author: string; category: string; status: string; datePublished: string | null; }
 
@@ -25,6 +26,7 @@ export default function BlogAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,16 +36,16 @@ export default function BlogAdmin() {
   const [hasMore, setHasMore] = useState(false);
   const [counts, setCounts] = useState<BlogPostCounts>(DEFAULT_COUNTS);
 
-  const load = useCallback(() => {
+  const load = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
     params.set("page", String(currentPage));
     params.set("limit", String(limit));
-    if (search) params.set("search", search);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (filter !== "all") params.set("status", filter);
 
-    fetch(`/api/admin/blog?${params.toString()}`)
+    fetch(`/api/admin/blog?${params.toString()}`, { signal })
       .then(async (r) => {
         if (!r.ok) {
           const err = await r.json().catch(() => ({ error: `Request failed (${r.status})` }));
@@ -60,24 +62,44 @@ export default function BlogAdmin() {
         setLoading(false);
       })
       .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : "Failed to load blog posts.");
         setLoading(false);
       });
-  }, [currentPage, limit, search, filter]);
+  }, [currentPage, limit, debouncedSearch, filter]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filter]);
+  }, [debouncedSearch, filter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   const toggleSelect = (id: string) => { const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); setSelected(n); };
   const toggleAll = () => { selected.size === items.length ? setSelected(new Set()) : setSelected(new Set(items.map(i => i.id))); };
 
   const deleteItem = async (id: string) => {
     if (!confirm("Delete this blog post?")) return;
-    await fetch("/api/admin/blog", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-    load();
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/blog", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          typeof err.error === "string" && err.error ? err.error : `Failed to delete blog post (${res.status})`
+        );
+      }
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete blog post.");
+    }
   };
 
   return (

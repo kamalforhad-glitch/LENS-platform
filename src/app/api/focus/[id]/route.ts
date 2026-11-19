@@ -2,13 +2,13 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser, requireAdmin } from "@/lib/auth";
 import { getFocusAreaById, getFocusAreaBySlug } from "@/lib/focus-areas";
+import { db, logSupabaseDbError } from "@/lib/prisma";
 import { focusIdSchema, focusSlugSchema, focusUpdateSchema } from "@/lib/focus-schema";
 import {
   FOCUS_LIST_TAG,
   focusDetailTag,
   type FocusAreaDto,
 } from "@/lib/focus-types";
-import { db } from "@/lib/db";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -46,17 +46,34 @@ function toDto(row: {
 
 export async function GET(_request: NextRequest, { params }: RouteContext) {
   const { id: raw } = await params;
-  const numericId = focusIdSchema.safeParse(raw);
-  const area = numericId.success
-    ? await getFocusAreaById(numericId.data)
-    : await getFocusAreaBySlug(raw);
+  console.log("[DB Query] Attempting database handshake with Supabase...");
 
-  if (!area) return NextResponse.json({ error: "Focus area not found" }, { status: 404 });
-  return NextResponse.json({ area });
+  try {
+    const numericId = focusIdSchema.safeParse(raw);
+    const area = numericId.success
+      ? await getFocusAreaById(numericId.data)
+      : await getFocusAreaBySlug(raw);
+
+    if (!area) return NextResponse.json({ error: "Focus area not found" }, { status: 404 });
+    return NextResponse.json({ area });
+  } catch (error) {
+    logSupabaseDbError(`focus detail GET:${raw}`, error);
+    return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
+  }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteContext) {
-  const user = await getCurrentUser();
+  const { id: raw } = await params;
+  console.log("[DB Query] Attempting database handshake with Supabase...");
+
+  let user;
+  try {
+    user = await getCurrentUser();
+  } catch (error) {
+    logSupabaseDbError(`focus auth lookup:${raw}`, error);
+    return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
+  }
+
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     requireAdmin(user);
@@ -79,7 +96,11 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     );
   }
 
-  const { id: raw } = await params;
+  console.log(`[CMS Update] Target FocusArea ID ${raw} payload received:`, {
+    title: parsed.data.title,
+    slug: parsed.data.slug,
+  });
+
   const numericId = focusIdSchema.safeParse(raw);
   const slugParam = focusSlugSchema.safeParse(raw);
 
@@ -90,7 +111,8 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     } else if (slugParam.success) {
       existing = await db.focusArea.findUnique({ where: { slug: slugParam.data } });
     }
-  } catch {
+  } catch (error) {
+    logSupabaseDbError(`focus update lookup:${raw}`, error);
     return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
   }
 
@@ -100,7 +122,14 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 
   const input = parsed.data;
   if (input.slug !== existing.slug) {
-    const conflict = await db.focusArea.findUnique({ where: { slug: input.slug } });
+    let conflict;
+    try {
+      conflict = await db.focusArea.findUnique({ where: { slug: input.slug } });
+    } catch (error) {
+      logSupabaseDbError(`focus slug conflict check:${raw}`, error);
+      return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
+    }
+
     if (conflict && conflict.id !== existing.id) {
       return NextResponse.json(
         { error: "That slug is already in use", field: "slug" },
@@ -133,7 +162,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 
     return NextResponse.json({ area: toDto(updated) });
   } catch (error) {
-    console.error("Failed to update focus area", error);
+    logSupabaseDbError(`focus update:${existing.id}`, error);
     return NextResponse.json({ error: "Could not save focus area" }, { status: 500 });
   }
 }

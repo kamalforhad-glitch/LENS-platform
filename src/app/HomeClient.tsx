@@ -9,13 +9,16 @@ import dynamic from "next/dynamic";
 import { useMemo, type ReactNode } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Hero from "@/components/Hero";
-import FocusAreas from "@/components/FocusAreas";
-import FeaturedResearch from "@/components/FeaturedResearch";
-import ImpactStats from "@/components/ImpactStats";
-import EventsNewsletter from "@/components/EventsNewsletter";
-import IndexingScanner from "@/components/IndexingScanner";
 import PageSectionsView from "@/components/page/PageSectionsView";
 import type { FocusAreaDto } from "@/lib/focus-types";
+
+// Below-the-fold sections are dynamically code-split with SSR enabled so
+// initial server HTML and SEO remain 100% intact while client JS is deferred.
+const FocusAreas = dynamic(() => import("@/components/FocusAreas"));
+const FeaturedResearch = dynamic(() => import("@/components/FeaturedResearch"));
+const ImpactStats = dynamic(() => import("@/components/ImpactStats"));
+const EventsNewsletter = dynamic(() => import("@/components/EventsNewsletter"));
+const IndexingScanner = dynamic(() => import("@/components/IndexingScanner"));
 
 // Behavior-only widgets: client-side scroll/overlay chrome that would add
 // nothing to the first paint, so they stay out of the critical bundle.

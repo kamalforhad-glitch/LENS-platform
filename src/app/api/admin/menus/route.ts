@@ -280,16 +280,91 @@ export async function POST(req: NextRequest) {
       if (!Array.isArray(reorderedItems) || !location) {
         return NextResponse.json({ error: "Invalid reorder payload" }, { status: 400 });
       }
+      if (!["header", "footer"].includes(location)) {
+        return NextResponse.json({ error: "Invalid menu location" }, { status: 400 });
+      }
+
+      const ids = reorderedItems.map((item) =>
+        item && typeof item.id === "string" ? item.id.trim() : ""
+      );
+      if (ids.length === 0 || ids.some((id) => !id)) {
+        return NextResponse.json({ error: "Invalid reorder payload" }, { status: 400 });
+      }
+      if (ids.length !== new Set(ids).size) {
+        return NextResponse.json({ error: "Duplicate menu items in reorder payload" }, { status: 400 });
+      }
+
+      const existingItems = await db.menuItem.findMany({
+        where: { location },
+        select: { id: true, parentId: true },
+      });
+      const locationIds = new Set(existingItems.map((item) => item.id));
+      if (ids.some((id) => !locationIds.has(id))) {
+        return NextResponse.json(
+          { error: "Menu items must belong to the location being reordered" },
+          { status: 400 }
+        );
+      }
+
+      const proposedParent = new Map(existingItems.map((item) => [item.id, item.parentId ?? null]));
+      for (const item of reorderedItems) {
+        if (item.parentId !== undefined) {
+          const normalizedParent =
+            item.parentId === null || item.parentId === ""
+              ? null
+              : typeof item.parentId === "string"
+                ? item.parentId
+                : String(item.parentId);
+          if (normalizedParent === item.id) {
+            return NextResponse.json(
+              { error: "A menu item cannot be its own parent" },
+              { status: 400 }
+            );
+          }
+          if (normalizedParent && !locationIds.has(normalizedParent)) {
+            return NextResponse.json(
+              { error: "A menu item can only be nested under an item in the same location" },
+              { status: 400 }
+            );
+          }
+          proposedParent.set(item.id, normalizedParent);
+        }
+      }
+
+      const MAX_MENU_DEPTH = 32;
+      for (const startId of ids) {
+        const seen = new Set<string>([startId]);
+        let cursor = proposedParent.get(startId) ?? null;
+        for (let depth = 0; cursor && depth < MAX_MENU_DEPTH; depth += 1) {
+          if (seen.has(cursor)) {
+            return NextResponse.json(
+              { error: "This parent would create a menu cycle" },
+              { status: 400 }
+            );
+          }
+          seen.add(cursor);
+          cursor = proposedParent.get(cursor) ?? null;
+        }
+      }
+
       await db.$transaction(
-        reorderedItems.map((item) =>
-          db.menuItem.update({
+        reorderedItems.map((item) => {
+          const normalizedParent =
+            item.parentId === undefined
+              ? undefined
+              : item.parentId === null || item.parentId === ""
+                ? null
+                : typeof item.parentId === "string"
+                  ? item.parentId
+                  : String(item.parentId);
+          return db.menuItem.update({
             where: { id: item.id },
             data: {
               sortOrder: item.sortOrder,
-              ...(item.parentId !== undefined ? { parentId: item.parentId || null } : {}),
+              ...(normalizedParent !== undefined ? { parentId: normalizedParent } : {}),
             },
-          })
-        )
+          });
+        })
       );
       await logAudit({
         action: AUDIT_ACTIONS.MENU_REORDERED,

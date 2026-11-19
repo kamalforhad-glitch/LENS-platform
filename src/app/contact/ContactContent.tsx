@@ -1,29 +1,59 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useContactForm } from "@/lib/api/useContactForm";
 
-gsap.registerPlugin(ScrollTrigger);
+interface ContactSettingsProps {
+  contactEmail?: string;
+  mediaEmail?: string;
+  officeAddress?: string;
+  contactPhone?: string;
+  officeHours?: string;
+}
 
-export default function ContactContent() {
+export default function ContactContent({
+  contactEmail = "info@lensbd.org",
+  mediaEmail = "media@lensbd.org",
+  officeAddress = "Dhaka, Bangladesh",
+  contactPhone,
+  officeHours,
+}: ContactSettingsProps = {}) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const { submitState, statusMessage, handleSubmit, isPending } = useContactForm();
 
   useEffect(() => {
-    const mm = gsap.matchMedia();
-    mm.add("(prefers-reduced-motion: no-preference)", () => {
-      // Page hero copy is intentionally not animated on load: it must be
-      // painted on first contentful paint instead of waiting on JS.
+    let ctx: { revert: () => void } | undefined;
+    // Defer heavy GSAP animation bundle until client hydration
+    Promise.all([import("gsap"), import("gsap/ScrollTrigger")]).then(([gsapModule, stModule]) => {
+      const gsap = gsapModule.default || gsapModule;
+      const { ScrollTrigger } = stModule;
+      gsap.registerPlugin(ScrollTrigger);
 
-      gsap.fromTo(".contact-info", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: ".contact-form-section", start: "top 70%" } });
-      gsap.fromTo(".contact-form", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: ".contact-form-section", start: "top 70%" } });
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.fromTo(
+          ".contact-info",
+          { opacity: 0, x: -30 },
+          { opacity: 1, x: 0, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: ".contact-form-section", start: "top 70%" } }
+        );
+        gsap.fromTo(
+          ".contact-form",
+          { opacity: 0, x: 30 },
+          { opacity: 1, x: 0, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: ".contact-form-section", start: "top 70%" } }
+        );
+        gsap.fromTo(
+          ".contact-bg-orb",
+          { y: 40, opacity: 0 },
+          { y: -40, opacity: 0.06, ease: "none", scrollTrigger: { trigger: sectionRef.current, start: "top bottom", end: "bottom top", scrub: 2 } }
+        );
+      }, sectionRef);
 
-      gsap.fromTo(".contact-bg-orb", { y: 40, opacity: 0 }, { y: -40, opacity: 0.06, ease: "none", scrollTrigger: { trigger: sectionRef.current, start: "top bottom", end: "bottom top", scrub: 2 } });
-    }, sectionRef);
+      ctx = mm;
+    });
 
-    return () => mm.revert();
+    return () => {
+      ctx?.revert();
+    };
   }, []);
 
   return (
@@ -56,20 +86,32 @@ export default function ContactContent() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 mb-1">Email</h3>
-                  <p className="text-sm text-slate-500">info@lensbd.org</p>
+                  <a href={`mailto:${contactEmail}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors">{contactEmail}</a>
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 mb-1">Address</h3>
-                  <p className="text-sm text-slate-500">Dhaka, Bangladesh</p>
+                  <p className="text-sm text-slate-500">{officeAddress}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 mb-1">General Inquiries</h3>
-                  <p className="text-sm text-slate-500">info@lensbd.org</p>
+                  <a href={`mailto:${contactEmail}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors">{contactEmail}</a>
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 mb-1">Media Queries</h3>
-                  <p className="text-sm text-slate-500">media@lensbd.org</p>
+                  <a href={`mailto:${mediaEmail}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors">{mediaEmail}</a>
                 </div>
+                {contactPhone && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900 mb-1">Phone</h3>
+                    <a href={`tel:${contactPhone.replace(/\s+/g, '')}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors">{contactPhone}</a>
+                  </div>
+                )}
+                {officeHours && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900 mb-1">Office Hours</h3>
+                    <p className="text-sm text-slate-500">{officeHours}</p>
+                  </div>
+                )}
               </div>
             </div>
 

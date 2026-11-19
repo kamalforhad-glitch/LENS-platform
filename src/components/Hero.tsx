@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useTranslation } from "react-i18next";
 import MagneticButton from "./MagneticButton";
-import LensWorldTelemetry from "./LensWorldTelemetry";
+
+// Decorative canvas telemetry is below the hero copy and not needed for the
+// first paint. It keeps its fixed-ratio container so deferring it causes no CLS.
+const LensWorldTelemetry = dynamic(() => import("./LensWorldTelemetry"), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-slate-950/40" aria-hidden="true" />,
+});
 import { resolveCmsValue } from "@/lib/cms-content";
 
 function asString(v: unknown): string {

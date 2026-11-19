@@ -25,7 +25,7 @@ import {
 
 export type SectionType = "about" | "theme" | "courses" | "resources";
 
-interface SubnavItem {
+export interface SubnavItem {
   id: string;
   label: string;
   labelBn: string;
@@ -33,6 +33,42 @@ interface SubnavItem {
   icon: LucideIcon;
   badge?: string;
   badgeBn?: string;
+}
+
+export interface DynamicSubnavItem {
+  id: string;
+  label: string;
+  labelBn: string;
+  href: string;
+  icon?: string | null;
+  badge?: string | null;
+  badgeBn?: string | null;
+}
+
+const ICON_REGISTRY: Record<string, LucideIcon> = {
+  info: Info,
+  eye: Eye,
+  shield: Shield,
+  users: Users,
+  handshake: Handshake,
+  barchart3: BarChart3,
+  bookopen: BookOpen,
+  library: Library,
+  graduationcap: GraduationCap,
+  camera: Camera,
+  video: Video,
+  checkcircle2: CheckCircle2,
+  folderkanban: FolderKanban,
+  vote: Vote,
+  newspaper: Newspaper,
+  layers: Layers,
+  sparkles: Sparkles,
+};
+
+function resolveIcon(iconName?: string | null, fallbackIcon: LucideIcon = Layers): LucideIcon {
+  if (!iconName) return fallbackIcon;
+  const key = iconName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return ICON_REGISTRY[key] || fallbackIcon;
 }
 
 const SECTION_ITEMS: Record<SectionType, SubnavItem[]> = {
@@ -109,13 +145,31 @@ const THEME_STYLES: Record<
 export default function SectionSubnav({
   section,
   activeHref,
+  customItems,
 }: {
   section: SectionType;
   activeHref?: string;
+  customItems?: DynamicSubnavItem[];
 }) {
   const pathname = usePathname() || "";
   const currentPath = activeHref || pathname;
-  const items = SECTION_ITEMS[section] || [];
+  const defaultItems = SECTION_ITEMS[section] || [];
+
+  const items: SubnavItem[] = customItems && customItems.length > 0
+    ? customItems.map((ci, idx) => {
+        const fallbackIcon = defaultItems[idx]?.icon || Layers;
+        return {
+          id: ci.id,
+          label: ci.label,
+          labelBn: ci.labelBn,
+          href: ci.href,
+          icon: resolveIcon(ci.icon, fallbackIcon),
+          badge: ci.badge || undefined,
+          badgeBn: ci.badgeBn || undefined,
+        };
+      })
+    : defaultItems;
+
   const styles = THEME_STYLES[section] || THEME_STYLES.about;
 
   return (

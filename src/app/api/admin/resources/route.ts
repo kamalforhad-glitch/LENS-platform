@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
 import { parsePagination } from "@/lib/admin-pagination";
+import { revalidateHomeContent } from "@/lib/home-revalidation";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -99,6 +101,9 @@ export async function POST(req: NextRequest) {
   if (!data.slug) data.slug = slugify(data.title);
   data.createdBy = user.id;
   const resource = await db.resource.create({ data });
+  revalidateHomeContent(["public-resources"]);
+  revalidatePath("/resources");
+  if (resource.slug) revalidatePath(`/resources/${resource.slug}`);
   return NextResponse.json({ resource });
 }
 
@@ -111,7 +116,12 @@ export async function PUT(req: NextRequest) {
     return authErrorResponse(error);
   }
   const { id, ...data } = await req.json();
+  const existing = await db.resource.findUnique({ where: { id }, select: { slug: true } });
   const resource = await db.resource.update({ where: { id }, data });
+  revalidateHomeContent(["public-resources"]);
+  revalidatePath("/resources");
+  if (existing?.slug) revalidatePath(`/resources/${existing.slug}`);
+  if (resource.slug && resource.slug !== existing?.slug) revalidatePath(`/resources/${resource.slug}`);
   return NextResponse.json({ resource });
 }
 
@@ -124,6 +134,9 @@ export async function DELETE(req: NextRequest) {
     return authErrorResponse(error);
   }
   const { id } = await req.json();
-  await db.resource.delete({ where: { id } });
+  const deleted = await db.resource.delete({ where: { id } });
+  revalidateHomeContent(["public-resources"]);
+  revalidatePath("/resources");
+  if (deleted.slug) revalidatePath(`/resources/${deleted.slug}`);
   return NextResponse.json({ success: true });
 }

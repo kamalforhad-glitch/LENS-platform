@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
 import { parsePagination } from "@/lib/admin-pagination";
+import { revalidateHomeContent } from "@/lib/home-revalidation";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -100,6 +102,9 @@ export async function POST(req: NextRequest) {
   if (!data.slug) data.slug = slugify(data.title);
   data.createdBy = user.id;
   const career = await db.career.create({ data });
+  revalidateHomeContent(["public-careers"]);
+  revalidatePath("/careers");
+  if (career.slug) revalidatePath(`/careers/${career.slug}`);
   return NextResponse.json({ career });
 }
 
@@ -112,7 +117,12 @@ export async function PUT(req: NextRequest) {
     return authErrorResponse(error);
   }
   const { id, ...data } = await req.json();
+  const existing = await db.career.findUnique({ where: { id }, select: { slug: true } });
   const career = await db.career.update({ where: { id }, data });
+  revalidateHomeContent(["public-careers"]);
+  revalidatePath("/careers");
+  if (existing?.slug) revalidatePath(`/careers/${existing.slug}`);
+  if (career.slug && career.slug !== existing?.slug) revalidatePath(`/careers/${career.slug}`);
   return NextResponse.json({ career });
 }
 
@@ -125,6 +135,9 @@ export async function DELETE(req: NextRequest) {
     return authErrorResponse(error);
   }
   const { id } = await req.json();
-  await db.career.delete({ where: { id } });
+  const deleted = await db.career.delete({ where: { id } });
+  revalidateHomeContent(["public-careers"]);
+  revalidatePath("/careers");
+  if (deleted.slug) revalidatePath(`/careers/${deleted.slug}`);
   return NextResponse.json({ success: true });
 }

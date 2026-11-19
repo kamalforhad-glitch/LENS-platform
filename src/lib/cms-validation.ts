@@ -49,6 +49,28 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
 export const RESERVED_SLUG_FOR_MESSAGES = "home, api, admin, about, blog, careers, clubs, contact, courses, donate, events, impact, indexing, library, media, og, partnerships, privacy, programs, publications, research, researchers, resources, terms, theme";
 
 /**
+ * Root route prefixes that can NEVER be used by any CMS page, whether
+ * single-segment or nested. Protects core infrastructure, Next.js internal paths,
+ * static asset directories, and system configuration files from shadowing.
+ */
+export const PROTECTED_ROOT_PREFIXES: ReadonlySet<string> = new Set([
+  "admin",
+  "api",
+  "og",
+  "_next",
+  "private",
+  "uploads",
+  "images",
+  "home",
+  "partnerships",
+  "rss.xml",
+  "sitemap.xml",
+  "manifest.json",
+  "favicon.ico",
+  "robots.txt",
+]);
+
+/**
  * Reserved application-route slugs that a CMS page MAY take over through an
  * explicit, admin-only migration (slugs below). Every other reserved slug
  * stays protected forever: `home` (homepage editor), `admin`/`api`/`og`
@@ -94,40 +116,73 @@ export interface SlugCheck {
   error?: string;
 }
 
-/** Normalize a slug candidate: lowercase, trim, collapse separators. */
+/** Normalize a slug candidate: lowercase, trim, collapse separators. Supports nested paths. */
 export function normalizeSlug(input: string): string {
-  return (input || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_]+/g, "-")
-    .replace(/[^a-z0-9\u0980-\u09FF-]+/g, "") // keep latin digits, hyphen, bangla letters intentionally blocked: bangla not allowed in urls for CMS slugs
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
+  const raw = (input || "").trim().toLowerCase();
+  if (!raw) return "";
+  return raw
+    .split("/")
+    .map((segment) =>
+      segment
+        .replace(/[\s_]+/g, "-")
+        .replace(/[^a-z0-9\u0980-\u09FF-]+/g, "") // keep latin digits, hyphen, bangla letters intentionally blocked: bangla not allowed in urls for CMS slugs
+        .replace(/-+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 80)
+    )
+    .filter(Boolean)
+    .join("/")
+    .slice(0, 120);
 }
 
 /**
  * Validate a CMS page slug: URL-safe, not reserved (unless explicitly
- * allowed for migration), not a bare number.
+ * allowed for migration), not a bare number. Supports nested paths
+ * (e.g. `about/vision`, `courses/photography/documentary-lab`).
  *
- * @param allowMigratableReserved when true, a slug in CMS_MIGRATABLE_SLUGS
- *   is accepted so an admin can migrate a hardcoded route to CMS. Callers
- *   must still check that no published app route will be shadowed.
+ * @param allowMigratableReserved when true, a single-segment slug in
+ *   CMS_MIGRATABLE_SLUGS is accepted so an admin can migrate a hardcoded
+ *   route to CMS. Callers must still check that no published app route
+ *   will be shadowed.
  */
 export function validateSlug(slug: string, options?: { allowMigratableReserved?: boolean }): SlugCheck {
   const s = (slug || "").trim();
   if (!s) return { valid: false, error: "Slug is required" };
-  if (s.length > 80) return { valid: false, error: "Slug must be 80 characters or fewer" };
+  if (s.length > 120) return { valid: false, error: "Slug must be 120 characters or fewer" };
+
+  // Check individual segments
+  const segments = s.split("/");
+  for (const segment of segments) {
+    if (segment.length > 80) {
+      return { valid: false, error: "Each slug segment must be 80 characters or fewer" };
+    }
+  }
+
   // Latin lowercase slug only (Bengali titles map differently; slugs must be URL-stable)
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)) {
+  // Supports single-segment ("about-us") and nested slash-separated paths ("courses/photography")
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/.test(s)) {
     return {
       valid: false,
-      error: "Slug may only contain lowercase letters, digits, and single hyphens",
+      error: "Slug may only contain lowercase letters, digits, and single hyphens, separated by single slashes",
     };
   }
-  if (RESERVED_SLUGS.has(s) && !(options?.allowMigratableReserved && CMS_MIGRATABLE_SLUGS.has(s))) {
-    return { valid: false, error: `"${s}" is a reserved route and cannot be used as a page slug (reserved: ${RESERVED_SLUG_FOR_MESSAGES.split(", ").slice(0, 6).join(", ")}…)`.replace(/"reserved:.*"$/, "") };
+
+  // Root protected prefixes cannot be used in any CMS slug (e.g. `admin/...`, `api/...`)
+  const rootPrefix = segments[0];
+  if (PROTECTED_ROOT_PREFIXES.has(rootPrefix)) {
+    return {
+      valid: false,
+      error: `"${rootPrefix}" is a protected application route and cannot be used in a page slug`,
+    };
   }
+
+  // Top-level single-segment reserved check
+  if (!s.includes("/")) {
+    if (RESERVED_SLUGS.has(s) && !(options?.allowMigratableReserved && CMS_MIGRATABLE_SLUGS.has(s))) {
+      return { valid: false, error: `"${s}" is a reserved route and cannot be used as a page slug (reserved: ${RESERVED_SLUG_FOR_MESSAGES.split(", ").slice(0, 6).join(", ")}…)`.replace(/"reserved:.*"$/, "") };
+    }
+  }
+
   if (/^\d+$/.test(s)) return { valid: false, error: "Slug cannot be only digits" };
   return { valid: true };
 }

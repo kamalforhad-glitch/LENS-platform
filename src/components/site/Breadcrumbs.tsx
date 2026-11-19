@@ -22,22 +22,28 @@ export default function Breadcrumbs({
   return (
     <>
       <nav aria-label="Breadcrumb">
-        <ol className="flex flex-wrap items-center gap-1 text-sm">
+        <ol className="flex flex-wrap items-center gap-1 text-xs sm:text-sm">
           {items.map((item, i) => {
             const isLast = i === items.length - 1;
             return (
-              <li key={`${item.label}-${i}`} className="flex items-center gap-1">
+              <li key={`${item.label}-${i}`} className="inline-flex items-center gap-1 max-w-full">
                 {i > 0 && (
-                  <span className={`mx-1 ${muted}`} aria-hidden="true">
+                  <span className={`mx-1 shrink-0 ${muted}`} aria-hidden="true">
                     /
                   </span>
                 )}
                 {item.href && !isLast ? (
-                  <Link href={item.href} className={`${muted} hover:text-teal-400 transition-colors`}>
+                  <Link
+                    href={item.href}
+                    className={`${muted} hover:text-teal-400 transition-colors truncate max-w-[200px] sm:max-w-xs`}
+                  >
                     {item.label}
                   </Link>
                 ) : (
-                  <span aria-current="page" className={current}>
+                  <span
+                    aria-current="page"
+                    className={`${current} truncate max-w-[220px] sm:max-w-md font-medium`}
+                  >
                     {item.label}
                   </span>
                 )}

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
 import { parsePagination } from "@/lib/admin-pagination";
+import { revalidateHomeContent } from "@/lib/home-revalidation";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -99,6 +101,10 @@ export async function POST(req: NextRequest) {
   if (!data.slug) data.slug = slugify(data.title);
   data.createdBy = user.id;
   const item = await db.mediaItem.create({ data });
+  revalidateHomeContent(["public-media"]);
+  revalidatePath("/media");
+  revalidatePath("/resources/media");
+  if (item.slug) revalidatePath(`/media/${item.slug}`);
   return NextResponse.json({ item });
 }
 
@@ -111,7 +117,13 @@ export async function PUT(req: NextRequest) {
     return authErrorResponse(error);
   }
   const { id, ...data } = await req.json();
+  const existing = await db.mediaItem.findUnique({ where: { id }, select: { slug: true } });
   const item = await db.mediaItem.update({ where: { id }, data });
+  revalidateHomeContent(["public-media"]);
+  revalidatePath("/media");
+  revalidatePath("/resources/media");
+  if (existing?.slug) revalidatePath(`/media/${existing.slug}`);
+  if (item.slug && item.slug !== existing?.slug) revalidatePath(`/media/${item.slug}`);
   return NextResponse.json({ item });
 }
 
@@ -124,6 +136,10 @@ export async function DELETE(req: NextRequest) {
     return authErrorResponse(error);
   }
   const { id } = await req.json();
-  await db.mediaItem.delete({ where: { id } });
+  const deleted = await db.mediaItem.delete({ where: { id } });
+  revalidateHomeContent(["public-media"]);
+  revalidatePath("/media");
+  revalidatePath("/resources/media");
+  if (deleted.slug) revalidatePath(`/media/${deleted.slug}`);
   return NextResponse.json({ success: true });
 }

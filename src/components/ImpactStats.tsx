@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { FileText, Users, Globe, Handshake } from "lucide-react";
+import { FileText, Users, Globe, Handshake, type LucideIcon } from "lucide-react";
 import { resolveCmsValue } from "@/lib/cms-content";
 
 function asString(v: unknown): string {
@@ -13,12 +13,35 @@ function asString(v: unknown): string {
 
 gsap.registerPlugin(ScrollTrigger);
 
-const statConfig = [
+interface StatConfig {
+  key: string;
+  icon: LucideIcon;
+  value: number;
+  suffix: string;
+  color: string;
+}
+
+// Fallback-only config. CMS `stats[]` entries can override key, value, suffix,
+// label, icon and color; the i18n key remains the label fallback.
+const statConfig: StatConfig[] = [
   { key: "stat_research_briefs", icon: FileText, value: 12, suffix: "+", color: "#22d3ee" },
   { key: "stat_trained", icon: Users, value: 500, suffix: "+", color: "#0891b2" },
   { key: "stat_digital_reach", icon: Globe, value: 50000, suffix: "+", color: "#d4a843" },
   { key: "stat_partners", icon: Handshake, value: 25, suffix: "+", color: "#14b8a6" },
 ];
+
+const STAT_ICONS: Record<string, LucideIcon> = {
+  FileText,
+  Users,
+  Globe,
+  Handshake,
+};
+
+function safeColor(value: unknown, fallback: string): string {
+  return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value.trim())
+    ? value.trim()
+    : fallback;
+}
 
 function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -95,15 +118,15 @@ function parseJsonSafe(val: unknown): Record<string, any> {
 function StatItem({
   stat,
   index,
+  total,
   t,
   overrideLabel,
-  overrideValue,
 }: {
-  stat: typeof statConfig[0];
+  stat: StatConfig;
   index: number;
+  total: number;
   t: (key: string) => string;
   overrideLabel?: string;
-  overrideValue?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const iconRef = useRef<HTMLDivElement>(null);
@@ -129,7 +152,7 @@ function StatItem({
       onMouseMove={handleMouseMove}
       className="stat-item text-center px-4 group relative"
     >
-      {index < statConfig.length - 1 && (
+      {index < total - 1 && (
         <div className="absolute top-1/2 -right-4 w-8 h-px bg-gradient-to-r from-teal-400/20 to-transparent hidden lg:block" />
       )}
 
@@ -152,7 +175,7 @@ function StatItem({
         </svg>
       </div>
 
-      <AnimatedCounter value={overrideValue !== undefined ? overrideValue : stat.value} suffix={stat.suffix} />
+      <AnimatedCounter value={stat.value} suffix={stat.suffix} />
       <div className="text-sm text-slate-300/60 whitespace-pre-line leading-snug">
         {overrideLabel || t(`impact.${stat.key}`)}
       </div>
@@ -185,8 +208,18 @@ export default function ImpactStats({ cmsData }: { cmsData?: CmsSectionData }) {
     asString(resolveCmsValue(isBn, cEn, cBn, ["sectionDescription", "description"])) || rowDesc || t("impact.section_description");
 
   // Editor's stats[] overrides, keyed by stat key (EN payload carries
-  // value/suffix/label-EN; the BN payload carries label-BN).
-  const statsByKey = new Map<string, { value?: number; suffix?: string; labelEn?: string; labelBn?: string }>();
+  // value/suffix/icon/color/label-EN; the BN payload carries label-BN).
+  type StatOverride = {
+    value?: number;
+    suffix?: string;
+    labelEn?: string;
+    labelBn?: string;
+    /** Localized label resolved for the current render. */
+    label?: string;
+    icon?: string;
+    color?: string;
+  };
+  const statsByKey = new Map<string, StatOverride>();
   const ingestStats = (list: unknown, labelField: "labelEn" | "labelBn") => {
     if (!Array.isArray(list)) return;
     list.forEach((entry) => {
@@ -197,6 +230,8 @@ export default function ImpactStats({ cmsData }: { cmsData?: CmsSectionData }) {
       const agg = statsByKey.get(k) ?? {};
       if (typeof st.value === "number" && Number.isFinite(st.value)) agg.value = st.value;
       if (asString(st.suffix)) agg.suffix = asString(st.suffix);
+      if (asString(st.icon)) agg.icon = asString(st.icon);
+      if (asString(st.color)) agg.color = asString(st.color);
       if (asString(st.label)) agg[labelField] = asString(st.label);
       statsByKey.set(k, agg);
     });
@@ -204,20 +239,56 @@ export default function ImpactStats({ cmsData }: { cmsData?: CmsSectionData }) {
   ingestStats(cEn.stats, "labelEn");
   ingestStats(cBn.stats, "labelBn");
 
-  // Resolve one stat's override triple: editor stats[] first, then the
-  // legacy flat keys (`stat_<key>_value` / `stat_<key>` /
-  // `stat_<key>_label`), then the hardcoded config/i18n.
-  const statOverride = (key: string): { value?: number; suffix?: string; label?: string } => {
+  // Resolve one stat's overrides: editor stats[] first, then the legacy flat
+  // keys (`stat_<key>_value` / `stat_<key>` / `stat_<key>_label`), then the
+  // fallback config/i18n.
+  const statOverride = (key: string): StatOverride => {
     const legacyValue = cEn[key + "_value"];
     const legacyLabel = isBn ? (cBn[key] || cBn[key + "_label"]) : (cEn[key] || cEn[key + "_label"]);
-    const ov = statsByKey.get(key) ?? undefined;
+    const ov = statsByKey.get(key);
     return {
       value:
-        ov?.value !== undefined ? ov.value : typeof legacyValue === "number" && Number.isFinite(legacyValue) ? legacyValue : undefined,
+        ov?.value !== undefined
+          ? ov.value
+          : typeof legacyValue === "number" && Number.isFinite(legacyValue)
+            ? legacyValue
+            : undefined,
       suffix: ov?.suffix,
-      label: (isBn ? ov?.labelBn : ov?.labelEn) || (asString(legacyLabel) || undefined),
+      icon: ov?.icon,
+      color: ov?.color,
+      label: (isBn ? ov?.labelBn : ov?.labelEn) || asString(legacyLabel) || undefined,
     };
   };
+
+  // CMS `stats[]` controls the number/order of cards when provided. Unknown
+  // keys reuse the closest fallback icon/color; everything else is validated.
+  const cmsStatEntries = Array.isArray(cEn.stats)
+    ? cEn.stats.filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object" && !Array.isArray(entry))
+    : [];
+  const baseStats: StatConfig[] = cmsStatEntries.length
+    ? cmsStatEntries.map((entry, index) => {
+        const fallback = statConfig[index % statConfig.length];
+        const key = asString(entry.key) || fallback.key;
+        return {
+          key,
+          value: typeof entry.value === "number" && Number.isFinite(entry.value) ? entry.value : fallback.value,
+          suffix: asString(entry.suffix) || fallback.suffix,
+          icon: STAT_ICONS[asString(entry.icon)] ?? fallback.icon,
+          color: safeColor(entry.color, fallback.color),
+        };
+      })
+    : statConfig;
+
+  const resolvedStats = baseStats.map((base) => {
+    const ov = statOverride(base.key);
+    return {
+      key: base.key,
+      value: ov.value ?? base.value,
+      suffix: ov.suffix ?? base.suffix,
+      icon: (ov.icon ? STAT_ICONS[ov.icon] : undefined) ?? base.icon,
+      color: safeColor(ov.color, base.color),
+    };
+  });
 
   useEffect(() => {
     const mm = gsap.matchMedia();
@@ -383,19 +454,16 @@ export default function ImpactStats({ cmsData }: { cmsData?: CmsSectionData }) {
           </div>
 
           <div className="stats-grid grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {statConfig.map((stat, i) => {
-              const ov = statOverride(stat.key);
-              return (
-                <StatItem
-                  key={stat.key}
-                  stat={{ ...stat, suffix: ov.suffix ?? stat.suffix }}
-                  index={i}
-                  t={t}
-                  overrideValue={ov.value}
-                  overrideLabel={ov.label}
-                />
-              );
-            })}
+            {resolvedStats.map((stat, i) => (
+              <StatItem
+                key={`${stat.key}-${i}`}
+                stat={stat}
+                index={i}
+                total={resolvedStats.length}
+                t={t}
+                overrideLabel={statOverride(stat.key).label}
+              />
+            ))}
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import Analytics from "@/components/Analytics";
 import ApiProvider from "@/components/ApiProvider";
 import I18nProvider from "@/components/I18nProvider";
 import HomeCanonical from "@/components/HomeCanonical";
+import { parseKeywords } from "@/lib/page-seo";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -15,7 +16,7 @@ const inter = Inter({
 const hindSiliguri = Hind_Siliguri({
   variable: "--font-hind",
   subsets: ["bengali"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -29,6 +30,8 @@ const DEFAULT_DESCRIPTION =
   "LENS — Lighthouse for Evolving Narrative Systems — evidence-based research on media literacy, press freedom, narrative analysis and cybersecurity in Bangladesh.";
 const OG_IMAGE_PATH =
   "/og?title=LENS&subtitle=Lighthouse+for+Evolving+Narrative+Systems";
+const DEFAULT_KEYWORDS =
+  "LENS, Lighthouse for Evolving Narrative Systems, Bangladesh think tank, media literacy, press freedom, narrative research, policy advocacy, digital rights, journalist safety, cybersecurity, media indexing, strategic communication, Bangladesh media, information ecosystem, civic engagement";
 
 // Resolve the base URL from the existing NEXT_PUBLIC_SITE_URL convention only
 // when it already points at this site's own domain (apex or www); normalize to
@@ -56,6 +59,7 @@ const BASE_METADATA: Metadata = {
     template: "%s | LENS",
   },
   description: DEFAULT_DESCRIPTION,
+  keywords: DEFAULT_KEYWORDS,
   // NOTE: `alternates.canonical` is intentionally NOT set here. A root-layout
   // canonical is inherited by every child route (verified: /blog and
   // /admin/login would both declare canonical = homepage), which would tell
@@ -106,15 +110,23 @@ export async function generateMetadata(): Promise<Metadata> {
   const seoTitleBn = settings.seo_meta_title?.valueBn;
   const seoDescription = settings.seo_meta_description?.value;
   const seoDescriptionBn = settings.seo_meta_description?.valueBn;
-  const ogImage = settings.seo_og_image?.value;
-  const ogImageBn = settings.seo_og_image?.valueBn;
+  // `seo_og_image` is canonical; `og_image` is read only as a legacy fallback
+  // for rows created before the SEO editor key was standardized.
+  const ogImage = settings.seo_og_image?.value || settings.og_image?.value;
+  const ogImageBn =
+    settings.seo_og_image?.valueBn || settings.og_image?.valueBn;
 
   // Prefer Bangla when the Bengali payload is usable, otherwise English.
   const metaTitle = seoTitleBn || seoTitle;
   const metaDescription = seoDescriptionBn || seoDescription;
   const ogImageSrc = ogImageBn || ogImage;
+  const keywords =
+    parseKeywords(settings.seo_keywords?.valueBn || settings.seo_keywords?.value) ??
+    BASE_METADATA.keywords;
 
-  if (!metaTitle && !metaDescription && !ogImageSrc) return BASE_METADATA;
+  if (!metaTitle && !metaDescription && !ogImageSrc && !keywords) {
+    return BASE_METADATA;
+  }
 
   const title = metaTitle || DEFAULT_TITLE;
   const description = metaDescription || DEFAULT_DESCRIPTION;
@@ -125,6 +137,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: BASE_METADATA.metadataBase,
     title: BASE_METADATA.title,
     description,
+    keywords,
     icons: BASE_METADATA.icons,
     openGraph: {
       ...(BASE_METADATA.openGraph as NonNullable<Metadata["openGraph"]>),
@@ -161,7 +174,6 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="author" content="LENS" />
         <meta name="publisher" content="LENS" />
-        <meta name="keywords" content="LENS, Lighthouse for Evolving Narrative Systems, Bangladesh think tank, media literacy, press freedom, narrative research, policy advocacy, digital rights, journalist safety, cybersecurity, media indexing, strategic communication, Bangladesh media, information ecosystem, civic engagement" />
         <meta property="og:locale" content="en_US" />
         <meta property="og:locale:alternate" content="bn_BD" />
         <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />

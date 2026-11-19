@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ContactContent from "./ContactContent";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
-import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
+import { getPublicPage, getPublicSiteSettings, type PublicSectionData } from "@/lib/actions/cms";
 import { resolveSectionItems } from "@/components/page/resolveSectionItems";
 import type { SectionWithResolved } from "@/components/page/PageSectionsView";
 import CmsPageView from "@/components/page/CmsPageView";
@@ -22,7 +22,11 @@ async function resolveCmsSections(sections: PublicSectionData[]) {
 }
 
 export default async function ContactPage() {
-  const cms = await getPublicPage("contact");
+  const [cms, settings] = await Promise.all([
+    getPublicPage("contact"),
+    getPublicSiteSettings(),
+  ]);
+
   if (cms) {
     const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
     return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
@@ -32,7 +36,13 @@ export default async function ContactPage() {
     <>
       <SiteHeader />
       <main className="flex-1 pt-24">
-        <ContactContent />
+        <ContactContent
+          contactEmail={settings.contact_email?.value}
+          mediaEmail={settings.media_email?.value}
+          officeAddress={settings.office_address?.value}
+          contactPhone={settings.contact_phone?.value}
+          officeHours={settings.office_hours?.value}
+        />
       </main>
       <SiteFooter />
     </>

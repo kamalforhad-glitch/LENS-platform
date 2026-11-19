@@ -56,8 +56,23 @@ export default function ProgramsAdmin() {
 
   const deleteItem = async (id: string) => {
     if (!confirm("Delete this program?")) return;
-    await fetch("/api/admin/programs", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-    load();
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/programs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          typeof err.error === "string" && err.error ? err.error : `Failed to delete program (${res.status})`
+        );
+      }
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete program.");
+    }
   };
 
   return (

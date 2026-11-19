@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
 import { parsePagination } from "@/lib/admin-pagination";
+import { revalidateHomeContent } from "@/lib/home-revalidation";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -66,6 +68,9 @@ export async function POST(req: NextRequest) {
   if (!data.slug) data.slug = slugify(data.title);
   data.createdBy = user.id;
   const program = await db.program.create({ data });
+  revalidateHomeContent(["public-programs"]);
+  revalidatePath("/programs");
+  if (program.slug) revalidatePath(`/programs/${program.slug}`);
   return NextResponse.json({ program });
 }
 
@@ -78,7 +83,12 @@ export async function PUT(req: NextRequest) {
     return authErrorResponse(error);
   }
   const { id, ...data } = await req.json();
+  const existing = await db.program.findUnique({ where: { id }, select: { slug: true } });
   const program = await db.program.update({ where: { id }, data });
+  revalidateHomeContent(["public-programs"]);
+  revalidatePath("/programs");
+  if (existing?.slug) revalidatePath(`/programs/${existing.slug}`);
+  if (program.slug && program.slug !== existing?.slug) revalidatePath(`/programs/${program.slug}`);
   return NextResponse.json({ program });
 }
 
@@ -91,6 +101,9 @@ export async function DELETE(req: NextRequest) {
     return authErrorResponse(error);
   }
   const { id } = await req.json();
-  await db.program.delete({ where: { id } });
+  const deleted = await db.program.delete({ where: { id } });
+  revalidateHomeContent(["public-programs"]);
+  revalidatePath("/programs");
+  if (deleted.slug) revalidatePath(`/programs/${deleted.slug}`);
   return NextResponse.json({ success: true });
 }

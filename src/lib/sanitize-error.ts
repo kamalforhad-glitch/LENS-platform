@@ -4,19 +4,24 @@
 // Strips sensitive values from Error messages before they are
 // logged or returned to clients. Redacts:
 //   - PostgreSQL connection strings (postgresql://, postgres://)
-//   - Supabase pooler hostnames (aws-0-*.pooler.supabase.com)
+//   - URL userinfo (any `user:password@host` pair) and credential query params
+//   - Supabase hostnames (project and pooler hosts)
 //   - Cloudflare R2 hostnames (*.r2.cloudflarestorage.com)
 //   - AWS access keys and secret keys (heuristic: 20-40 char hex)
-//   - Authorization headers and bearer tokens
+//   - Supabase JWTs, Authorization headers and bearer tokens
 //
 // Never returns the original error message unchanged if it
 // contains a redactable pattern. Returns a safe generic
 // message for non-Error values.
 // ============================================================
 
-const CONNECTION_STRING_REGEX = /(postgresql|postgres):\/\/[^\s]*/g;
-const SUPABASE_POOLER_REGEX = /aws-0-[a-z0-9-]+\.pooler\.supabase\.com/g;
-const R2_HOST_REGEX = /[a-z0-9-]+\.r2\.cloudflarestorage\.com/g;
+const CONNECTION_STRING_REGEX = /(postgresql|postgres|prisma|mysql|mongodb(\+srv)?):\/\/[^\s]*/g;
+const URL_USERINFO_REGEX = /\/\/[^/\s:]+:[^/\s@]+@/g;
+const CREDENTIAL_QUERY_REGEX = /([?&](?:password|passwd|pwd|token|api_?key|secret|access_?key)=)[^&\s"']+/gi;
+const SUPABASE_POOLER_REGEX = /[a-z0-9-]+\.pooler\.supabase\.com/gi;
+const SUPABASE_HOST_REGEX = /[a-z0-9-]+\.supabase\.co/gi;
+const SUPABASE_JWT_REGEX = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
+const R2_HOST_REGEX = /[a-z0-9-]+\.r2\.cloudflarestorage\.com/gi;
 // AWS access keys are typically 20 uppercase alphanumeric chars;
 // secret keys are 40 hex chars. Match standalone tokens that look
 // like credentials, but avoid false positives on ordinary words.
@@ -34,7 +39,11 @@ export function sanitizeError(error: unknown): string {
     let msg = error.message;
 
     msg = msg.replace(CONNECTION_STRING_REGEX, "[REDACTED_CONNECTION_STRING]");
+    msg = msg.replace(URL_USERINFO_REGEX, "//[REDACTED_CREDENTIALS]@");
+    msg = msg.replace(CREDENTIAL_QUERY_REGEX, "$1[REDACTED]");
     msg = msg.replace(SUPABASE_POOLER_REGEX, "[REDACTED_HOST]");
+    msg = msg.replace(SUPABASE_HOST_REGEX, "[REDACTED_HOST]");
+    msg = msg.replace(SUPABASE_JWT_REGEX, "[REDACTED_TOKEN]");
     msg = msg.replace(R2_HOST_REGEX, "[REDACTED_HOST]");
     msg = msg.replace(AWS_ACCESS_KEY_REGEX, "[REDACTED_ACCESS_KEY]");
     msg = msg.replace(AWS_SECRET_KEY_REGEX, "[REDACTED_SECRET_KEY]");

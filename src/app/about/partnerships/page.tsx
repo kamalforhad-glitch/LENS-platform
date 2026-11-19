@@ -103,7 +103,21 @@ export default async function AboutPartnershipsPage() {
   const cms = await getPublicPage("about/partnerships");
   if (cms) {
     const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
-    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+    return (
+      <CmsPageView
+        page={{
+          id: cms.id,
+          slug: cms.slug,
+          title: cms.title,
+          titleBn: cms.titleBn,
+          description: cms.description,
+          descriptionBn: cms.descriptionBn,
+          sections,
+          hierarchy: cms.hierarchy,
+          breadcrumbs: cms.breadcrumbs,
+        }}
+      />
+    );
   }
 
   // Hardcoded fallback — shown until a CMS page at this slug is published.

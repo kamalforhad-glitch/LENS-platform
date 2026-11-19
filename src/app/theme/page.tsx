@@ -8,6 +8,7 @@ import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
 import { resolveSectionItems } from "@/components/page/resolveSectionItems";
 import type { SectionWithResolved } from "@/components/page/PageSectionsView";
 import CmsPageView from "@/components/page/CmsPageView";
+import InstitutionalCta from "@/components/page/InstitutionalCta";
 import {
   Layers,
   BarChart3,
@@ -97,7 +98,21 @@ export default async function ThemePage() {
   const cms = await getPublicPage("theme");
   if (cms) {
     const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
-    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+    return (
+      <CmsPageView
+        page={{
+          id: cms.id,
+          slug: cms.slug,
+          title: cms.title,
+          titleBn: cms.titleBn,
+          description: cms.description,
+          descriptionBn: cms.descriptionBn,
+          sections,
+          hierarchy: cms.hierarchy,
+          breadcrumbs: cms.breadcrumbs,
+        }}
+      />
+    );
   }
 
   // Hardcoded fallback — shown until a CMS page at this slug is published.
@@ -221,6 +236,9 @@ export default async function ThemePage() {
             </div>
           </div>
         </section>
+
+        {/* Institutional Closing CTA */}
+        <InstitutionalCta section="theme" />
       </main>
       <SiteFooter />
     </>

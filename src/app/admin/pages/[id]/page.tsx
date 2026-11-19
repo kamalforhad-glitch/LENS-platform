@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Save, Trash2, Globe, ExternalLink } from "lucide-react";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
 import PageSectionEditor from "@/components/admin/PageSectionEditor";
+import { normalizeSlug, validateSlug } from "@/lib/cms-validation";
 
 interface PageData {
   id?: string;
@@ -127,6 +128,15 @@ export default function PageEditor() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.slug) {
+      const cleanSlug = normalizeSlug(form.slug);
+      const slugCheck = validateSlug(cleanSlug, { allowMigratableReserved: true });
+      if (!slugCheck.valid) {
+        setError(slugCheck.error || "Please provide a valid route slug.");
+        return;
+      }
+    }
+
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -345,9 +355,11 @@ export default function PageEditor() {
                   type="text"
                   required
                   value={form.slug}
-                  onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "-") })}
+                  onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\/-]/g, "") })}
+                  onBlur={() => setForm((prev) => ({ ...prev, slug: normalizeSlug(prev.slug) }))}
+                  placeholder="about or about/team"
                   className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-r-lg text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-colors"
-                  placeholder="about"
+
                 />
               </div>
             </div>

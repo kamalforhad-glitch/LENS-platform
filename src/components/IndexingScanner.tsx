@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import { resolveCmsValue } from "@/lib/cms-content";
+import { sanitizeUrl } from "@/lib/cms-validation";
 
 export const INDEX_SCAN_EVENT = "lens:index-scan";
 
@@ -89,7 +90,7 @@ function parseJsonSafe(val: unknown): Record<string, any> {
 }
 
 export default function IndexingScanner({ cmsData }: { cmsData?: IndexingScannerCmsData } = {}) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [active, setActive] = useState(false);
   const [inView, setInView] = useState(true);
   // Hydration guard: the radar geometry below is client-owned markup. Rendering
@@ -105,10 +106,13 @@ export default function IndexingScanner({ cmsData }: { cmsData?: IndexingScanner
   const cEn = parseJsonSafe(cmsData?.content);
   const cBn = parseJsonSafe(cmsData?.contentBn);
 
-  const isBn = false; // IndexingScanner renders English UI; locale handled via i18n keys
-  const kicker = asString(resolveCmsValue(isBn, cEn, cBn, ["kicker", "sectionLabel", "badge"])) || t("indexScan.kicker");
-  const lead = asString(resolveCmsValue(isBn, cEn, cBn, ["lead", "sectionDescription", "description"])) || t("indexScan.lead");
-  const openText = asString(resolveCmsValue(isBn, cEn, cBn, ["openText", "sectionTitle", "title"])) || t("indexScan.open");
+  const isBn = i18n.language === "bn";
+  const kicker = asString(resolveCmsValue(isBn, cEn, cBn, ["indexingKicker", "kicker", "sectionLabel", "badge"])) || t("indexScan.kicker");
+  const lead = asString(resolveCmsValue(isBn, cEn, cBn, ["indexingLead", "lead", "sectionDescription", "description"])) || t("indexScan.lead");
+  const heading = asString(resolveCmsValue(isBn, cEn, cBn, ["indexingHeading", "heading"])) || t("sitenav.pressFreedomIndex");
+  const openText = asString(resolveCmsValue(isBn, cEn, cBn, ["indexingCtaText", "openText", "sectionTitle", "title"])) || t("indexScan.open");
+  const ctaCheck = sanitizeUrl(asString(resolveCmsValue(false, cEn, cBn, ["indexingCtaUrl", "ctaUrl"])));
+  const ctaUrl = ctaCheck.ok && ctaCheck.url ? ctaCheck.url : "/indexing/press-freedom-index";
   const scannerLabel = asString(resolveCmsValue(isBn, cEn, cBn, ["scannerLabel", "ariaLabel"])) || t("indexScan.scanner_label");
 
   useEffect(() => {
@@ -178,7 +182,7 @@ export default function IndexingScanner({ cmsData }: { cmsData?: IndexingScanner
               id="pfi-title"
               className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-[1.12] tracking-tight mb-5"
             >
-              {t("sitenav.pressFreedomIndex")}
+              {heading}
             </h2>
 
             {/* Description */}
@@ -189,7 +193,7 @@ export default function IndexingScanner({ cmsData }: { cmsData?: IndexingScanner
             {/* Primary CTA and Live Scan Status */}
             <div className="flex flex-wrap items-center gap-4">
               <Link
-                href="/indexing/press-freedom-index"
+                href={ctaUrl}
                 className="group inline-flex items-center gap-2.5 px-6 sm:px-7 py-3.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-navy-950 text-sm font-semibold transition-all duration-300 shadow-[0_0_24px_rgba(6,182,212,0.32)] hover:shadow-[0_0_32px_rgba(6,182,212,0.5)] hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-navy-950"
               >
                 <span>{openText}</span>

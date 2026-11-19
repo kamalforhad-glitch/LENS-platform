@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   getPageBySlug,
@@ -12,9 +13,15 @@ import {
   updatePage,
 } from "@/lib/actions/cms";
 import { firstUsable, syncImpactStatsSharedValues } from "@/lib/cms-content";
-import MediaPickerModal from "@/components/admin/MediaPickerModal";
 import { SECTION_TYPE_DEFS } from "@/components/admin/PageSectionEditor";
-import TabsHierarchyEditor from "@/components/admin/TabsHierarchyEditor";
+
+const MediaPickerModal = dynamic(() => import("@/components/admin/MediaPickerModal"), {
+  ssr: false,
+});
+const TabsHierarchyEditor = dynamic(() => import("@/components/admin/TabsHierarchyEditor"), {
+  ssr: false,
+  loading: () => <div className="p-4 text-sm text-slate-500">Loading tabs editor...</div>,
+});
 
 interface Section {
   id: string;

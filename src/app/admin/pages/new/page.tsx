@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Layout, Sparkles, AlertCircle, FileText, Layers, BookOpen, Download, Mail } from "lucide-react";
 import { createPage, createSection } from "@/lib/actions/cms";
-import { slugify } from "@/lib/db";
-import { RESERVED_SLUGS } from "@/lib/cms-validation";
+import { normalizeSlug, validateSlug } from "@/lib/cms-validation";
 
 export interface TemplateDef {
   id: string;
@@ -208,27 +207,29 @@ export default function NewPageCreator() {
   const handleTitleChange = (val: string) => {
     setTitle(val);
     if (autoSlug) {
-      setSlug(slugify(val));
+      setSlug(normalizeSlug(val));
     }
   };
 
   const handleSlugChange = (val: string) => {
     setAutoSlug(false);
-    setSlug(slugify(val));
+    // Allow typing lowercase letters, numbers, hyphens, and slashes without stripping trailing slashes while typing
+    setSlug(val.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\/-]/g, ""));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const cleanSlug = slug.trim().toLowerCase();
+    const cleanSlug = normalizeSlug(slug);
     if (!cleanSlug) {
       setError("Please provide a valid route slug.");
       return;
     }
 
-    if (RESERVED_SLUGS.has(cleanSlug)) {
-      setError(`The slug "${cleanSlug}" is reserved by the application framework. Please choose another.`);
+    const slugCheck = validateSlug(cleanSlug, { allowMigratableReserved: true });
+    if (!slugCheck.valid) {
+      setError(slugCheck.error || "Please provide a valid route slug.");
       return;
     }
 
@@ -391,9 +392,10 @@ export default function NewPageCreator() {
                   type="text"
                   required
                   name="slug"
-                  placeholder="about"
+                  placeholder="about or about/team"
                   value={slug}
                   onChange={(e) => handleSlugChange(e.target.value)}
+                  onBlur={() => setSlug((prev) => normalizeSlug(prev))}
                   className="flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 font-mono"
                 />
               </div>

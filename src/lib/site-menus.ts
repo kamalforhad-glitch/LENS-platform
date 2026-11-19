@@ -54,6 +54,59 @@ export async function getHeaderNavigation(): Promise<NavEntry[]> {
   }
 }
 
+export interface SubnavItemData {
+  id: string;
+  label: string;
+  labelBn: string;
+  href: string;
+  icon?: string | null;
+  badge?: string | null;
+  badgeBn?: string | null;
+}
+
+export async function getSectionSubnavItems(section: string): Promise<SubnavItemData[]> {
+  try {
+    const items = await cachedHeaderItems();
+    if (items.length === 0) return [];
+
+    const sectionSlug = `/${section.replace(/^\/+|\/+$/g, "")}`;
+    const parent = items.find(
+      (it) => it.url === sectionSlug || it.url === `${sectionSlug}/` || it.label.toLowerCase() === section.toLowerCase()
+    );
+
+    if (!parent) return [];
+
+    const children = items
+      .filter((it) => it.parentId === parent.id && it.visible !== false)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+
+    if (children.length === 0) return [];
+
+    const result: SubnavItemData[] = [
+      {
+        id: "overview",
+        label: parent.label === "Home" ? "Overview" : (parent.label === "About" ? "Overview" : `All ${parent.label}`),
+        labelBn: parent.labelBn || "পরিচিতি",
+        href: parent.url,
+        icon: parent.icon || undefined,
+      },
+      ...children.map((child) => ({
+        id: child.id,
+        label: child.label,
+        labelBn: child.labelBn || child.label,
+        href: child.url,
+        icon: child.icon || undefined,
+        badge: child.badgeText || undefined,
+        badgeBn: child.badgeTextBn || undefined,
+      })),
+    ];
+
+    return result;
+  } catch {
+    return [];
+  }
+}
+
 export async function getFooterColumns(): Promise<FooterColumn[]> {
   try {
     const items = await cachedFooterItems();

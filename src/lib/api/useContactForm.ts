@@ -76,13 +76,15 @@ export function useContactForm() {
         return;
       }
 
-      // Optimistic: confirm immediately, roll back if the API disagrees.
-      setSubmitState("success");
-      setStatusMessage(FALLBACK_SUCCESS);
-      form.reset();
+      setSubmitState("submitting");
+      setStatusMessage("");
 
       const result = await send.mutate(payload);
-      if (!result.ok) {
+      if (result.ok) {
+        setSubmitState("success");
+        setStatusMessage(result.data?.message || FALLBACK_SUCCESS);
+        form.reset();
+      } else {
         setSubmitState("error");
         setStatusMessage(result.error?.message || FALLBACK_ERROR);
       }

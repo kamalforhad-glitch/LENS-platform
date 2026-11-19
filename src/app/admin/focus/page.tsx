@@ -1,11 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import useSWR from "swr";
 import { ExternalLink, Loader2, Pencil, RefreshCw } from "lucide-react";
-import FocusCmsDrawer from "@/components/admin/FocusCmsDrawer";
-import { focusAccent, resolveFocusIcon } from "@/lib/focus-icons";
+
+const FocusCmsDrawer = dynamic(() => import("@/components/admin/FocusCmsDrawer"), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30">
+      <div className="rounded-lg bg-white px-4 py-3 text-sm text-slate-600 shadow-lg">Loading editor...</div>
+    </div>
+  ),
+});
+import { focusAccent, renderFocusIcon } from "@/lib/focus-icons";
 import {
   FOCUS_LIST_KEY,
   type FocusAreaDto,
@@ -90,7 +99,6 @@ export default function FocusAdminPage() {
       {!isLoading && areas.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {areas.map((area) => {
-            const Icon = resolveFocusIcon(area.icon, area.order);
             const { accent, glow } = focusAccent(area.order);
             return (
               <article
@@ -102,7 +110,10 @@ export default function FocusAdminPage() {
                     className="flex h-11 w-11 items-center justify-center rounded-xl border"
                     style={{ color: accent, borderColor: accent, background: glow }}
                   >
-                    <Icon size={20} strokeWidth={1.8} />
+                    {renderFocusIcon(area.icon, area.order, {
+                      size: 20,
+                      strokeWidth: 1.8,
+                    })}
                   </span>
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">
                     #{area.order}

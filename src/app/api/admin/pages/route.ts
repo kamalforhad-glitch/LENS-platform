@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
 import { validateSlug, sanitizeUrl } from "@/lib/cms-validation";
+import { assertValidPageParent, assertValidPageParentInput } from "@/lib/page-validation";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { parsePagination } from "@/lib/admin-pagination";
 
 function authErrorResponse(error: unknown) {
@@ -63,6 +64,14 @@ export async function GET(req: NextRequest) {
         status: true,
         sortOrder: true,
         dateModified: true,
+        parentId: true,
+        parent: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+          },
+        },
       },
     });
     return NextResponse.json({ pages });
@@ -95,6 +104,14 @@ export async function GET(req: NextRequest) {
         status: true,
         sortOrder: true,
         dateModified: true,
+        parentId: true,
+        parent: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+          },
+        },
       },
     }),
     db.page.count({ where: listWhere }),
@@ -157,6 +174,15 @@ export async function POST(req: NextRequest) {
       const check = sanitizeUrl(String(raw.ogImage));
       if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
     }
+    if (raw.parentId) {
+      const validParentId = assertValidPageParentInput(raw.parentId);
+      if (validParentId) {
+        await assertValidPageParent(validParentId);
+        raw.parentId = validParentId;
+      } else {
+        delete raw.parentId;
+      }
+    }
     const page = await db.page.create({
       data: {
         ...raw,
@@ -173,6 +199,7 @@ export async function POST(req: NextRequest) {
       meta: { slug: page.slug, via: "api" },
     });
     revalidatePath("/");
+    revalidateTag("public-page", { expire: 0 });
     revalidatePath(`/${page.slug}`);
     return NextResponse.json({ page });
   } catch (error) {
@@ -216,8 +243,14 @@ export async function PUT(req: NextRequest) {
       const check = sanitizeUrl(String(raw.ogImage));
       if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
     }
-    if (raw.parentId === id) {
-      return NextResponse.json({ error: "A page cannot be its own parent" }, { status: 400 });
+    if (raw.parentId !== undefined) {
+      const validParentId = assertValidPageParentInput(raw.parentId, id);
+      if (validParentId) {
+        await assertValidPageParent(validParentId, id);
+        raw.parentId = validParentId;
+      } else {
+        raw.parentId = null;
+      }
     }
 
     // Status transition audit
@@ -239,6 +272,7 @@ export async function PUT(req: NextRequest) {
       meta: { slug: page.slug, status: page.status, via: "api" },
     });
     revalidatePath("/");
+    revalidateTag("public-page", { expire: 0 });
     revalidatePath(`/${page.slug}`);
     return NextResponse.json({ page });
   } catch (error) {
@@ -270,6 +304,7 @@ export async function DELETE(req: NextRequest) {
       meta: { slug: page?.slug },
     });
     revalidatePath("/");
+    revalidateTag("public-page", { expire: 0 });
     if (page) revalidatePath(`/${page.slug}`);
     return NextResponse.json({ success: true });
   } catch (error) {

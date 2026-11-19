@@ -11,7 +11,9 @@ import {
   Sparkles,
   Users,
   type LucideIcon,
+  type LucideProps,
 } from "lucide-react";
+import { createElement, type ReactElement } from "react";
 
 export const FOCUS_ICON_OPTIONS = [
   { value: "BarChart3", label: "Research", icon: BarChart3 },
@@ -67,6 +69,20 @@ export function resolveFocusIcon(
 
   const index = Number.isFinite(order) ? Math.abs(Math.trunc(order)) % FALLBACK_ICONS.length : 0;
   return ICON_MAP[FALLBACK_ICONS[index]];
+}
+
+/**
+ * Renders the resolved icon as an element rather than returning a component
+ * type from inside a React render. This keeps the ESLint
+ * `react-hooks/static-components` rule satisfied while preserving the same
+ * allow-listed icon set.
+ */
+export function renderFocusIcon(
+  value: string | null | undefined,
+  order = 0,
+  props: LucideProps = {}
+): ReactElement {
+  return createElement(resolveFocusIcon(value, order), props);
 }
 
 const ACCENTS = [

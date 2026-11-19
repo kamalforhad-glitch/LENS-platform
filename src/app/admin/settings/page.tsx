@@ -32,6 +32,7 @@ export default function SiteSettingsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [mediaPickerKey, setMediaPickerKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,15 +64,24 @@ export default function SiteSettingsAdminPage() {
       prev.map((s) => (s.key === key ? { ...s, [field]: val } : s))
     );
     setSavedSuccess(false);
+    setSaveError(null);
   };
 
   const handleSave = async () => {
     setSaving(true);
+    setSavedSuccess(false);
+    setSaveError(null);
     try {
       const groupItems = settings.filter((s) => s.group === activeGroup);
       await updateSiteSettingsBulk(groupItems);
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error && error.message
+          ? `Failed to save settings for this group. ${error.message}`
+          : "Failed to save settings for this group. Some changes may not have been saved."
+      );
     } finally {
       setSaving(false);
     }
@@ -120,6 +130,12 @@ export default function SiteSettingsAdminPage() {
         </div>
       </div>
 
+      {saveError && (
+        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+          {saveError}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex overflow-x-auto border-b border-slate-200 gap-1 mb-8 pb-px">
         {GROUPS.map((g) => {
@@ -130,6 +146,7 @@ export default function SiteSettingsAdminPage() {
               onClick={() => {
                 setActiveGroup(g.id);
                 setSavedSuccess(false);
+                setSaveError(null);
               }}
               className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 isActive

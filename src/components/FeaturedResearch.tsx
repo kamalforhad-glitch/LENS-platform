@@ -9,6 +9,7 @@ import { Download, ArrowRight, ExternalLink } from "lucide-react";
 import MagneticButton from "./MagneticButton";
 import { formatReadingTime } from "@/lib/i18n/format";
 import { resolveCmsValue } from "@/lib/cms-content";
+import { sanitizeUrl } from "@/lib/cms-validation";
 
 function asString(v: unknown): string {
   return typeof v === "string" ? v : "";
@@ -170,6 +171,19 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
     asString(card?.tag1) || asString(resolveCmsValue(isBn, cEn, cBn, ["featured_tag1"])) || (locale === "bn" ? "গবেষণা রিপোর্ট" : "Research Report");
   const featuredTag2 =
     asString(card?.tag2) || asString(resolveCmsValue(isBn, cEn, cBn, ["featured_tag2"])) || (locale === "bn" ? "মিডিয়া ও সমাজ" : "Media & Society");
+  const featuredDate =
+    asString(card?.date) || asString(resolveCmsValue(isBn, cEn, cBn, ["featured_date"])) || "May 2025";
+  const featuredReadMinutes =
+    asNumber(card?.readMinutes) || asNumber(resolveCmsValue(false, cEn, cBn, ["featured_read_minutes"])) || 12;
+  const cardSlug = asString(card?.slug);
+  const featuredHrefCheck = sanitizeUrl(asString(card?.href));
+  const featuredHref = featuredHrefCheck.ok && featuredHrefCheck.url
+    ? featuredHrefCheck.url
+    : cardSlug
+      ? `/research/${cardSlug}`
+      : "";
+  const pdfCheck = sanitizeUrl(asString(card?.pdfUrl));
+  const pdfUrl = pdfCheck.ok && pdfCheck.url ? pdfCheck.url : "";
 
   const latestHeading =
     asString(resolveCmsValue(isBn, cEn, cBn, ["latestPublicationsHeading"])) || t("research.latest_publications");
@@ -329,7 +343,7 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
                   {featuredLabel}
                 </span>
                 <span className="text-[10px] text-slate-400">·</span>
-                <span className="text-[10px] text-slate-400">{formatReadingTime(12, locale)}</span>
+                <span className="text-[10px] text-slate-400">{formatReadingTime(featuredReadMinutes, locale)}</span>
               </div>
               <h3 className="featured-title text-2xl lg:text-3xl font-bold text-white leading-tight mb-4">
                 {featuredTitle}
@@ -348,13 +362,19 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
             </div>
 
             <div className="featured-meta relative z-10 flex items-center justify-between">
-              <span className="text-sm text-slate-400">May 2025</span>
+              <span className="text-sm text-slate-400">{featuredDate}</span>
               <div className="flex gap-2">
-                <MagneticButton className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-full border border-white/10 transition-all backdrop-blur-sm">
+                <MagneticButton
+                  href={pdfUrl || undefined}
+                  className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-full border border-white/10 transition-all backdrop-blur-sm"
+                >
                   {t("research.pdf_download")}
                   <Download className="w-4 h-4 ml-2" />
                 </MagneticButton>
-                <MagneticButton className="px-4 py-2.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 text-sm font-medium rounded-full border border-teal-400/20 transition-all backdrop-blur-sm">
+                <MagneticButton
+                  href={featuredHref || undefined}
+                  className="px-4 py-2.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 text-sm font-medium rounded-full border border-teal-400/20 transition-all backdrop-blur-sm"
+                >
                   <ExternalLink className="w-4 h-4" />
                 </MagneticButton>
               </div>

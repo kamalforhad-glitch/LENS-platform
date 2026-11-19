@@ -12,9 +12,21 @@ export interface FocusAreaDto {
   order: number;
 }
 
+/**
+ * Where the list was loaded from. `database-empty` means the query succeeded
+ * but returned no rows; `seed-*` means resilience fallback copy was used.
+ * Consumers must not interpret a seed source as proof of DB persistence.
+ */
+export type FocusAreaSource =
+  | "database"
+  | "database-empty"
+  | "seed-fallback"
+  | "seed-unavailable";
+
 export interface FocusListResponse {
   areas: FocusAreaDto[];
   count: number;
+  source?: FocusAreaSource;
 }
 
 export const FOCUS_LIST_KEY = "/api/focus" as const;

@@ -287,12 +287,12 @@ export async function getPublicEvents(): Promise<PublicList<EventCard>> {
   };
 }
 
-export async function getPublicResearch(): Promise<PublicList<ResearchCard>> {
+export async function getPublicResearch(take = 60): Promise<PublicList<ResearchCard>> {
   const result = await query(() =>
     db.researchArticle.findMany({
       where: { status: "published" },
       orderBy: { datePublished: "desc" },
-      take: 60,
+      take: Math.max(1, Math.min(100, take)),
       select: {
         slug: true,
         title: true,

@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Search, Share2, Globe, Save, CheckCircle, Image as ImageIcon } from "lucide-react";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
+import { normalizeSeoOgImageSettings } from "@/lib/seo-og-setting";
 
 interface Setting {
   id: string;
@@ -19,13 +20,14 @@ export default function SEOAdmin() {
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [savedKey, setSavedKey] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/settings?group=seo")
       .then((r) => r.json())
       .then((d) => {
-        setSettings(d.settings || []);
+        setSettings(normalizeSeoOgImageSettings(d.settings || []));
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -44,16 +46,23 @@ export default function SEOAdmin() {
 
   const saveSetting = async (setting: Setting) => {
     setSavingKey(setting.key);
+    setSaveError(null);
     try {
-      await fetch("/api/admin/settings", {
+      const res = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(setting),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          typeof err.error === "string" && err.error ? err.error : `Failed to save ${setting.key} (${res.status})`
+        );
+      }
       setSavedKey(setting.key);
       setTimeout(() => setSavedKey(null), 2500);
-    } catch {
-      alert(`Failed to save ${setting.key}`);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : `Failed to save ${setting.key}`);
     } finally {
       setSavingKey(null);
     }
@@ -61,18 +70,38 @@ export default function SEOAdmin() {
 
   const saveAll = async () => {
     setSavingKey("all");
+    setSaveError(null);
+    const failed: string[] = [];
     try {
       for (const s of settings) {
-        await fetch("/api/admin/settings", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(s),
-        });
+        try {
+          const res = await fetch("/api/admin/settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(s),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            failed.push(
+              typeof err.error === "string" && err.error
+                ? `${s.label || s.key}: ${err.error}`
+                : `${s.label || s.key} (${res.status})`
+            );
+          }
+        } catch {
+          failed.push(`${s.label || s.key}: request failed`);
+        }
       }
-      setSavedKey("all");
-      setTimeout(() => setSavedKey(null), 2500);
-    } catch {
-      alert("Failed to save some settings");
+      if (failed.length > 0) {
+        setSaveError(
+          `Saved ${settings.length - failed.length} of ${settings.length} settings. Failed: ${failed
+            .slice(0, 3)
+            .join("; ")}${failed.length > 3 ? ` (+${failed.length - 3} more)` : ""}`
+        );
+      } else {
+        setSavedKey("all");
+        setTimeout(() => setSavedKey(null), 2500);
+      }
     } finally {
       setSavingKey(null);
     }
@@ -87,11 +116,14 @@ export default function SEOAdmin() {
     );
   }
 
-  const metaTitle = getVal("seo_meta_title") || "LENS — Youth, Technology & Society";
+  const metaTitle = getVal("seo_meta_title") || "LENS â€” Youth, Technology & Society";
   const metaDescription =
     getVal("seo_meta_description") ||
     "Empowering youth and advancing evidence-based research and digital policy in Bangladesh.";
-  const ogImage = getVal("seo_og_image") || "/og?title=LENS&subtitle=Lighthouse+for+Evolving+Narrative+Systems";
+  const ogImage =
+    getVal("seo_og_image") ||
+    getVal("og_image") ||
+    "/og?title=LENS&subtitle=Lighthouse+for+Evolving+Narrative+Systems";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL && /^https?:\/\//.test(process.env.NEXT_PUBLIC_SITE_URL)
     ? process.env.NEXT_PUBLIC_SITE_URL
     : "https://www.lensbd.org";
@@ -128,6 +160,12 @@ export default function SEOAdmin() {
         </button>
       </div>
 
+      {saveError && (
+        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+          {saveError}
+        </div>
+      )}
+
       {/* Visual Live Previews */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Google SERP Preview */}
@@ -151,7 +189,7 @@ export default function SEOAdmin() {
             </p>
           </div>
           <p className="text-[11px] text-slate-500 mt-2">
-            Characters: Title ({metaTitle.length}/60 optimal) · Description ({metaDescription.length}/160 optimal)
+            Characters: Title ({metaTitle.length}/60 optimal) Â· Description ({metaDescription.length}/160 optimal)
           </p>
         </div>
 
@@ -241,7 +279,7 @@ export default function SEOAdmin() {
                   />
                 </div>
                 <div>
-                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1.5">Bangla Value (বাংলা)</span>
+                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1.5">Bangla Value (à¦¬à¦¾à¦‚à¦²à¦¾)</span>
                   <textarea
                     rows={2}
                     value={s.valueBn}
@@ -262,7 +300,7 @@ export default function SEOAdmin() {
                   />
                 </div>
                 <div>
-                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1.5">Bangla Value (বাংলা)</span>
+                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1.5">Bangla Value (à¦¬à¦¾à¦‚à¦²à¦¾)</span>
                   <input
                     type="text"
                     value={s.valueBn}
@@ -281,7 +319,7 @@ export default function SEOAdmin() {
         open={showMediaPicker}
         onClose={() => setShowMediaPicker(false)}
         onSelect={(url) => {
-          updateVal("og_image", url);
+          updateVal("seo_og_image", url);
           setShowMediaPicker(false);
         }}
       />

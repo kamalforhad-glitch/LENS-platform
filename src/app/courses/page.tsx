@@ -11,6 +11,7 @@ import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
 import { resolveSectionItems } from "@/components/page/resolveSectionItems";
 import type { SectionWithResolved } from "@/components/page/PageSectionsView";
 import CmsPageView from "@/components/page/CmsPageView";
+import InstitutionalCta from "@/components/page/InstitutionalCta";
 import {
   GraduationCap,
   Camera,
@@ -104,7 +105,21 @@ export default async function CoursesPage() {
   const cms = await getPublicPage("courses");
   if (cms) {
     const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
-    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+    return (
+      <CmsPageView
+        page={{
+          id: cms.id,
+          slug: cms.slug,
+          title: cms.title,
+          titleBn: cms.titleBn,
+          description: cms.description,
+          descriptionBn: cms.descriptionBn,
+          sections,
+          hierarchy: cms.hierarchy,
+          breadcrumbs: cms.breadcrumbs,
+        }}
+      />
+    );
   }
 
   // Hardcoded fallback — shown until a CMS page at this slug is published.
@@ -289,6 +304,9 @@ export default async function CoursesPage() {
             </div>
           </div>
         </section>
+
+        {/* Institutional Closing CTA */}
+        <InstitutionalCta section="courses" />
       </main>
       <SiteFooter />
     </>

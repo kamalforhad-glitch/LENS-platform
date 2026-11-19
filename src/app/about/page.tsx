@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import AboutContent from "./AboutContent";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
-import SectionSubnav from "@/components/site/SectionSubnav";
 import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
 import { resolveSectionItems } from "@/components/page/resolveSectionItems";
 import type { SectionWithResolved } from "@/components/page/PageSectionsView";
@@ -26,14 +25,27 @@ export default async function AboutPage() {
   const cms = await getPublicPage("about");
   if (cms) {
     const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
-    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+    return (
+      <CmsPageView
+        page={{
+          id: cms.id,
+          slug: cms.slug,
+          title: cms.title,
+          titleBn: cms.titleBn,
+          description: cms.description,
+          descriptionBn: cms.descriptionBn,
+          sections,
+          hierarchy: cms.hierarchy,
+          breadcrumbs: cms.breadcrumbs,
+        }}
+      />
+    );
   }
   // Hardcoded fallback — shown until a CMS page at this slug is published.
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 pt-24">
-        <SectionSubnav section="about" activeHref="/about" />
+      <main className="flex-1 pt-20 sm:pt-24">
         <AboutContent />
       </main>
       <SiteFooter />

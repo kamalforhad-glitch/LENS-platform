@@ -169,6 +169,8 @@ export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData
     asString(resolveCmsValue(isBn, cEn, cBn, ["newsletterTitle", "newsletter_title"])) || t("newsletter.title");
   const newsletterSubtitle =
     asString(resolveCmsValue(isBn, cEn, cBn, ["newsletterDescription", "newsletter_subtitle"])) || t("newsletter.subtitle");
+  const subscriberCount =
+    asString(resolveCmsValue(isBn, cEn, cBn, ["subscriberCount", "subscribers"])) || "2.5K+";
 
   const viewAllText = asString(resolveCmsValue(isBn, cEn, cBn, ["viewAllText"])) || t("events.view_all");
   const viewAllUrl = asString(resolveCmsValue(false, cEn, cBn, ["viewAllUrl"])) || "/events";
@@ -376,7 +378,7 @@ export default function EventsNewsletter({ cmsData }: { cmsData?: CmsSectionData
 
                 <div className="flex gap-6 mb-6">
                   <div className="text-center">
-                    <div className="text-lg font-bold text-teal-400">2.5K+</div>
+                    <div className="text-lg font-bold text-teal-400">{subscriberCount}</div>
                     <div className="text-[10px] text-slate-400 uppercase tracking-wide">{t("newsletter.subscribers")}</div>
                   </div>
                   <div className="text-center">

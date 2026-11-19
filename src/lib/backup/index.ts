@@ -1,9 +1,9 @@
 import { db } from "@/lib/db";
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { writeFile, readdir, stat, unlink, readFile, mkdir } from "fs/promises";
+import { writeFile, readdir, stat, unlink, readFile, mkdir, access } from "fs/promises";
 import { existsSync } from "fs";
-import { join, basename } from "path";
+import { join, basename, isAbsolute } from "path";
 import { sendBackupReport } from "@/lib/email";
 import { requireDatabaseUrl, requireBackupBucket, assertBucketsDistinct } from "@/lib/env";
 import { sanitizeError } from "@/lib/sanitize-error";
@@ -20,6 +20,16 @@ const execFileAsync = promisify(execFile);
 
 const BACKUP_DIR = join(process.cwd(), "backups");
 const MAX_BACKUPS = 30; // 30 days retention
+
+/**
+ * Resolves a backup artifact path against the project root. Vercel traces
+ * `process.cwd()`-relative paths reliably; absolute paths (R2 downloads and
+ * the local BACKUP_DIR) are left untouched.
+ */
+function resolveRuntimePath(filePath: string): string {
+  const value = filePath.trim();
+  return isAbsolute(value) ? value : join(/* turbopackIgnore: true */ process.cwd(), value);
+}
 
 /** Resolves postgres client binary taking into account standard local and server installation paths */
 function resolvePostgresBinary(binary: string): string {
@@ -250,8 +260,36 @@ export async function restoreBackup(backupId: string): Promise<{ success: boolea
       sourcePath = filePath;
     }
 
-    // Read the artifact and detect format.
-    const data = await readFile(sourcePath);
+    // Local backup artifacts are not part of a Vercel serverless deployment.
+    // Fail closed with a clear message instead of attempting an ENOENT read.
+    if (process.env.VERCEL && record.storage !== "r2") {
+      console.warn("[Backup] Local backup artifacts are unavailable in the Vercel serverless runtime.");
+      return {
+        success: false,
+        error: "Backup file not accessible on serverless environment.",
+      };
+    }
+
+    // Normalize the source path for bundlers/serverless tracing. Both local
+    // artifacts and R2 downloads may arrive as relative strings.
+    const absoluteSourcePath = resolveRuntimePath(sourcePath);
+
+    // Read the artifact and detect format. The access guard plus try/catch
+    // keeps an absent ephemeral artifact from crashing the process.
+    let data: Buffer;
+    try {
+      await access(/* turbopackIgnore: true */ absoluteSourcePath);
+      data = await readFile(/* turbopackIgnore: true */ absoluteSourcePath);
+    } catch (error) {
+      console.warn(
+        `⚠️ Backup source file not found at ${absoluteSourcePath}:`,
+        sanitizeBackupError(error)
+      );
+      return {
+        success: false,
+        error: "Backup file not accessible on serverless environment.",
+      };
+    }
 
     if (data.length >= 4 && data.subarray(0, 4).toString("latin1") === "LBK1") {
       if (!encryptionKey) {
@@ -275,7 +313,7 @@ export async function restoreBackup(backupId: string): Promise<{ success: boolea
     const databaseUrl = requireDatabaseUrl();
 
     // psql restores from the temp plaintext file (never the original encrypted artifact).
-    const psqlFilePath = plaintextTempPath ?? sourcePath;
+    const psqlFilePath = plaintextTempPath ?? absoluteSourcePath;
 
     // Plain-format dumps restore with psql (no shell — args array only).
     try {

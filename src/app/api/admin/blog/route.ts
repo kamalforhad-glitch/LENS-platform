@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db, slugify } from "@/lib/db";
 import { getCurrentUser, requireAuth, requireAdmin, requireEditor } from "@/lib/auth";
 import { parsePagination } from "@/lib/admin-pagination";
+import { revalidateHomeContent } from "@/lib/home-revalidation";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -101,6 +103,9 @@ export async function POST(req: NextRequest) {
   if (!data.slug) data.slug = slugify(data.title);
   data.createdBy = user.id;
   const post = await db.blogPost.create({ data });
+  revalidateHomeContent(["public-blog"]);
+  revalidatePath("/blog");
+  if (post.slug) revalidatePath(`/blog/${post.slug}`);
   return NextResponse.json({ post });
 }
 
@@ -113,7 +118,12 @@ export async function PUT(req: NextRequest) {
     return authErrorResponse(error);
   }
   const { id, ...data } = await req.json();
+  const existing = await db.blogPost.findUnique({ where: { id }, select: { slug: true } });
   const post = await db.blogPost.update({ where: { id }, data });
+  revalidateHomeContent(["public-blog"]);
+  revalidatePath("/blog");
+  if (existing?.slug) revalidatePath(`/blog/${existing.slug}`);
+  if (post.slug && post.slug !== existing?.slug) revalidatePath(`/blog/${post.slug}`);
   return NextResponse.json({ post });
 }
 
@@ -126,6 +136,9 @@ export async function DELETE(req: NextRequest) {
     return authErrorResponse(error);
   }
   const { id } = await req.json();
-  await db.blogPost.delete({ where: { id } });
+  const deleted = await db.blogPost.delete({ where: { id } });
+  revalidateHomeContent(["public-blog"]);
+  revalidatePath("/blog");
+  if (deleted.slug) revalidatePath(`/blog/${deleted.slug}`);
   return NextResponse.json({ success: true });
 }

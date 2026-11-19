@@ -2,7 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import { OrganizationSchema } from "@/components/SchemaOrg";
-import Link from "next/link";
+import SectionSubnav from "@/components/site/SectionSubnav";
+import SectionSubsections from "@/components/page/SectionSubsections";
+import InstitutionalCta from "@/components/page/InstitutionalCta";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -38,18 +40,6 @@ export default function AboutContent() {
           { opacity: 1, y: 0, rotateX: 0, scale: 1, duration: 0.6, ease: "power3.out", scrollTrigger: { trigger: card, start: "top 85%" }, delay: i * 0.08 }
         );
       });
-
-      // Team section
-      gsap.fromTo(
-        ".about-team-title",
-        { opacity: 0, y: 25 },
-        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: ".about-team", start: "top 70%" } }
-      );
-      gsap.fromTo(
-        ".about-team-desc",
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.7, ease: "power2.out", scrollTrigger: { trigger: ".about-team", start: "top 65%" } }
-      );
 
       // Background orb parallax
       gsap.fromTo(
@@ -99,6 +89,9 @@ export default function AboutContent() {
           </p>
         </div>
       </section>
+
+      {/* Section Subnav directly following hero */}
+      <SectionSubnav section="about" activeHref="/about" />
 
       {/* Mission */}
       <section className="about-mission py-20 bg-white">
@@ -155,23 +148,11 @@ export default function AboutContent() {
         </div>
       </section>
 
-      {/* Team */}
-      <section className="about-team py-20 bg-navy-950">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="about-team-title text-3xl font-bold text-white mb-6">Our Team</h2>
-          <p className="about-team-desc text-slate-300/70 leading-relaxed mb-8 max-w-2xl mx-auto">
-            LENS brings together researchers, journalists, policy analysts and
-            media professionals with deep expertise in Bangladesh&apos;s
-            information ecosystem.
-          </p>
-          <Link
-            href="/contact"
-            className="inline-flex items-center px-6 py-3 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-full transition-colors shadow-lg shadow-teal-500/25"
-          >
-            Get in Touch
-          </Link>
-        </div>
-      </section>
+      {/* Section Subsections Cards */}
+      <SectionSubsections section="about" currentSlug="/about" />
+
+      {/* Institutional CTA */}
+      <InstitutionalCta section="about" />
     </div>
   );
 }

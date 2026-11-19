@@ -38,6 +38,7 @@ const nextConfig: NextConfig = {
 
   images: {
     formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 31536000,
     remotePatterns: [
       {
         protocol: "https",
@@ -79,6 +80,18 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "no-store, max-age=0",
+          },
+        ],
+      },
+      // Last matching header wins. Keep this public, anonymous list after the
+      // generic API rule so it is not overridden by the global no-store.
+      {
+        source: "/api/focus",
+        headers: [
+          ...securityHeaders,
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=300, stale-while-revalidate=600",
           },
         ],
       },

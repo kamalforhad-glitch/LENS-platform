@@ -106,21 +106,26 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
     // Build/static fallback — blog posts are omitted rather than failing the build.
   }
 
-  // CMS-managed pages (published only). The homepage has its own entry and
-  // reserved slugs belong to static routes — both are excluded defensively.
+  // CMS-managed pages (published only). The homepage has its own entry,
+  // reserved slugs belong to static routes, and protected infrastructure roots
+  // are strictly excluded to prevent duplicate or invalid URLs.
   try {
     const { db } = await import("@/lib/db");
-    const { RESERVED_SLUGS } = await import("@/lib/cms-validation");
+    const { RESERVED_SLUGS, PROTECTED_ROOT_PREFIXES } = await import("@/lib/cms-validation");
     const cmsPages = await db.page.findMany({
       where: { status: "published" },
       select: { slug: true, dateModified: true },
       take: 1000,
     });
     for (const cms of cmsPages) {
-      const slug = cms.slug.toLowerCase();
-      if (slug === "home" || RESERVED_SLUGS.has(slug)) continue;
+      const slug = cms.slug.toLowerCase().replace(/^\/+|\/+$/g, "");
+      if (!slug || slug === "home" || RESERVED_SLUGS.has(slug)) continue;
+
+      const rootPrefix = slug.split("/")[0];
+      if (PROTECTED_ROOT_PREFIXES.has(rootPrefix)) continue;
+
       pages.push({
-        url: `${BASE_URL}/${cms.slug}`,
+        url: `${BASE_URL}/${slug}`,
         lastModified: cms.dateModified,
         changeFrequency: "monthly",
         priority: 0.8,
@@ -130,5 +135,17 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
     // Build/static fallback — CMS pages are omitted rather than failing the build.
   }
 
-  return pages;
+  // Deduplicate all entries by normalized URL so hardcoded hubs and CMS pages
+  // never emit duplicate records.
+  const uniquePages: SitemapEntry[] = [];
+  const seenUrls = new Set<string>();
+  for (const entry of pages) {
+    const normalized = entry.url.toLowerCase().replace(/\/+$/, "");
+    if (!seenUrls.has(normalized)) {
+      seenUrls.add(normalized);
+      uniquePages.push(entry);
+    }
+  }
+
+  return uniquePages;
 }

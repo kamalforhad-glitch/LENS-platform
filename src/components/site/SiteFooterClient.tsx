@@ -13,9 +13,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import { DONATE_CTA, type FooterColumn, type NavChild, type NavLabel } from "@/lib/site-navigation";
+import { sanitizeUrl } from "@/lib/cms-validation";
 
 function FacebookIcon() {
   return (
@@ -106,14 +106,25 @@ export default function SiteFooterClient({
     return bn ? s.valueBn || s.value : s.value;
   };
 
+  const socialUrl = (key: string, fallback: string) => {
+    const check = sanitizeUrl(getSetting(key));
+    return check.ok && check.url ? check.url : fallback;
+  };
+
+  const logoCheck = sanitizeUrl(getSetting("site_logo_url"));
+  const logoUrl = logoCheck.ok && logoCheck.url ? logoCheck.url : "/images/logo/lens-logo.png";
+  const rssCheck = sanitizeUrl(getSetting("social_rss"));
+  const rssHref = rssCheck.ok && rssCheck.url ? rssCheck.url : "/rss.xml";
+
   const dynamicSocials = [
-    { Icon: FacebookIcon, href: getSetting("social_facebook") || "https://www.facebook.com/lensorgbd", label: "Facebook" },
-    { Icon: XIcon, href: getSetting("social_twitter") || "https://twitter.com/lensorgbd", label: "X" },
-    { Icon: LinkedinIcon, href: getSetting("social_linkedin") || "https://www.linkedin.com/company/lensorgbd", label: "LinkedIn" },
-    { Icon: YoutubeIcon, href: getSetting("social_youtube") || "https://www.youtube.com/@lensorgbd", label: "YouTube" },
-    { Icon: RssIcon, href: "/rss.xml", label: "RSS" },
+    { Icon: FacebookIcon, href: socialUrl("social_facebook", "https://www.facebook.com/lensorgbd"), label: "Facebook" },
+    { Icon: XIcon, href: socialUrl("social_twitter", "https://twitter.com/lensorgbd"), label: "X" },
+    { Icon: LinkedinIcon, href: socialUrl("social_linkedin", "https://www.linkedin.com/company/lensorgbd"), label: "LinkedIn" },
+    { Icon: YoutubeIcon, href: socialUrl("social_youtube", "https://www.youtube.com/@lensorgbd"), label: "YouTube" },
+    { Icon: RssIcon, href: rssHref, label: "RSS" },
   ];
 
+  const subtitle = getSetting("site_subtitle", isBn) || t("site.subtitle");
   const tagline = (isBn ? (getSetting("footer_description", true) || getSetting("site_tagline", true)) : (getSetting("footer_description") || getSetting("site_tagline"))) || t("footer.about_text");
 
   return (
@@ -126,15 +137,18 @@ export default function SiteFooterClient({
           <div className="sm:col-span-2 lg:col-span-2">
             <div className="flex flex-col items-start gap-1 mb-4">
               <Link href="/" className="inline-block group py-1" aria-label="LENS — home">
-                <Image
-                  src="/images/logo/lens-logo.png"
+                {/* eslint-disable-next-line @next/next/no-img-element -- CMS logo URLs may be third-party assets. */}
+                <img
+                  src={logoUrl}
                   alt="LENS — Lighthouse for Evolving Narrative Systems"
                   width={126}
                   height={32}
+                  loading="lazy"
+                  decoding="async"
                   className="h-8 w-auto object-contain transition-opacity duration-300 group-hover:opacity-90"
                 />
               </Link>
-              <span className="block text-[10px] text-slate-400 leading-tight">{t("site.subtitle")}</span>
+              <span className="block text-[10px] text-slate-400 leading-tight">{subtitle}</span>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed max-w-xs">{tagline}</p>
             <div className="flex gap-3 mt-6">

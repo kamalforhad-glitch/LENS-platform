@@ -6,7 +6,7 @@ import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
 import { estimateReadingMinutes, renderFocusContent } from "@/lib/focus-content";
 import { getFocusAreaBySlug, getFocusAreas } from "@/lib/focus-areas";
-import { focusAccent, resolveFocusIcon } from "@/lib/focus-icons";
+import { focusAccent, renderFocusIcon } from "@/lib/focus-icons";
 import { safeFocusUrl } from "@/lib/focus-url";
 
 export const revalidate = 300;
@@ -59,7 +59,6 @@ export default async function FocusAreaPage({ params }: PageProps) {
 
   if (!area) notFound();
 
-  const Icon = resolveFocusIcon(area.icon, area.order);
   const { accent, glow } = focusAccent(area.order);
   const minutes = estimateReadingMinutes(area.content);
   const imageUrl = safeFocusUrl(area.imageUrl);
@@ -97,7 +96,11 @@ export default async function FocusAreaPage({ params }: PageProps) {
                     className="flex h-11 w-11 items-center justify-center rounded-xl border"
                     style={{ color: accent, borderColor: accent, background: glow }}
                   >
-                    <Icon size={22} strokeWidth={1.8} aria-hidden="true" />
+                    {renderFocusIcon(area.icon, area.order, {
+                      size: 22,
+                      strokeWidth: 1.8,
+                      "aria-hidden": true,
+                    })}
                   </span>
                   <span className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-300">
                     LENS Focus Area
@@ -151,7 +154,6 @@ export default async function FocusAreaPage({ params }: PageProps) {
                 </h2>
                 <nav aria-label="Other focus areas" className="mt-4 space-y-1">
                   {others.map((item) => {
-                    const OtherIcon = resolveFocusIcon(item.icon, item.order);
                     const otherAccent = focusAccent(item.order).accent;
                     return (
                       <Link
@@ -159,13 +161,13 @@ export default async function FocusAreaPage({ params }: PageProps) {
                         href={`/focus/${item.slug}`}
                         className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 transition-colors hover:bg-white hover:text-slate-950"
                       >
-                        <OtherIcon
-                          size={17}
-                          strokeWidth={1.8}
-                          className="shrink-0 text-slate-400 group-hover:text-slate-900"
-                          style={{ color: otherAccent }}
-                          aria-hidden="true"
-                        />
+                        {renderFocusIcon(item.icon, item.order, {
+                          size: 17,
+                          strokeWidth: 1.8,
+                          className: "shrink-0 text-slate-400 group-hover:text-slate-900",
+                          style: { color: otherAccent },
+                          "aria-hidden": true,
+                        })}
                         <span className="min-w-0">{item.title}</span>
                         <span className="ml-auto text-slate-300 transition-transform group-hover:translate-x-0.5">
                           →

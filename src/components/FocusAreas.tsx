@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import useSWR from "swr";
@@ -9,7 +9,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, Pencil } from "lucide-react";
 import { resolveCmsValue } from "@/lib/cms-content";
-import { focusAccent, resolveFocusIcon } from "@/lib/focus-icons";
+import { focusAccent, renderFocusIcon } from "@/lib/focus-icons";
 import {
   FOCUS_I18N_KEY_BY_SLUG,
   FOCUS_LIST_KEY,
@@ -103,38 +103,34 @@ function FocusCard({
   const cardRef = useRef<HTMLAnchorElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const detailRef = useRef<HTMLDivElement>(null);
-  const Icon = resolveFocusIcon(area.icon, area.order);
   const { accent, glow } = focusAccent(area.order);
 
-  const handleMouseMove = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
-      const card = cardRef.current;
-      const glowEl = glowRef.current;
-      if (!card || !glowEl) return;
+  function handleMouseMove(event: React.MouseEvent<HTMLAnchorElement>) {
+    const card = cardRef.current;
+    const glowEl = glowRef.current;
+    if (!card || !glowEl) return;
 
-      const rect = card.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 100;
-      const y = ((event.clientY - rect.top) / rect.height) * 100;
-      const tiltX = ((y - 50) / 50) * -6;
-      const tiltY = ((x - 50) / 50) * 6;
+    const rect = card.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    const tiltX = ((y - 50) / 50) * -6;
+    const tiltY = ((x - 50) / 50) * 6;
 
-      gsap.to(card, {
-        rotateX: tiltX,
-        rotateY: tiltY,
-        transformPerspective: 800,
-        duration: 0.3,
-        ease: "power2.out",
-      });
-      gsap.to(glowEl, {
-        opacity: 1,
-        background: `radial-gradient(circle at ${x}% ${y}%, ${glow} 0%, transparent 55%)`,
-        duration: 0.3,
-      });
-    },
-    [glow]
-  );
+    gsap.to(card, {
+      rotateX: tiltX,
+      rotateY: tiltY,
+      transformPerspective: 800,
+      duration: 0.3,
+      ease: "power2.out",
+    });
+    gsap.to(glowEl, {
+      opacity: 1,
+      background: `radial-gradient(circle at ${x}% ${y}%, ${glow} 0%, transparent 55%)`,
+      duration: 0.3,
+    });
+  }
 
-  const handleMouseEnter = useCallback(() => {
+  function handleMouseEnter() {
     const card = cardRef.current;
     const detailEl = detailRef.current;
     if (card) {
@@ -148,9 +144,9 @@ function FocusCard({
     if (detailEl) {
       gsap.to(detailEl, { height: "auto", opacity: 1, marginTop: 12, duration: 0.4, ease: "power2.out" });
     }
-  }, [glow]);
+  }
 
-  const handleMouseLeave = useCallback(() => {
+  function handleMouseLeave() {
     const card = cardRef.current;
     const glowEl = glowRef.current;
     const detailEl = detailRef.current;
@@ -169,7 +165,7 @@ function FocusCard({
     if (detailEl) {
       gsap.to(detailEl, { height: 0, opacity: 0, marginTop: 0, duration: 0.3, ease: "power2.in" });
     }
-  }, []);
+  }
 
   return (
     <Link
@@ -190,11 +186,11 @@ function FocusCard({
 
       <div className="relative z-10 flex gap-4 p-5">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-50 transition-colors duration-300 group-hover:bg-slate-100">
-          <Icon
-            className="h-6 w-6 transition-all duration-500 group-hover:scale-110"
-            style={{ color: accent }}
-            strokeWidth={1.5}
-          />
+          {renderFocusIcon(area.icon, area.order, {
+            className: "h-6 w-6 transition-all duration-500 group-hover:scale-110",
+            style: { color: accent },
+            strokeWidth: 1.5,
+          })}
         </div>
 
         <div className="min-w-0 flex-1">
@@ -237,6 +233,9 @@ export default function FocusAreas({
   const { data } = useSWR<FocusListResponse>(FOCUS_LIST_KEY, fetchFocusAreas, {
     fallbackData: fallback,
     revalidateOnFocus: false,
+    // The server already rendered the same list. Avoid a duplicate browser
+    // fetch on mount; CMS saves call globalMutate() explicitly.
+    revalidateOnMount: false,
   });
   const areas = data?.areas ?? initialAreas;
 

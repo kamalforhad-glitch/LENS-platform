@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface Resource { id: string; slug: string; title: string; titleBn: string; category: string; type: string; status: string; downloads: number; }
 
@@ -25,6 +26,7 @@ export default function ResourcesAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -33,16 +35,16 @@ export default function ResourcesAdmin() {
   const [hasMore, setHasMore] = useState(false);
   const [counts, setCounts] = useState<ResourceCounts>(DEFAULT_COUNTS);
 
-  const load = useCallback(() => {
+  const load = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
     params.set("page", String(currentPage));
     params.set("limit", String(limit));
-    if (search) params.set("search", search);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (filter !== "all") params.set("status", filter);
 
-    fetch(`/api/admin/resources?${params.toString()}`)
+    fetch(`/api/admin/resources?${params.toString()}`, { signal })
       .then(async (r) => {
         if (!r.ok) {
           const err = await r.json().catch(() => ({ error: `Request failed (${r.status})` }));
@@ -59,21 +61,41 @@ export default function ResourcesAdmin() {
         setLoading(false);
       })
       .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : "Failed to load resources.");
         setLoading(false);
       });
-  }, [currentPage, limit, search, filter]);
+  }, [currentPage, limit, debouncedSearch, filter]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filter]);
+  }, [debouncedSearch, filter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   const deleteItem = async (id: string) => {
     if (!confirm("Delete this resource?")) return;
-    await fetch("/api/admin/resources", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-    load();
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/resources", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+          typeof err.error === "string" && err.error ? err.error : `Failed to delete resource (${res.status})`
+        );
+      }
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete resource.");
+    }
   };
 
   return (

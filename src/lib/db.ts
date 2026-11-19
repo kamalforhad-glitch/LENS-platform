@@ -1,33 +1,27 @@
-import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const db =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
-
-// Reuse the client across serverless invocations in every environment.
-// Creating a new PrismaClient per request exhausts the Supabase pooler
-// (transaction mode, limited connections). globalThis survives module
-// reloads on Vercel/Lambda-style runtimes.
-globalForPrisma.prisma = db;
+// The Prisma singleton lives in ./prisma so the production connection check
+// has one canonical home. Re-export it here to preserve every existing
+// `@/lib/db` import across the app.
+export { db } from "./prisma";
 
 // ============================================================
 // Generic helpers
 // ============================================================
-export function slugify(text: string): string {
-  const slug = text
+export function slugify(text: string, options?: { allowSlash?: boolean }): string {
+  const pattern = options?.allowSlash
+    ? /[^\p{L}\p{N}\s\/-]/gu
+    : /[^\p{L}\p{N}\s-]/gu;
+  let slug = text
     .toLowerCase()
-    // Keep Unicode letters/numbers (incl. Bengali U+0980–U+09FF), spaces, hyphens.
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    // Keep Unicode letters/numbers (incl. Bengali U+0980–U+09FF), spaces, hyphens (and slashes when enabled).
+    .replace(pattern, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/\/+/g, "/")
+    .replace(/^[\/-]+|[\/-]+$/g, "")
     .slice(0, 120);
+  if (options?.allowSlash) {
+    slug = slug.split("/").map((s) => s.replace(/^-+|-+$/g, "")).filter(Boolean).join("/");
+  }
   // Fallback for titles that transliterate to empty (e.g. symbols-only).
   if (!slug) return `item-${crypto.randomUUID().slice(0, 8)}`;
   return slug;

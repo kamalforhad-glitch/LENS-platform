@@ -11,6 +11,7 @@ import { getPublicPage, type PublicSectionData } from "@/lib/actions/cms";
 import { resolveSectionItems } from "@/components/page/resolveSectionItems";
 import type { SectionWithResolved } from "@/components/page/PageSectionsView";
 import CmsPageView from "@/components/page/CmsPageView";
+import InstitutionalCta from "@/components/page/InstitutionalCta";
 import {
   FolderKanban,
   Vote,
@@ -48,7 +49,21 @@ export default async function ResourcesPage() {
   const cms = await getPublicPage("resources");
   if (cms) {
     const sections: SectionWithResolved[] = await resolveCmsSections(cms.sections);
-    return <CmsPageView page={{ id: cms.id, slug: cms.slug, title: cms.title, sections }} />;
+    return (
+      <CmsPageView
+        page={{
+          id: cms.id,
+          slug: cms.slug,
+          title: cms.title,
+          titleBn: cms.titleBn,
+          description: cms.description,
+          descriptionBn: cms.descriptionBn,
+          sections,
+          hierarchy: cms.hierarchy,
+          breadcrumbs: cms.breadcrumbs,
+        }}
+      />
+    );
   }
 
   const { items: resources, error } = await getPublicResources();
@@ -192,6 +207,9 @@ export default async function ResourcesPage() {
             )}
           </div>
         </section>
+
+        {/* Institutional Closing CTA */}
+        <InstitutionalCta section="resources" />
       </main>
       <SiteFooter />
     </>

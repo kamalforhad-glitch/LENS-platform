@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { db } from "@/lib/db";import { getCurrentUser, requireAuth, requireAdmin } from "@/lib/auth";
 import { DEFAULT_SITE_SETTINGS, DEFAULT_HOME_SECTIONS, getDefaultSectionsForSlug } from "@/lib/cms-defaults";
-import { validateSlug, sanitizeUrl } from "@/lib/cms-validation";
+import { validateSlug, sanitizeUrl, RESERVED_SLUGS } from "@/lib/cms-validation";
 import { serializeSectionJson, toJson, clampText } from "@/lib/cms-validation";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 import {
@@ -12,6 +12,7 @@ import {
   type DefaultNavItem,
 } from "@/lib/cms-navigation-defaults";
 import { assertValidMenuParent, assertValidMenuParentInput } from "@/lib/menu-validation";
+import { assertValidPageParent, assertValidPageParentInput } from "@/lib/page-validation";
 
 async function checkAuth() {
   const user = await getCurrentUser();
@@ -73,6 +74,25 @@ export interface PublicSectionData {
   contentBn: Record<string, unknown>;
 }
 
+export interface CmsPageAncestor {
+  id: string;
+  slug: string;
+  title: string;
+  titleBn?: string;
+}
+
+export interface CmsBreadcrumbItem {
+  label: string;
+  labelBn?: string;
+  href?: string;
+}
+
+export interface CmsPageHierarchy {
+  current: CmsPageAncestor;
+  ancestors: CmsPageAncestor[];
+  breadcrumbs: CmsBreadcrumbItem[];
+}
+
 export interface PublicPageData {
   id: string;
   slug: string;
@@ -81,15 +101,48 @@ export interface PublicPageData {
   description: string;
   descriptionBn: string;
   template: string;
+  parentId?: string | null;
   metaTitle: string | null;
   metaTitleBn: string | null;
   metaDescription: string | null;
   metaDescriptionBn: string | null;
   ogImage: string | null;
+  keywords: string;
+  canonicalUrl: string | null;
   sections: PublicSectionData[];
+  hierarchy?: CmsPageHierarchy;
+  breadcrumbs?: CmsBreadcrumbItem[];
+  subnavItems?: Array<{
+    id: string;
+    label: string;
+    labelBn: string;
+    href: string;
+    icon?: string | null;
+    badge?: string | null;
+    badgeBn?: string | null;
+  }>;
+  childCards?: Array<{
+    id: string;
+    title: string;
+    titleBn: string;
+    href: string;
+    icon?: string | null;
+    badge?: string | null;
+    badgeBn?: string | null;
+    description: string;
+    descriptionBn: string;
+    tags?: string[];
+    coverImage?: string | null;
+  }>;
 }
 
 function fallbackHome(id: string): PublicPageData {
+  const breadcrumbs: CmsBreadcrumbItem[] = [{ label: "Home", labelBn: "হোম" }];
+  const hierarchy: CmsPageHierarchy = {
+    current: { id, slug: "home", title: "Home", titleBn: "হোম" },
+    ancestors: [],
+    breadcrumbs,
+  };
   return {
     id,
     slug: "home",
@@ -98,11 +151,16 @@ function fallbackHome(id: string): PublicPageData {
     description: "LENS Homepage",
     descriptionBn: "লেন্স হোমপেজ",
     template: "home",
+    parentId: null,
     metaTitle: "LENS — Lighthouse for Evolving Narrative Systems",
     metaTitleBn: "লেন্স — লাইটহাউস ফর ইভলভিং ন্যারেটিভ সিস্টেমস",
     metaDescription: "Evidence-based research on media literacy, press freedom, narrative analysis and cybersecurity in Bangladesh.",
     metaDescriptionBn: null,
     ogImage: null,
+    keywords: "[]",
+    canonicalUrl: null,
+    hierarchy,
+    breadcrumbs,
     sections: DEFAULT_HOME_SECTIONS.map((s, idx) => ({
       id: `${id}-${s.type}-${idx}`,
       type: s.type,
@@ -248,6 +306,38 @@ function fallbackPage(slug: string, id: string): PublicPageData | null {
     metaDescriptionBn: "",
   };
 
+  const breadcrumbs: CmsBreadcrumbItem[] = [
+    { label: "Home", labelBn: "হোম", href: "/" },
+  ];
+  const parts = slug.split("/");
+  for (let i = 1; i < parts.length; i++) {
+    const parentSlug = parts.slice(0, i).join("/");
+    const seg = parts[i - 1];
+    breadcrumbs.push({
+      label: seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " "),
+      href: `/${parentSlug}`,
+    });
+  }
+  breadcrumbs.push({
+    label: meta.title,
+    labelBn: meta.titleBn || undefined,
+  });
+
+  const hierarchy: CmsPageHierarchy = {
+    current: {
+      id,
+      slug,
+      title: meta.title,
+      titleBn: meta.titleBn || undefined,
+    },
+    ancestors: parts.slice(0, -1).map((seg, idx) => ({
+      id: `synthetic-${parts.slice(0, idx + 1).join("/")}`,
+      slug: parts.slice(0, idx + 1).join("/"),
+      title: seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " "),
+    })),
+    breadcrumbs,
+  };
+
   return {
     id,
     slug,
@@ -256,11 +346,16 @@ function fallbackPage(slug: string, id: string): PublicPageData | null {
     description: meta.description,
     descriptionBn: meta.descriptionBn,
     template: "default",
+    parentId: null,
     metaTitle: meta.metaTitle,
     metaTitleBn: meta.metaTitleBn,
     metaDescription: meta.metaDescription,
     metaDescriptionBn: meta.metaDescriptionBn,
     ogImage: null,
+    keywords: "[]",
+    canonicalUrl: `/${slug}`,
+    hierarchy,
+    breadcrumbs,
     sections: defaultSections.map((s, idx) => ({
       id: `${id}-${s.type}-${idx}`,
       type: s.type,
@@ -279,8 +374,11 @@ function fallbackPage(slug: string, id: string): PublicPageData | null {
 
 const cachedGetPublicPage = unstable_cache(
   async (slug: string): Promise<PublicPageData | null> => {
+    const normalizedSlug = (slug || "").trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+    if (!normalizedSlug) return null;
+
     const page = await db.page.findFirst({
-      where: { slug, status: "published" },
+      where: { slug: normalizedSlug, status: "published" },
       include: {
         sections: {
           where: { visible: true },
@@ -291,13 +389,142 @@ const cachedGetPublicPage = unstable_cache(
 
     if (!page) {
       // Try fallback for known slugs with default sections
-      const fallback = fallbackPage(slug, `fallback-${slug}`);
+      const fallback = fallbackPage(normalizedSlug, `fallback-${normalizedSlug}`);
       if (fallback) return fallback;
       // Home fallback
-      return slug === "home" ? fallbackHome("default-home") : null;
+      return normalizedSlug === "home" ? fallbackHome("default-home") : null;
     }
 
-    return sectionsToPublicPage(page as unknown as PublicPageRow);
+    // Resolve ancestor hierarchy
+    const ancestors: CmsPageAncestor[] = [];
+    const visitedIds = new Set<string>([page.id]);
+
+    // 1. Traverse up parentId if present
+    let currParentId = page.parentId;
+    while (currParentId && !visitedIds.has(currParentId) && ancestors.length < 10) {
+      visitedIds.add(currParentId);
+      const parent = await db.page.findUnique({
+        where: { id: currParentId },
+        select: { id: true, slug: true, title: true, titleBn: true, parentId: true, status: true },
+      });
+      if (!parent) break;
+      // Only published ancestors may appear in public breadcrumbs/hierarchy
+      if (parent.status === "published") {
+        ancestors.unshift({
+          id: parent.id,
+          slug: parent.slug,
+          title: parent.title,
+          titleBn: parent.titleBn || undefined,
+        });
+      }
+      currParentId = parent.parentId;
+    }
+
+    // 2. If parentId wasn't configured on the page record but the slug is path-based
+    // (e.g. "courses/photography/lab" without DB parent), resolve missing ancestor
+    // slugs by path prefix (e.g. "courses", "courses/photography").
+    if (!page.parentId && ancestors.length === 0 && normalizedSlug.includes("/")) {
+      const parts = normalizedSlug.split("/");
+      for (let i = 1; i < parts.length; i++) {
+        const ancestorSlug = parts.slice(0, i).join("/");
+        const ancestorPage = await db.page.findFirst({
+          where: { slug: ancestorSlug, status: "published" },
+          select: { id: true, slug: true, title: true, titleBn: true },
+        });
+        if (ancestorPage) {
+          ancestors.push({
+            id: ancestorPage.id,
+            slug: ancestorPage.slug,
+            title: ancestorPage.title,
+            titleBn: ancestorPage.titleBn || undefined,
+          });
+        } else {
+          // If a draft/archived CMS page exists for this ancestorSlug, do NOT synthesize or expose it
+          const draftPage = await db.page.findFirst({
+            where: { slug: ancestorSlug },
+            select: { id: true, status: true },
+          });
+          if (draftPage && draftPage.status !== "published") {
+            continue;
+          }
+          // Only synthesize ancestor for known static app routes (e.g. "about", "courses", "theme")
+          if (RESERVED_SLUGS.has(ancestorSlug)) {
+            const segment = parts[i - 1];
+            const title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
+            ancestors.push({
+              id: `synthetic-${ancestorSlug}`,
+              slug: ancestorSlug,
+              title,
+            });
+          }
+        }
+      }
+    }
+
+    // 3. Construct breadcrumbs
+    const breadcrumbs: CmsBreadcrumbItem[] = [
+      { label: "Home", labelBn: "হোম", href: "/" },
+      ...ancestors.map((a) => ({
+        label: a.title,
+        labelBn: a.titleBn,
+        href: `/${a.slug}`,
+      })),
+      {
+        label: page.title,
+        labelBn: page.titleBn || undefined,
+      },
+    ];
+
+    const hierarchy: CmsPageHierarchy = {
+      current: {
+        id: page.id,
+        slug: page.slug,
+        title: page.title,
+        titleBn: page.titleBn || undefined,
+      },
+      ancestors,
+      breadcrumbs,
+    };
+
+    // 4. Resolve child pages for subsection cards if any exist
+    let childCards: PublicPageData["childCards"] = undefined;
+    try {
+      if (typeof db.page.findMany === "function") {
+        const childPages = await db.page.findMany({
+          where: { parentId: page.id, status: "published" },
+          orderBy: { sortOrder: "asc" },
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            titleBn: true,
+            description: true,
+            descriptionBn: true,
+            ogImage: true,
+          },
+        });
+
+        if (childPages && childPages.length > 0) {
+          childCards = childPages.map((cp) => ({
+            id: cp.id,
+            title: cp.title,
+            titleBn: cp.titleBn || cp.title,
+            href: `/${cp.slug}`,
+            description: cp.description || "",
+            descriptionBn: cp.descriptionBn || cp.description || "",
+            coverImage: cp.ogImage || undefined,
+          }));
+        }
+      }
+    } catch {
+      // Gracefully ignore child pages lookup error
+    }
+
+    const publicPage = sectionsToPublicPage(page as unknown as PublicPageRow, hierarchy, breadcrumbs);
+    if (childCards) {
+      publicPage.childCards = childCards;
+    }
+    return publicPage;
   },
   ["public-page"],
   { tags: ["public-page"] }
@@ -322,11 +549,14 @@ interface PublicPageRow {
   description: string;
   descriptionBn: string;
   template: string;
+  parentId?: string | null;
   metaTitle: string | null;
   metaTitleBn: string | null;
   metaDescription: string | null;
   metaDescriptionBn: string | null;
   ogImage: string | null;
+  keywords: string;
+  canonicalUrl: string | null;
   sections: Array<{
     id: string;
     type: string;
@@ -342,7 +572,11 @@ interface PublicPageRow {
   }>;
 }
 
-function sectionsToPublicPage(page: PublicPageRow): PublicPageData {
+function sectionsToPublicPage(
+  page: PublicPageRow,
+  hierarchy?: CmsPageHierarchy,
+  breadcrumbs?: CmsBreadcrumbItem[]
+): PublicPageData {
   const parsedSections: PublicSectionData[] = page.sections.map((sec) => ({
     id: sec.id,
     type: sec.type,
@@ -365,12 +599,17 @@ function sectionsToPublicPage(page: PublicPageRow): PublicPageData {
     description: page.description,
     descriptionBn: page.descriptionBn,
     template: page.template,
+    parentId: page.parentId ?? null,
     metaTitle: page.metaTitle,
     metaTitleBn: page.metaTitleBn,
     metaDescription: page.metaDescription,
     metaDescriptionBn: page.metaDescriptionBn,
     ogImage: page.ogImage,
+    keywords: page.keywords,
+    canonicalUrl: page.canonicalUrl,
     sections: parsedSections,
+    hierarchy,
+    breadcrumbs: breadcrumbs || hierarchy?.breadcrumbs,
   };
 }
 
@@ -465,6 +704,8 @@ export async function createPage(data: {
   description?: string;
   descriptionBn?: string;
   status?: string;
+  parentId?: string | null;
+  sortOrder?: number;
   template?: string;
   metaTitle?: string;
   metaTitleBn?: string;
@@ -481,6 +722,16 @@ export async function createPage(data: {
   if (!slugCheck.valid) throw new Error(slugCheck.error || "Invalid slug");
   const ogCheck = data.ogImage ? sanitizeUrl(data.ogImage) : { ok: true as const };
   if (!ogCheck.ok) throw new Error(ogCheck.error || "Invalid OG image URL");
+
+  if (data.parentId) {
+    const validParentId = assertValidPageParentInput(data.parentId);
+    if (validParentId) {
+      await assertValidPageParent(validParentId);
+      data.parentId = validParentId;
+    } else {
+      data.parentId = null;
+    }
+  }
 
   const page = await db.page.create({
     data: {
@@ -561,9 +812,15 @@ async function mutatePage(id: string, raw: Record<string, unknown>) {
     if (!check.ok) throw new Error(check.error || "Invalid canonical URL");
   }
 
-  // Self parent guard
-  if (data.parentId === id) {
-    return { error: "A page cannot be its own parent" as string };
+  // Parent hierarchy & cycle validation
+  if (raw.parentId !== undefined) {
+    const validParentId = assertValidPageParentInput(raw.parentId, id);
+    if (validParentId) {
+      await assertValidPageParent(validParentId, id);
+      data.parentId = validParentId;
+    } else {
+      data.parentId = null;
+    }
   }
 
   // Status transitions (single clean switch)
@@ -609,7 +866,6 @@ async function mutatePage(id: string, raw: Record<string, unknown>) {
 
 export async function updatePage(id: string, data: Record<string, unknown>) {
   const result = await mutatePage(id, data);
-  if ("error" in result && result.error) throw new Error(result.error);
   return result.page;
 }
 

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser, requireEditor } from "@/lib/auth";
 import { researcherCreateSchema } from "@/lib/schemas";
 import { isRateLimited } from "@/lib/validation";
 import { logAudit, AUDIT_ACTIONS } from "@/lib/audit";
 import { parsePagination } from "@/lib/admin-pagination";
+import { revalidateHomeContent } from "@/lib/home-revalidation";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
@@ -181,6 +183,9 @@ export async function POST(request: NextRequest) {
       targetId: researcher.id,
       meta: { type: "researcher", slug: researcher.slug, name: researcher.name },
     });
+    revalidateHomeContent(["public-researchers"]);
+    revalidatePath("/researchers");
+    if (researcher.slug) revalidatePath(`/researchers/${researcher.slug}`);
 
     return NextResponse.json({ researcher });
   } catch (error) {
@@ -247,6 +252,10 @@ export async function PUT(request: NextRequest) {
       targetId: researcher.id,
       meta: { type: "researcher", slug: researcher.slug, name: researcher.name },
     });
+    revalidateHomeContent(["public-researchers"]);
+    revalidatePath("/researchers");
+    if (existing.slug) revalidatePath(`/researchers/${existing.slug}`);
+    if (researcher.slug && researcher.slug !== existing.slug) revalidatePath(`/researchers/${researcher.slug}`);
 
     return NextResponse.json({ researcher });
   } catch (error) {
@@ -284,6 +293,9 @@ export async function DELETE(request: NextRequest) {
       targetId: id,
       meta: { type: "researcher", slug: researcher.slug, name: researcher.name },
     });
+    revalidateHomeContent(["public-researchers"]);
+    revalidatePath("/researchers");
+    if (researcher.slug) revalidatePath(`/researchers/${researcher.slug}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

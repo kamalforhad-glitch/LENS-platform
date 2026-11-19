@@ -13,6 +13,12 @@ interface PageItem {
   status: string;
   sortOrder: number;
   dateModified: string;
+  parentId?: string | null;
+  parent?: {
+    id: string;
+    slug: string;
+    title: string;
+  } | null;
 }
 
 interface PageApiResponse {
@@ -145,10 +151,21 @@ export default function PagesAdmin() {
             {pages.map(p => (
               <div key={p.id} className="flex items-center gap-3 p-4 rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-xs transition-all flex-wrap">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-slate-900 font-medium truncate">
-                    {p.title} {p.titleBn && <span className="text-slate-500 text-sm">/ {p.titleBn}</span>}
-                  </h3>
-                  <p className="text-slate-500 text-sm mt-0.5">/{p.slug}{p.slug === "home" && <span className="ml-2 text-[10px] uppercase tracking-wider text-teal-400">homepage</span>}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {p.parent && (
+                      <span className="text-xs text-slate-400 font-normal">
+                        {p.parent.title} &rarr;
+                      </span>
+                    )}
+                    <h3 className="text-slate-900 font-medium truncate">
+                      {p.title} {p.titleBn && <span className="text-slate-500 text-sm">/ {p.titleBn}</span>}
+                    </h3>
+                  </div>
+                  <p className="text-slate-500 text-sm mt-0.5">
+                    /{p.slug}
+                    {p.slug === "home" && <span className="ml-2 text-[10px] uppercase tracking-wider text-teal-400">homepage</span>}
+                    {p.parent && <span className="ml-2 text-[10px] uppercase tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">subpage</span>}
+                  </p>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>{p.status}</span>
                 <span className="text-xs text-slate-500">{new Date(p.dateModified).toLocaleDateString()}</span>

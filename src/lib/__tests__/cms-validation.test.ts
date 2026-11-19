@@ -48,6 +48,59 @@ describe("validateSlug", () => {
 
   it("normalizeSlug lowercases and collapses separators", () => {
     expect(normalizeSlug("  About   Us  ")).toBe("about-us");
+    expect(normalizeSlug("  About / Vision  ")).toBe("about/vision");
+    expect(normalizeSlug("/about/team/")).toBe("about/team");
+    expect(normalizeSlug("about//team")).toBe("about/team");
+    expect(normalizeSlug("courses/photography/documentary-lab")).toBe("courses/photography/documentary-lab");
+  });
+
+  it("accepts valid hierarchical/nested slugs", () => {
+    const validNested = [
+      "about/vision",
+      "about/team",
+      "theme/research",
+      "theme/media-bias",
+      "courses/photography",
+      "courses/photography/documentary-lab",
+    ];
+    for (const slug of validNested) {
+      expect(validateSlug(slug), slug).toEqual({ valid: true });
+    }
+  });
+
+  it("rejects invalid hierarchical slugs", () => {
+    const invalidNested = [
+      "/About",
+      "about/",
+      "about//team",
+      "about team",
+      "https://example.com",
+      "/about",
+      "about?test=1",
+      "about/Vision",
+      "about/-team",
+      "about/team-",
+      "about/double--hyphen",
+      "about/a".concat("a".repeat(81)),
+    ];
+    for (const slug of invalidNested) {
+      expect(validateSlug(slug).valid, slug).toBe(false);
+    }
+  });
+
+  it("rejects protected root prefixes in nested slugs", () => {
+    const protectedPrefixSlugs = [
+      "admin/settings",
+      "admin/users/edit",
+      "api/auth",
+      "api/v1/pages",
+      "og/preview",
+      "_next/static",
+      "private/secrets",
+    ];
+    for (const slug of protectedPrefixSlugs) {
+      expect(validateSlug(slug).valid, slug).toBe(false);
+    }
   });
 });
 
