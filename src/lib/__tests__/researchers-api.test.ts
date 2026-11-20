@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { GET } from "@/app/api/researchers/route";
 import {
-  GET,
   isSchemaColumnMissingError,
   isDatabaseConnectionError,
-} from "@/app/api/researchers/route";
+} from "@/lib/researchers-validation";
 
 const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),

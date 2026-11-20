@@ -3,39 +3,12 @@ import { db } from "@/lib/db";
 import { getCurrentUser, requireEditor } from "@/lib/auth";
 import { researcherCreateSchema } from "@/lib/schemas";
 import { isRateLimited } from "@/lib/validation";
+import { isSchemaColumnMissingError, isDatabaseConnectionError } from "@/lib/researchers-validation";
 
 function authErrorResponse(error: unknown) {
   const msg = error instanceof Error ? error.message : "Unauthorized";
   if (msg === "Forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
-
-export function isSchemaColumnMissingError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const err = error as Record<string, unknown>;
-  if (err.code === "P2022" || err.code === "42703") return true;
-  const message = String(err.message || "");
-  return (
-    (message.includes("column") && message.includes("does not exist")) ||
-    message.includes("UndefinedColumn") ||
-    message.includes("P2022")
-  );
-}
-
-export function isDatabaseConnectionError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const err = error as Record<string, unknown>;
-  const name = String(err.name || "");
-  const code = String(err.code || "");
-  const message = String(err.message || "");
-
-  if (name === "PrismaClientInitializationError") return true;
-  if (["P1000", "P1001", "P1002", "P1008", "P1017"].includes(code)) return true;
-  return (
-    message.includes("Can't reach database server") ||
-    message.includes("connection closed") ||
-    message.includes("Connection terminated")
-  );
 }
 
 export async function GET(request: NextRequest) {

@@ -5,10 +5,12 @@ import {
   POST,
   PUT,
   DELETE,
+} from "@/app/api/admin/menus/route";
+import {
   isTableMissingError,
   isSchemaColumnMissingError,
   isDatabaseConnectionError,
-} from "@/app/api/admin/menus/route";
+} from "@/lib/menu-validation";
 
 const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),

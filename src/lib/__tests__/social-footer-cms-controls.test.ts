@@ -1,7 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { sanitizeUrl } from "@/lib/cms-validation";
 import { DEFAULT_SITE_SETTINGS } from "@/lib/cms-defaults";
-import type { UserRole } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth";
+
+type UserRole = AuthUser["role"];
 
 // Mock next/cache
 vi.mock("next/cache", () => ({

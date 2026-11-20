@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { pickLocale, parseTabsConfig } from '@/components/page/TabsSection';
 import { SECTION_TYPE_DEFS } from '@/components/admin/PageSectionEditor';
-import { TEMPLATES } from '@/app/admin/pages/new/page';
+import { TEMPLATES } from '@/lib/cms-templates';
 import { RESERVED_SLUGS } from '@/lib/cms-validation';
 import { deleteFromStorage } from '@/lib/storage';
 
