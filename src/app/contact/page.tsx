@@ -35,7 +35,7 @@ export default async function ContactPage() {
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 pt-24">
+      <main className="bg-gray-50 flex-1 pt-24">
         <ContactContent
           contactEmail={settings.contact_email?.value}
           mediaEmail={settings.media_email?.value}

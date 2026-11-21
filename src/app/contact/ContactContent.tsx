@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { useContactForm } from "@/lib/api/useContactForm";
+import { Mail } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 interface ContactSettingsProps {
   contactEmail?: string;
@@ -32,7 +34,7 @@ export default function ContactContent({
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         gsap.fromTo(
-          ".contact-info",
+          ".contact-hero-label",
           { opacity: 0, x: -30 },
           { opacity: 1, x: 0, duration: 0.8, ease: "power3.out", scrollTrigger: { trigger: ".contact-form-section", start: "top 70%" } }
         );
@@ -50,7 +52,6 @@ export default function ContactContent({
 
       ctx = mm;
     });
-
     return () => {
       ctx?.revert();
     };
@@ -58,8 +59,8 @@ export default function ContactContent({
 
   return (
     <div ref={sectionRef}>
-      <section className="relative py-20 bg-navy-950 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_40%,rgba(8,145,178,0.08)_0%,transparent_50%)]" />
+      <section className="relative py-20 bg-gradient-to-r from-navy-900 to-teal-900 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_40%,rgba(8,145,178,0.04)_0%,transparent_50%)]" />
         <div className="contact-bg-orb absolute top-1/2 left-1/4 w-[500px] h-[500px] bg-teal-400 rounded-full blur-3xl opacity-0 pointer-events-none" />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <span className="contact-hero-label text-xs font-semibold tracking-[0.2em] uppercase text-teal-400 mb-4 block">
@@ -69,57 +70,56 @@ export default function ContactContent({
             Get in Touch
           </h1>
           <p className="contact-hero-desc text-lg text-slate-300/80 leading-relaxed max-w-2xl mx-auto">
-            Have a question, partnership inquiry, or media request? We&apos;d
-            love to hear from you.
+            Have a question, partnership inquiry, or media request? We&apos;d love to hear from you.
           </p>
         </div>
       </section>
 
       <section className="contact-form-section py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12">
+          <div className="flex flex-col md:flex-row gap-12">
             {/* Contact Info */}
-            <div className="contact-info">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">
-                Contact Information
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900 mb-1">Email</h3>
-                  <a href={`mailto:${contactEmail}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors">{contactEmail}</a>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900 mb-1">Address</h3>
-                  <p className="text-sm text-slate-500">{officeAddress}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900 mb-1">General Inquiries</h3>
-                  <a href={`mailto:${contactEmail}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors">{contactEmail}</a>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900 mb-1">Media Queries</h3>
-                  <a href={`mailto:${mediaEmail}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors">{mediaEmail}</a>
-                </div>
-                {contactPhone && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900 mb-1">Phone</h3>
-                    <a href={`tel:${contactPhone.replace(/\s+/g, '')}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors">{contactPhone}</a>
-                  </div>
-                )}
-                {officeHours && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900 mb-1">Office Hours</h3>
-                    <p className="text-sm text-slate-500">{officeHours}</p>
-                  </div>
-                )}
+            <div className="rounded-lg bg-white/95 p-8 shadow-sm max-w-2xl mx-auto space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Contact Information</h2>
+              <div className="flex items-center mb-4">
+                <Mail className="w-6 h-6 text-teal-500 rounded-full bg-teal-100 p-1" />
+                <span className="ml-2 text-sm text-slate-600">Email</span>
+                <a href={`mailto:${contactEmail}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors block">{contactEmail}</a>
               </div>
+              <div className="flex items-center mb-4">
+                <Mail className="w-6 h-6 text-teal-500 rounded-full bg-teal-100 p-1" />
+                <span className="ml-2 text-sm text-slate-600">Address</span>
+                <p className="ml-2 text-sm text-slate-500">{officeAddress}</p>
+              </div>
+              <div className="flex items-center mb-4">
+                <Mail className="w-6 h-6 text-teal-500 rounded-full bg-teal-100 p-1" />
+                <span className="ml-2 text-sm text-slate-600">General Inquiries</span>
+                <a href={`mailto:${contactEmail}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors block">{contactEmail}</a>
+              </div>
+              <div className="flex items-center mb-4">
+                <Mail className="w-6 h-6 text-teal-500 rounded-full bg-teal-100 p-1" />
+                <span className="ml-2 text-sm text-slate-600">Media Queries</span>
+                <a href={`mailto:${mediaEmail}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors block">{mediaEmail}</a>
+              </div>
+              {contactPhone && (
+                <div className="flex items-center mb-4">
+                  <Mail className="w-6 h-6 text-teal-500 rounded-full bg-teal-100 p-1" />
+                  <span className="ml-2 text-sm text-slate-600">Phone</span>
+                  <a href={`tel:${contactPhone.replace(/\s+/g, '')}`} className="text-sm text-slate-500 hover:text-teal-600 transition-colors block">{contactPhone}</a>
+                </div>
+              )}
+              {officeHours && (
+                <div className="flex items-center mb-4">
+                  <Mail className="w-6 h-6 text-teal-500 rounded-full bg-teal-100 p-1" />
+                  <span className="ml-2 text-sm text-slate-600">Office Hours</span>
+                  <p className="ml-2 text-sm text-slate-500">{officeHours}</p>
+                </div>
+              )}
             </div>
 
             {/* Contact Form */}
-            <div className="contact-form">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">
-                Send a Message
-              </h2>
+            <div className="rounded-lg bg-white/95 p-8 shadow-sm max-w-3xl mx-auto space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Send a Message</h2>
               <form className="space-y-4" onSubmit={handleSubmit} noValidate>
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">
@@ -130,7 +130,7 @@ export default function ContactContent({
                     id="name"
                     name="name"
                     required
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-teal-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
                     placeholder="Your name"
                   />
                 </div>
@@ -143,7 +143,7 @@ export default function ContactContent({
                     id="email"
                     name="email"
                     required
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-teal-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
                     placeholder="your@email.com"
                   />
                 </div>
@@ -156,7 +156,7 @@ export default function ContactContent({
                     id="subject"
                     name="subject"
                     required
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-teal-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
                     placeholder="How can we help?"
                   />
                 </div>
@@ -169,7 +169,7 @@ export default function ContactContent({
                     name="message"
                     rows={4}
                     required
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-teal-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors resize-none"
                     placeholder="Your message..."
                   />
                 </div>
@@ -186,8 +186,9 @@ export default function ContactContent({
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="w-full px-6 py-3 bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-teal-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full bg-gradient-to-r from-navy-900 to-teal-600 text-white rounded-xl py-3 font-semibold hover:opacity-90 focus:ring-2 focus:ring-teal-500/30 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                 >
+                  <ArrowRight className="flex-shrink-0 mr-2" />
                   {isPending ? "Sending…" : "Send Message"}
                 </button>
               </form>
