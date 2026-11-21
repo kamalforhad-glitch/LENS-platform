@@ -39,7 +39,15 @@ interface PubItem {
   slug?: string;
 }
 
-function PublicationCard({ pub, t, locale }: { pub: PubItem; t: (key: string) => string; locale: string }) {
+function formatPubType(typeKey: string, t: (key: string, opts?: { defaultValue?: string }) => string): string {
+  const normalized = (typeKey || "").toLowerCase().replace(/[\s-]+/g, "_");
+  if (normalized.includes("policy")) return t("research.type_policy_brief", { defaultValue: "POLICY BRIEF" });
+  if (normalized.includes("working")) return t("research.type_working_paper", { defaultValue: "WORKING PAPER" });
+  if (normalized.includes("report")) return t("research.type_report", { defaultValue: "RESEARCH REPORT" });
+  return t(`research.${typeKey}`, { defaultValue: typeKey });
+}
+
+function PublicationCard({ pub, t, locale }: { pub: PubItem; t: (key: string, opts?: { defaultValue?: string }) => string; locale: string }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
 
@@ -67,8 +75,8 @@ function PublicationCard({ pub, t, locale }: { pub: PubItem; t: (key: string) =>
     }
   }, []);
 
-  const title = locale === "bn" ? pub.titleBn : pub.titleEn;
-  const desc = locale === "bn" ? pub.descBn : pub.descEn;
+  const title = (locale === "bn" && pub.titleBn) ? pub.titleBn : pub.titleEn;
+  const desc = (locale === "bn" && pub.descBn) ? pub.descBn : pub.descEn;
   const readTime = formatReadingTime(pub.readMinutes, locale);
 
   return (
@@ -92,7 +100,7 @@ function PublicationCard({ pub, t, locale }: { pub: PubItem; t: (key: string) =>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className={`text-[10px] font-bold tracking-[0.15em] uppercase ${pub.color}`}>
-            {t(`research.${pub.typeKey}`)}
+            {formatPubType(pub.typeKey, t)}
           </span>
           {readTime && (
             <>
@@ -399,9 +407,8 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
             <div className="pub-list flex flex-col gap-4">
               {publications.length > 0 ? (
                 publications.map((pub) => {
-                  // Only link when we have a real destination — an empty slug
-                  // would otherwise emit a broken `/research/` href.
-                  const href = pub.href || (pub.slug ? `/research/${pub.slug}` : "");
+                  // Link to canonical publication route: `/publications/${slug}`
+                  const href = pub.href || (pub.slug ? `/publications/${pub.slug}` : "");
                   const card = <PublicationCard pub={pub} t={t} locale={locale} />;
                   return (
                     <div key={pub.titleEn} className="pub-card-wrap" style={{ perspective: "600px" }}>
@@ -417,7 +424,7 @@ export default function FeaturedResearch({ cmsData }: { cmsData?: CmsSectionData
                 })
               ) : (
                 <p className="text-sm text-slate-400 text-center py-8">
-                  {t("research.emptyMessage") || "No published research yet."}
+                  {t("publications.emptyMessage") || t("research.emptyMessage") || "No publications have been released yet."}
                 </p>
               )}
             </div>

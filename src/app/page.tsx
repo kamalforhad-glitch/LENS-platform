@@ -5,7 +5,7 @@ import SiteFooter from "@/components/site/SiteFooter";
 import HomeClient from "./HomeClient";
 import { getPublicPage } from "@/lib/actions/cms";
 import { getFocusAreas } from "@/lib/focus-areas";
-import { getPublicEvents, getPublicResearch } from "@/lib/public-content";
+import { getPublicEvents, getPublicPublications, getPublicResearch } from "@/lib/public-content";
 import {
   resolveSectionItems,
   type ResolvedItems,
@@ -84,6 +84,17 @@ type HomeFeaturedItem = {
   description: string;
   descriptionBn: string;
   category: string;
+  type: string;
+  dateLabel: string | null;
+  href: string;
+};
+
+type HomePublicationItem = {
+  slug: string;
+  title: string;
+  titleBn: string;
+  description: string;
+  descriptionBn: string;
   type: string;
   dateLabel: string | null;
   href: string;
@@ -172,6 +183,32 @@ const cachedHomeFeaturedResearch = unstable_cache(
   { tags: ["public-research"], revalidate: 60 }
 );
 
+const cachedHomePublications = unstable_cache(
+  async (): Promise<HomeDataResult<HomePublicationItem>> => {
+    try {
+      const res = await getPublicPublications(6);
+      if (res.error) return { items: [], error: true };
+      return {
+        error: false,
+        items: res.items.map((p) => ({
+          slug: p.slug,
+          title: p.title,
+          titleBn: p.titleBn,
+          description: p.description,
+          descriptionBn: p.descriptionBn,
+          type: p.type,
+          dateLabel: p.dateLabel,
+          href: `/publications/${p.slug}`,
+        })),
+      };
+    } catch {
+      return { items: [], error: true };
+    }
+  },
+  ["home-publications", "v1"],
+  { tags: ["public-publications"], revalidate: 60 }
+);
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -233,35 +270,64 @@ function resolveResearch(
   };
 }
 
+function resolvePublications(
+  publications: HomeDataResult<HomePublicationItem>,
+  content: Record<string, unknown>,
+  fallbackLimit: number
+): ResolvedItems {
+  if (publications.error) return { items: [], error: true };
+  const limit = sectionLimit(content.limit, fallbackLimit);
+  const typeFilter = content.type ? String(content.type) : null;
+  const items = typeFilter
+    ? publications.items.filter((p) => p.type === typeFilter)
+    : publications.items;
+
+  return {
+    items: items.slice(0, limit).map((p) => ({
+      title: p.title,
+      titleBn: p.titleBn,
+      description: p.description,
+      descriptionBn: p.descriptionBn,
+      href: p.href,
+      meta: p.type,
+      dateLabel: p.dateLabel ?? undefined,
+    })),
+  };
+}
+
 async function resolveHomeSectionItems(
   type: string,
   content: Record<string, unknown>,
   events: HomeDataResult<HomeEventItem>,
-  research: HomeDataResult<HomeFeaturedItem>
+  research: HomeDataResult<HomeFeaturedItem>,
+  publications: HomeDataResult<HomePublicationItem>
 ): Promise<ResolvedItems | undefined> {
   if (!(HOME_DATA_DRIVEN_TYPES as readonly string[]).includes(type)) {
     return undefined;
   }
 
-  // Reuse the two cached homepage reads instead of issuing the same query a
+  // Reuse the cached homepage reads instead of issuing the same query a
   // second time through resolveSectionItems().
   if (type === "featured") {
     const collection = String(content.collection || "research");
     if (collection === "events") return resolveEvents(events, content);
     if (collection === "research") return resolveResearch(research, content, 3);
+    if (collection === "publications") return resolvePublications(publications, content, 3);
   }
   if (type === "event_list") return resolveEvents(events, content);
   if (type === "research_list") return resolveResearch(research, content, 6);
+  if (type === "publication_list") return resolvePublications(publications, content, 6);
 
   return resolveSectionItems(type, content);
 }
 
 export default async function Home() {
-  const [pageData, focusAreas, eventsResult, featuredResult] = await Promise.all([
+  const [pageData, focusAreas, eventsResult, featuredResult, publicationsResult] = await Promise.all([
     getPublicPage("home"),
     getFocusAreas(),
     cachedHomeEvents(),
     cachedHomeFeaturedResearch(),
+    cachedHomePublications(),
   ]);
 
   const sectionsWithData = Array.isArray(pageData?.sections)
@@ -282,16 +348,16 @@ export default async function Home() {
             };
           }
 
-          // Resolve featured research/publications for the homepage
-          // featured_research section. The section reads resolved items from
+          // Resolve publications for the homepage featured_research section
+          // ("Latest Publications"). The section reads resolved items from
           // section.content.featuredItems.
           if (sec.type === "featured_research") {
             section = {
               ...section,
               content: {
                 ...content,
-                featuredItems: featuredResult.items,
-                featuredError: featuredResult.error,
+                featuredItems: publicationsResult.items,
+                featuredError: publicationsResult.error,
               },
             };
           }
@@ -300,7 +366,8 @@ export default async function Home() {
             sec.type,
             asRecord(section.content),
             eventsResult,
-            featuredResult
+            featuredResult,
+            publicationsResult
           );
           return resolved ? { ...section, resolved } : section;
         })
