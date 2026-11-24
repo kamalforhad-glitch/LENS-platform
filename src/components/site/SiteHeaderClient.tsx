@@ -215,8 +215,8 @@ export default function SiteHeaderClient({
   const solid = scrolled || !isHome;
 
   // Warm the route of whatever nav link the pointer/focus lands on. Delegated
-  // on the header once instead of per-link, so desktop nav, mobile nav, the
-  // announcement bar and the CTA all prefetch without touching their markup.
+  // on the header once instead of per-link, so desktop nav, mobile nav, and
+  // the CTA all prefetch without touching their markup.
   const prefetchRoute = usePrefetchRoute();
   const prefetchFromEvent = useCallback(
     (event: { target: EventTarget | null }) => {
@@ -233,11 +233,6 @@ export default function SiteHeaderClient({
   const mobileEntries = entries.filter((e) => e.mobileVisible !== false);
 
   // Settings resolution
-  const announcementEnabled = settings?.announcement_enabled?.value === "true";
-  const announcementText = isBn
-    ? (settings?.announcement_text?.valueBn || settings?.announcement_text?.value)
-    : (settings?.announcement_text?.value || "");
-  const announcementLink = settings?.announcement_link?.value || "/about";
   const logoDestination = settings?.site_logo_destination?.value || "/";
   const logoAlt = (isBn ? settings?.site_logo_alt?.valueBn : settings?.site_logo_alt?.value)
     || "LENS — Lighthouse for Evolving Narrative Systems";
@@ -510,22 +505,6 @@ export default function SiteHeaderClient({
           : "bg-transparent"
       }`}
     >
-      {/* Announcement Bar */}
-      {announcementEnabled && announcementText && (
-        <div className="bg-gradient-to-r from-teal-900/90 via-navy-900/95 to-teal-900/90 text-white text-xs py-1.5 px-4 border-b border-teal-500/20 text-center">
-          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse shrink-0" />
-            {announcementLink ? (
-              <Link href={announcementLink} className="hover:text-teal-300 font-medium transition-colors underline decoration-teal-400/40 underline-offset-2 truncate">
-                {announcementText}
-              </Link>
-            ) : (
-              <span className="font-medium truncate">{announcementText}</span>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-[72px]">
           <SiteLogo
