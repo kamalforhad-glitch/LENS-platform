@@ -29,7 +29,7 @@ export default function ResourcesAdmin() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+  const [limit] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);

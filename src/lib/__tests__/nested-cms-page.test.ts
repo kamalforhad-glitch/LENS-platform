@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { validateSlug, normalizeSlug, PROTECTED_ROOT_PREFIXES, RESERVED_SLUGS } from "@/lib/cms-validation";
+import { validateSlug, normalizeSlug } from "@/lib/cms-validation";
 import { getPublicPage } from "@/lib/actions/cms";
 import { db } from "@/lib/db";
 
@@ -21,7 +21,7 @@ vi.mock("@/lib/db", () => ({
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
-  unstable_cache: (fn: any) => fn, // direct execution in tests without cache wrapper
+  unstable_cache: <T extends (...args: never[]) => unknown>(fn: T): T => fn, // direct execution in tests without cache wrapper
 }));
 
 describe("Nested CMS Slug Validation", () => {
@@ -124,9 +124,9 @@ describe("Nested CMS Page Hierarchy & Breadcrumb Resolution", () => {
     };
 
     // findFirst for the child page
-    (db.page.findFirst as any).mockResolvedValueOnce(childPage);
+    vi.mocked(db.page.findFirst).mockResolvedValueOnce(childPage as never);
     // findUnique for the parent page
-    (db.page.findUnique as any).mockResolvedValueOnce(parentPage);
+    vi.mocked(db.page.findUnique).mockResolvedValueOnce(parentPage as never);
 
     const result = await getPublicPage("about/vision");
     expect(result).not.toBeNull();
@@ -193,10 +193,10 @@ describe("Nested CMS Page Hierarchy & Breadcrumb Resolution", () => {
       sections: [],
     };
 
-    (db.page.findFirst as any).mockResolvedValueOnce(child);
-    (db.page.findUnique as any)
-      .mockResolvedValueOnce(parent)
-      .mockResolvedValueOnce(grandparent);
+    vi.mocked(db.page.findFirst).mockResolvedValueOnce(child as never);
+    vi.mocked(db.page.findUnique)
+      .mockResolvedValueOnce(parent as never)
+      .mockResolvedValueOnce(grandparent as never);
 
     const result = await getPublicPage("courses/photography/documentary-lab");
     expect(result).not.toBeNull();
@@ -230,8 +230,8 @@ describe("Nested CMS Page Hierarchy & Breadcrumb Resolution", () => {
       sections: [],
     };
 
-    (db.page.findFirst as any)
-      .mockResolvedValueOnce(child) // lookup child
+    vi.mocked(db.page.findFirst)
+      .mockResolvedValueOnce(child as never) // lookup child
       .mockResolvedValueOnce(null); // lookup theme prefix (not in db, synthetic)
 
     const result = await getPublicPage("theme/media-bias");
@@ -247,7 +247,7 @@ describe("Nested CMS Page Hierarchy & Breadcrumb Resolution", () => {
   });
 
   it("returns null for unpublished or nonexistent pages", async () => {
-    (db.page.findFirst as any).mockResolvedValueOnce(null);
+    vi.mocked(db.page.findFirst).mockResolvedValueOnce(null);
     const result = await getPublicPage("unknown/nested/page");
     expect(result).toBeNull();
   });
@@ -280,8 +280,8 @@ describe("Nested CMS Page Hierarchy & Breadcrumb Resolution", () => {
       sections: [],
     };
 
-    (db.page.findFirst as any).mockResolvedValueOnce(publishedChild);
-    (db.page.findUnique as any).mockResolvedValueOnce(draftParent);
+    vi.mocked(db.page.findFirst).mockResolvedValueOnce(publishedChild as never);
+    vi.mocked(db.page.findUnique).mockResolvedValueOnce(draftParent as never);
 
     const result = await getPublicPage("about/vision");
     expect(result).not.toBeNull();
@@ -318,10 +318,10 @@ describe("Nested CMS Page Hierarchy & Breadcrumb Resolution", () => {
       status: "draft",
     };
 
-    (db.page.findFirst as any)
-      .mockResolvedValueOnce(publishedChild) // lookup child
+    vi.mocked(db.page.findFirst)
+      .mockResolvedValueOnce(publishedChild as never) // lookup child
       .mockResolvedValueOnce(null) // lookup published ancestor "about" -> not published
-      .mockResolvedValueOnce(draftAncestor); // lookup draft record for "about" -> found draft
+      .mockResolvedValueOnce(draftAncestor as never); // lookup draft record for "about" -> found draft
 
     const result = await getPublicPage("about/team");
     expect(result).not.toBeNull();

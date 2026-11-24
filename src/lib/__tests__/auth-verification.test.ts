@@ -20,7 +20,7 @@ const dbMocks = vi.hoisted(() => ({
   userUpdate: vi.fn(),
   sessionCreate: vi.fn(),
   sessionDeleteMany: vi.fn(),
-  transaction: vi.fn((cb: any) => cb({
+  transaction: vi.fn((cb: (tx: { session: { create: typeof dbMocks.sessionCreate }; user: { update: typeof dbMocks.userUpdate } }) => unknown) => cb({
     session: { create: dbMocks.sessionCreate },
     user: { update: dbMocks.userUpdate },
   })),

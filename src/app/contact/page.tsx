@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ContactContent from "./ContactContent";
+import ContactContent, { type ContactFormField } from "./ContactContent";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import { getPublicPage, getPublicSiteSettings, type PublicSectionData } from "@/lib/actions/cms";
@@ -118,7 +118,7 @@ export default async function ContactPage() {
           }
           submitLabel={typeof formContent.submitLabel === "string" ? formContent.submitLabel : undefined}
           submitLabelBn={typeof formContentBn.submitLabel === "string" ? formContentBn.submitLabel : undefined}
-          fields={Array.isArray(formContent.fields) ? (formContent.fields as any) : undefined}
+          fields={Array.isArray(formContent.fields) ? (formContent.fields as ContactFormField[]) : undefined}
 
           // Extra CMS sections if any
           extraSections={extraSections}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import { CLUBS } from "@/lib/clubs";
 import type { PublicSectionData } from "@/lib/actions/cms";
@@ -318,18 +319,6 @@ function safeHref(v: unknown): string | null {
   if (url.startsWith("/") || url.startsWith("#")) return url;
   if (/^https?:\/\//i.test(url)) return url;
   return null;
-}
-
-function CtaButton({ label, url, variant }: { label: string; url: string; variant?: string }) {
-  if (!label || !url) return null;
-  const cls = variant === "ghost"
-    ? "inline-flex px-6 py-3 rounded-xl border border-teal-500/40 text-teal-600 hover:bg-teal-50 text-sm font-semibold"
-    : "inline-flex px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold";
-  return (
-    <a href={url} className={cls}>
-      {label}
-    </a>
-  );
 }
 
 function HeroLike({ section, content, bn }: { section: SectionWithResolved; content: Record<string, unknown>; bn: boolean }) {
@@ -1034,7 +1023,6 @@ function LibrarySearchBlock({ content, bn }: { content: Record<string, unknown>;
   const showTopicFilter = Boolean(content.showTopicFilter);
   const showAuthorFilter = Boolean(content.showAuthorFilter);
   const showSortControl = Boolean(content.showSortControl);
-  const showViewToggle = Boolean(content.showViewToggle);
   const defaultSort = asString(content.defaultSort) || "newest";
   const autocompleteEnabled = Boolean(content.autocompleteEnabled);
 
@@ -1155,7 +1143,16 @@ function TestimonialBlock({ content }: { content: Record<string, unknown> }) {
             <svg className="w-8 h-8 text-teal-500/30 mb-3" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.381c0-5.937 3.714-10.415 9.407-11.785v-2.622h-7.44v11.142c0 2.082-1.513 3.773-3.544 3.773H4.189c-2.549 0-4.617-2.068-4.617-4.617V4.617C0 2.068 1.64 0 4.189 0h16.222C22.932 0 24 2.068 24 4.617v11.142c0 2.082-1.513 3.773-3.544 3.773h-7.44v2.622c5.693 1.37 9.407 5.848 9.407 11.785V21h-2.983zM6.687 12.304c0 2.082 1.513 3.773 3.544 3.773h6.722c2.03 0 3.544-1.69 3.544-3.773V4.617c0-2.082-1.513-3.773-3.544-3.773h-6.722C8.2 0.844 6.687 2.535 6.687 4.617v7.687z"/></svg>
             <p className="text-slate-600 leading-relaxed mb-4">&ldquo;{asString(t.quote)}&rdquo;</p>
             <footer className="flex items-center gap-3">
-              {asString(t.image) && <img src={asString(t.image)} alt="" className="w-10 h-10 rounded-full object-cover" />}
+              {asString(t.image) && (
+                <Image
+                  src={asString(t.image)}
+                  alt=""
+                  width={40}
+                  height={40}
+                  unoptimized
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              )}
               <div>
                 <cite className="font-semibold text-slate-900 not-italic">{asString(t.author)}</cite>
                 {asString(t.role) && <p className="text-sm text-slate-500">{asString(t.role)}</p>}
@@ -1186,9 +1183,12 @@ function LogoCloudItem({ logo, idx }: { logo: Record<string, unknown>; idx: numb
   const logoEl = (!image || imgFailed) ? (
     renderBadge()
   ) : (
-    <img
+    <Image
       src={image}
       alt={name}
+      width={120}
+      height={48}
+      unoptimized
       onError={() => setImgFailed(true)}
       className="h-12 w-auto object-contain opacity-60 hover:opacity-100 transition-opacity grayscale hover:grayscale-0"
     />

@@ -1587,7 +1587,7 @@ export async function updateMenuItem(id: string, data: Record<string, unknown>) 
   const auth = await checkAuth();
   if (!auth) throw new Error("Unauthorized");
 
-  const clean = await validatedMenuData(data as any);
+  const clean = await validatedMenuData(data as Parameters<typeof validatedMenuData>[0]);
 
   const extra: Record<string, unknown> = {};
   let targetLocation = "";

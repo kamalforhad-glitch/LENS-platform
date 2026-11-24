@@ -93,18 +93,18 @@ export interface TabItem {
 
 export function parseTabsConfig(raw: unknown): { tabs: TabItem[] } {
   if (!raw) return { tabs: [] };
-  let rawList: any[] = [];
+  let rawList: TabItem[] = [];
   if (Array.isArray(raw)) {
-    rawList = raw;
-  } else if (typeof raw === "object" && raw !== null && "tabs" in raw && Array.isArray((raw as any).tabs)) {
-    rawList = (raw as any).tabs;
+    rawList = raw as TabItem[];
+  } else if (typeof raw === "object" && raw !== null && "tabs" in raw && Array.isArray((raw as { tabs?: unknown }).tabs)) {
+    rawList = (raw as { tabs: TabItem[] }).tabs;
   } else {
     return { tabs: [] };
   }
 
   const tabs: TabItem[] = rawList.map((t) => {
     const rawInners = Array.isArray(t.innerTabs) ? t.innerTabs : [];
-    const innerTabs: InnerTabItem[] = rawInners.map((it: any) => {
+    const innerTabs: InnerTabItem[] = rawInners.map((it) => {
       const blks = it.blocks || it.contentBlocks || [];
       return {
         ...it,
@@ -274,7 +274,6 @@ export default function TabsSection({ content, contentBn, bn }: TabsSectionProps
     );
   }
 
-  const tabTitle = activeTab ? (bn && activeTab.labelBn ? activeTab.labelBn : activeTab.label) : "";
   const tabDesc = activeTab ? (bn && activeTab.descriptionBn ? activeTab.descriptionBn : activeTab.description) : "";
 
   return (

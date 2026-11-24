@@ -13,11 +13,10 @@ interface PageOption {
 }
 
 export default function SectionsLibraryAdmin() {
-  const [pages, setPages] = useState<PageOption[]>([]);
+  const [, setPages] = useState<PageOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
 
   const loadData = useCallback(() => {
     setLoading(true);

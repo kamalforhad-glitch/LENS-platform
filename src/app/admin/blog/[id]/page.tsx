@@ -3,8 +3,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import dynamic from "next/dynamic";
 import { ArrowLeft, Save, Trash2, Image as ImageIcon, Sparkles, X } from "lucide-react";
-import MediaPickerModal from "@/components/admin/MediaPickerModal";
+
+const MediaPickerModal = dynamic(() => import("@/components/admin/MediaPickerModal"), {
+  ssr: false,
+});
 
 interface BlogFormData {
   title: string;
@@ -33,6 +38,7 @@ export default function BlogPostEditor() {
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
@@ -152,7 +158,8 @@ export default function BlogPostEditor() {
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this blog post?")) return;
+    if (deleting || !confirm("Are you sure you want to delete this blog post?")) return;
+    setDeleting(true);
     try {
       const res = await fetch("/api/admin/blog", {
         method: "DELETE",
@@ -164,9 +171,11 @@ export default function BlogPostEditor() {
       } else {
         const d = await res.json();
         alert(d.error || "Delete failed");
+        setDeleting(false);
       }
     } catch {
       alert("Delete failed");
+      setDeleting(false);
     }
   };
 
@@ -202,11 +211,14 @@ export default function BlogPostEditor() {
 
         {!isNew && (
           <button
+            type="button"
+            disabled={deleting || saving}
             onClick={handleDelete}
-            className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition-colors self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 disabled:opacity-50 transition-colors self-start sm:self-auto text-sm font-medium"
             title="Delete post"
           >
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className="w-4 h-4" />
+            {deleting && <span>Deleting...</span>}
           </button>
         )}
       </div>
@@ -371,7 +383,7 @@ export default function BlogPostEditor() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {form.image ? (
               <div className="relative group w-40 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                <img src={form.image} alt="Post cover" className="w-full h-full object-cover" />
+                <Image src={form.image} alt="Post cover" width={160} height={96} unoptimized className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, image: "" })}

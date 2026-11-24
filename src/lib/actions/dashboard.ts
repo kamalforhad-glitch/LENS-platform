@@ -202,3 +202,20 @@ export async function getRecentActivity() {
 
   return { research, publications, events };
 }
+
+/**
+ * Combined dashboard initial payload: executes a single auth check and
+ * fetches stats, recent activity, and latest audit entries in parallel
+ * so /admin loads in one Server Action round-trip instead of three.
+ */
+export async function getDashboardOverview(auditLimit: number = 10) {
+  requireAuth(await getCurrentUser(), "viewer");
+
+  const [stats, activity, audit] = await Promise.all([
+    getDashboardStats(),
+    getRecentActivity(),
+    getAuditFeed(auditLimit),
+  ]);
+
+  return { stats, activity, audit };
+}

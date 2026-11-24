@@ -90,7 +90,6 @@ export default function TabsHierarchyEditor({
   };
 
   const selectedTab = tabsEn.find((t) => t.id === selectedTabId) || tabsEn[0];
-  const selectedTabBn = tabsBn.find((t) => t.id === selectedTabId) || tabsBn[0];
 
   // Helper to ensure BN has matching mirror structure
   const syncBnWithEn = (enList: TabItem[], currentBn: TabItem[]): TabItem[] => {

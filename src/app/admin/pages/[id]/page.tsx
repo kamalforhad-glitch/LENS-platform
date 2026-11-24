@@ -3,9 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ArrowLeft, Save, Trash2, Globe, ExternalLink } from "lucide-react";
-import MediaPickerModal from "@/components/admin/MediaPickerModal";
 import PageSectionEditor from "@/components/admin/PageSectionEditor";
+
+const MediaPickerModal = dynamic(() => import("@/components/admin/MediaPickerModal"), {
+  ssr: false,
+});
 import { normalizeSlug, validateSlug } from "@/lib/cms-validation";
 
 interface PageData {

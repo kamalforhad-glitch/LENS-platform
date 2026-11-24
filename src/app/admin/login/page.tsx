@@ -22,7 +22,8 @@ export default function AdminLoginPage() {
     try {
       const result = await login(email, password);
       if (result.success) {
-        window.location.href = "/admin";
+        router.push("/admin");
+        router.refresh();
       } else {
         setError(result.error || "Login failed");
       }

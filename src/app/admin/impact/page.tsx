@@ -5,24 +5,20 @@ import {
   LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { getAnalyticsOverview, getMonthlyActivity, getCategoryTrends, getAuthorImpact, getTopArticles, getSearchTrends } from "@/lib/actions/analytics";
+import { getAnalyticsOverview, getMonthlyActivity, getCategoryTrends, getTopArticles } from "@/lib/actions/analytics";
 
 const COLORS = ["#0d9488", "#2563eb", "#d97706", "#dc2626", "#7c3aed", "#059669"];
 
 type Overview = Awaited<ReturnType<typeof getAnalyticsOverview>>;
 type Monthly = Awaited<ReturnType<typeof getMonthlyActivity>>;
 type Categories = Awaited<ReturnType<typeof getCategoryTrends>>;
-type Authors = Awaited<ReturnType<typeof getAuthorImpact>>;
 type TopArticles = Awaited<ReturnType<typeof getTopArticles>>;
-type Searches = Awaited<ReturnType<typeof getSearchTrends>>;
 
 export default function AdminImpactPage() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [monthly, setMonthly] = useState<Monthly>([]);
   const [categories, setCategories] = useState<Categories>([]);
-  const [authors, setAuthors] = useState<Authors>([]);
   const [topArticles, setTopArticles] = useState<TopArticles>([]);
-  const [searches, setSearches] = useState<Searches>([]);
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -32,16 +28,12 @@ export default function AdminImpactPage() {
       getAnalyticsOverview(),
       getMonthlyActivity(12),
       getCategoryTrends(),
-      getAuthorImpact(10),
       getTopArticles(10),
-      getSearchTrends(10),
-    ]).then(([ov, mo, ca, au, ta, se]) => {
+    ]).then(([ov, mo, ca, ta]) => {
       setOverview(ov);
       setMonthly(mo);
       setCategories(ca);
-      setAuthors(au);
       setTopArticles(ta);
-      setSearches(se);
       setLoading(false);
     });
   }, []);
@@ -91,7 +83,6 @@ export default function AdminImpactPage() {
   if (loading) return <div className="p-8 text-center text-slate-400">Loading impact data...</div>;
 
   const pieData = categories.map((c) => ({ name: c.category, value: c.count }));
-  const barData = authors.map((a) => ({ name: a.name.split(" ").pop() || a.name, articles: a.articleCount, downloads: a.totalDownloads }));
   const lineData = monthly.map((m) => ({ month: m.month.slice(5), articles: m.articles, downloads: m.downloads }));
 
   return (
@@ -157,7 +148,7 @@ export default function AdminImpactPage() {
             <h2 className="text-sm font-semibold text-slate-700 mb-4">Research Topics</h2>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }: any) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} (${((percent ?? 0) * 100).toFixed(0)}%)`}>
                   {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip />

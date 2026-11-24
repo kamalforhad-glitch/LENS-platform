@@ -162,7 +162,7 @@ export default function ImpactPage() {
                       cx="50%"
                       cy="50%"
                       outerRadius={100}
-                      label={({ name, percent }: any) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} (${((percent ?? 0) * 100).toFixed(0)}%)`}
                     >
                       {data.categories.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
@@ -183,7 +183,7 @@ export default function ImpactPage() {
               <ResponsiveContainer width="100%" height={350}>
                 <BarChart data={data.topArticles.slice(0, 8)}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey={(d: any) => d.title.length > 30 ? d.title.slice(0, 30) + "..." : d.title} tick={{ fontSize: 10, fill: "#94a3b8" }} stroke="rgba(255,255,255,0.1)" />
+                  <XAxis dataKey={(d: { title: string }) => d.title.length > 30 ? d.title.slice(0, 30) + "..." : d.title} tick={{ fontSize: 10, fill: "#94a3b8" }} stroke="rgba(255,255,255,0.1)" />
                   <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} stroke="rgba(255,255,255,0.1)" />
                   <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", color: "#fff" }} />
                   <Bar dataKey="downloads" fill="#0d9488" name="Downloads" />

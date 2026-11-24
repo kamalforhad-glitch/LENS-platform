@@ -332,7 +332,7 @@ export default async function Home() {
 
   const sectionsWithData = Array.isArray(pageData?.sections)
     ? await Promise.all(
-        pageData.sections.map(async (sec: any) => {
+        pageData.sections.map(async (sec) => {
           let section = sec;
           const content = asRecord(sec.content);
 

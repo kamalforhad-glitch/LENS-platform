@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import type { AutocompleteResult, RelatedContent, AdminResearchArticle } from "@/lib/admin-types";
 
 export interface LibraryFilters {
@@ -103,10 +104,14 @@ export async function searchLibrary(filters: LibraryFilters = {}) {
        LIMIT 50
     `;
 
-    // Track search query
-    await db.searchQuery.create({
-      data: { query: filters.search!, results: result.length },
-    });
+    // Track search query non-blockingly (fire-and-forget) to keep search latency minimal
+    db.searchQuery
+      .create({
+        data: { query: filters.search!, results: result.length },
+      })
+      .catch((err) => {
+        console.warn("[SearchQuery Tracking Best-Effort Error]", err);
+      });
 
     articles = result;
   } else {
@@ -124,54 +129,67 @@ export async function searchLibrary(filters: LibraryFilters = {}) {
     articles = items;
   }
 
-  // Get filter options
-  const [categories, yearsResult, authorsResult, allTags] = await Promise.all([
-    db.researchArticle.findMany({
-      where: { status: "published" },
-      select: { category: true },
-      distinct: ["category"],
-      orderBy: { category: "asc" },
-    }),
-    db.researchArticle.findMany({
-      where: { status: "published", datePublished: { not: null } },
-      select: { datePublished: true },
-    }),
-    db.researchArticle.findMany({
-      where: { status: "published" },
-      select: { author: true },
-      distinct: ["author"],
-      orderBy: { author: "asc" },
-    }),
-    db.researchArticle.findMany({
-      where: { status: "published" },
-      select: { tags: true },
-    }),
-  ]);
-
-  const yearSet = new Set<string>();
-  yearsResult.forEach((r) => {
-    if (r.datePublished) yearSet.add(r.datePublished.getFullYear().toString());
-  });
-
-  const tagSet = new Set<string>();
-  allTags.forEach((row) => {
-    try {
-      const parsed = JSON.parse(row.tags);
-      if (Array.isArray(parsed)) parsed.forEach((t: string) => tagSet.add(t));
-    } catch {}
-  });
+  // Get cached filter options to avoid redundant full-table scans on every search
+  const filterOptions = await getCachedLibraryFilters();
 
   return {
     articles,
-    filters: {
+    filters: filterOptions,
+    total: articles.length,
+  };
+}
+
+/**
+ * Cache library filter options for 5 minutes with tagged revalidation.
+ */
+const getCachedLibraryFilters = unstable_cache(
+  async () => {
+    const [categories, yearsResult, authorsResult, allTags] = await Promise.all([
+      db.researchArticle.findMany({
+        where: { status: "published" },
+        select: { category: true },
+        distinct: ["category"],
+        orderBy: { category: "asc" },
+      }),
+      db.researchArticle.findMany({
+        where: { status: "published", datePublished: { not: null } },
+        select: { datePublished: true },
+      }),
+      db.researchArticle.findMany({
+        where: { status: "published" },
+        select: { author: true },
+        distinct: ["author"],
+        orderBy: { author: "asc" },
+      }),
+      db.researchArticle.findMany({
+        where: { status: "published" },
+        select: { tags: true },
+      }),
+    ]);
+
+    const yearSet = new Set<string>();
+    yearsResult.forEach((r) => {
+      if (r.datePublished) yearSet.add(new Date(r.datePublished).getFullYear().toString());
+    });
+
+    const tagSet = new Set<string>();
+    allTags.forEach((row) => {
+      try {
+        const parsed = JSON.parse(row.tags);
+        if (Array.isArray(parsed)) parsed.forEach((t: string) => tagSet.add(t));
+      } catch {}
+    });
+
+    return {
       categories: categories.map((c) => c.category),
       years: Array.from(yearSet).sort().reverse(),
       topics: Array.from(tagSet).sort(),
       authors: authorsResult.map((a) => a.author).filter(Boolean),
-    },
-    total: articles.length,
-  };
-}
+    };
+  },
+  ["library-filter-options"],
+  { revalidate: 300, tags: ["library-filters"] }
+);
 
 export async function getAutocomplete(query: string): Promise<AutocompleteResult[]> {
   if (!query || query.trim().length < 2) return [];

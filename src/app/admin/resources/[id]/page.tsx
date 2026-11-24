@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Save, Trash2, FileText, Image as ImageIcon, X } from "lucide-react";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
 
@@ -331,7 +332,7 @@ export default function ResourceEditor() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {form.image ? (
               <div className="relative group w-40 h-24 rounded-lg overflow-hidden bg-black/40 border border-slate-200">
-                <img src={form.image} alt="Resource cover" className="w-full h-full object-cover" />
+                <Image src={form.image} alt="Resource cover" width={160} height={96} unoptimized className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, image: "" })}

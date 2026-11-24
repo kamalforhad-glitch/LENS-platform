@@ -111,9 +111,9 @@ export interface CmsSectionData {
   contentBn?: string | Record<string, unknown>;
 }
 
-function parseJsonSafe(val: unknown): Record<string, any> {
+function parseJsonSafe(val: unknown): Record<string, unknown> {
   if (!val) return {};
-  if (typeof val === "object") return val as Record<string, any>;
+  if (typeof val === "object") return val as Record<string, unknown>;
   try { return JSON.parse(val as string); } catch { return {}; }
 }
 

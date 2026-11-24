@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ComponentProps } from "react";
 import SiteHeader from "@/components/site/SiteHeader";
 import SiteFooter from "@/components/site/SiteFooter";
 import ResearchersContent from "./ResearchersContent";
@@ -31,11 +32,11 @@ export default async function ResearchersPage() {
 
   // Server-side fetch of active researchers with bilingual fields, used to
   // seed the client cache. If it fails, ResearchersContent fetches on mount.
-  let researchers: any[] = [];
+  let researchers: ComponentProps<typeof ResearchersContent>["initialResearchers"] = [];
   try {
     const res = await getPublicResearchers();
     if (!res.error) {
-      researchers = res.items;
+      researchers = res.items as unknown as ComponentProps<typeof ResearchersContent>["initialResearchers"];
     }
   } catch {
     researchers = [];

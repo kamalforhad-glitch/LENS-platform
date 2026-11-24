@@ -19,6 +19,11 @@ const eslintConfig = defineConfig([
     "*.ts", // root level scripts
     "tests/**",
     "backend/**", // standalone backend has its own toolchain
+    "qa-screenshots/**",
+    "scratch/**",
+    "playwright-report/**",
+    "test-results/**",
+    "run_logs/**",
   ]),
   {
     rules: {

@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
       console.warn("[Menu API Schema Drift Warning - falling back to base columns]", error);
       try {
         const rawItems = location === "*"
-          ? await db.$queryRaw<any[]>`
+          ? await db.$queryRaw<Record<string, unknown>[]>`
               SELECT id, location, label, COALESCE(label_bn, '') as "labelBn",
                      '' as description, '' as "descriptionBn", url, NULL as "externalUrl",
                      sort_order as "sortOrder", visible, 'active' as status,
@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
               FROM menu_items
               ORDER BY sort_order ASC
             `
-          : await db.$queryRaw<any[]>`
+          : await db.$queryRaw<Record<string, unknown>[]>`
               SELECT id, location, label, COALESCE(label_bn, '') as "labelBn",
                      '' as description, '' as "descriptionBn", url, NULL as "externalUrl",
                      sort_order as "sortOrder", visible, 'active' as status,
@@ -218,7 +218,7 @@ export async function POST(req: NextRequest) {
     return authErrorResponse(error);
   }
   try {
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
@@ -401,7 +401,7 @@ export async function PUT(req: NextRequest) {
     return authErrorResponse(error);
   }
   try {
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
@@ -461,7 +461,7 @@ export async function DELETE(req: NextRequest) {
     return authErrorResponse(error);
   }
   try {
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {

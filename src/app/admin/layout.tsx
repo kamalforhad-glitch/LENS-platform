@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -105,20 +105,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const authCheckedRef = useRef(false);
 
   useEffect(() => {
     if (pathname === "/admin/login" || pathname.startsWith("/admin/invite")) return;
+    if (authCheckedRef.current) return;
+    authCheckedRef.current = true;
 
     checkAuth()
       .then((data) => {
         if (!data.authenticated) {
+          authCheckedRef.current = false;
           router.push("/admin/login");
         } else {
           setUserName(data.user?.name || "Admin");
           setUserRole(data.user?.role || null);
         }
       })
-      .catch(() => router.push("/admin/login"));
+      .catch(() => {
+        authCheckedRef.current = false;
+        router.push("/admin/login");
+      });
   }, [pathname, router]);
 
   // Close sidebar on route change
@@ -176,7 +183,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside
         id="admin-sidebar"
         aria-label="Admin Navigation"
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-navy-950 flex flex-col h-screen max-h-screen h-[100dvh] transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-navy-950 flex flex-col h-screen max-h-screen h-[100dvh] transition-transform duration-150 ease-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -229,6 +236,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={false}
                     className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? "bg-teal-500/20 text-teal-300 font-semibold"
@@ -309,6 +317,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3">
             <Link
               href="/"
+              prefetch={false}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-600 hover:text-teal-600 hover:bg-slate-100 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"

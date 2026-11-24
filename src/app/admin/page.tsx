@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getDashboardStats, getRecentActivity, getAuditFeed } from "@/lib/actions/dashboard";
+import { getDashboardOverview } from "@/lib/actions/dashboard";
 import SkeletonCards from "@/components/admin/SkeletonCards";
 
 interface Stats {
@@ -73,7 +73,7 @@ function StatCard({ label, value, sub, href, icon, trend, color }: {
 
 function ActivityItem({ title, status, date, href }: { title: string; status: string; date: Date; href: string }) {
   return (
-    <Link href={href} className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-slate-50 transition-colors group">
+    <Link href={href} prefetch={false} className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-slate-50 transition-colors group">
       <div className="w-2 h-2 rounded-full bg-slate-300 group-hover:bg-teal-400 transition-colors shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-slate-700 truncate group-hover:text-slate-900">{title}</p>
@@ -179,7 +179,7 @@ function QuickLinks() {  const links = [
       <h3 className="text-sm font-bold text-slate-900 mb-4">Quick Create</h3>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {links.map((link) => (
-          <Link key={link.href} href={link.href} className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors group">
+          <Link key={link.href} href={link.href} prefetch={false} className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors group">
             <div className="w-9 h-9 rounded-lg bg-slate-100 group-hover:bg-teal-50 flex items-center justify-center text-slate-400 group-hover:text-teal-600 transition-colors">
               <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d={link.icon} />
@@ -199,9 +199,13 @@ export default function AdminDashboardPage() {
   const [audit, setAudit] = useState<AuditEntry[] | null>(null);
 
   useEffect(() => {
-    getDashboardStats().then(setStats).catch(() => undefined);
-    getRecentActivity().then(setActivity).catch(() => undefined);
-    getAuditFeed(10).then((rows) => setAudit(rows as unknown as AuditEntry[])).catch(() => undefined);
+    getDashboardOverview(10)
+      .then((res) => {
+        setStats(res.stats);
+        setActivity(res.activity);
+        setAudit(res.audit as unknown as AuditEntry[]);
+      })
+      .catch(() => undefined);
   }, []);
 
   return (

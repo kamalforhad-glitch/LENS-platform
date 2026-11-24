@@ -91,7 +91,7 @@ interface MenuItem extends FlatMenuItem {
   dateModified?: string;
 }
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   ok: boolean;
   status: number;
   data: T | null;
@@ -99,7 +99,7 @@ interface ApiResponse<T = any> {
   warning?: string;
 }
 
-async function safeApiRequest<T = any>(
+async function safeApiRequest<T = unknown>(
   url: string,
   options?: RequestInit
 ): Promise<ApiResponse<T>> {
@@ -122,7 +122,7 @@ async function safeApiRequest<T = any>(
     }
 
     const contentType = res.headers.get("content-type") || "";
-    let data: any = null;
+    let data: T | null = null;
 
     if (contentType.includes("application/json")) {
       const text = await res.text();
@@ -139,7 +139,7 @@ async function safeApiRequest<T = any>(
         }
       }
     } else {
-      const text = await res.text();
+      await res.text();
       return {
         ok: false,
         status: res.status,
@@ -151,12 +151,14 @@ async function safeApiRequest<T = any>(
       };
     }
 
+    const parsedObj = data && typeof data === "object" ? (data as { error?: string; warning?: string }) : null;
+
     if (!res.ok) {
       return {
         ok: false,
         status: res.status,
         data,
-        error: data?.error || `Request failed with status ${res.status}.`,
+        error: parsedObj?.error || `Request failed with status ${res.status}.`,
       };
     }
 
@@ -164,7 +166,7 @@ async function safeApiRequest<T = any>(
       ok: true,
       status: res.status,
       data,
-      warning: data?.warning,
+      warning: parsedObj?.warning,
     };
   } catch (err) {
     return {

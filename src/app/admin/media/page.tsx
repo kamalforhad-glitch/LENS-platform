@@ -30,6 +30,7 @@ export default function AdminMediaPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [editing, setEditing] = useState<MediaFile | null>(null);
@@ -96,7 +97,9 @@ export default function AdminMediaPage() {
   };
 
   const handleDelete = async (file: MediaFile) => {
-    if (!confirm(`Delete "${file.originalName}"? Files still in use are protected.`)) return;
+    if (deletingId || !confirm(`Delete "${file.originalName}"? Files still in use are protected.`)) return;
+    setDeletingId(file.id);
+    setError("");
     try {
       // Expected failures (referenced in content) arrive as values, because
       // Next.js redacts thrown Server Action errors across the RSC boundary.
@@ -105,10 +108,16 @@ export default function AdminMediaPage() {
         setError(result.error || "File is still in use. Delete blocked.");
         return;
       }
+      setData((prev) =>
+        prev
+          ? { ...prev, items: prev.items.filter((i) => i.id !== file.id), total: Math.max(0, prev.total - 1) }
+          : prev
+      );
       setToast("File deleted.");
-      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -155,8 +164,15 @@ export default function AdminMediaPage() {
         return;
       }
       setEditing(null);
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              items: prev.items.map((item) => (item.id === file.id ? { ...item, ...values } : item)),
+            }
+          : prev
+      );
       setToast("Metadata saved.");
-      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     }
@@ -286,7 +302,14 @@ export default function AdminMediaPage() {
                         <button onClick={() => copyUrl(file)} className="px-2 py-1 text-xs text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors">Copy URL</button>
                         <button onClick={() => setEditing(file)} className="px-2 py-1 text-xs text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors">Edit</button>
                         <button onClick={() => showReferences(file)} className="px-2 py-1 text-xs text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors">Where used?</button>
-                        <button onClick={() => handleDelete(file)} className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded transition-colors">Delete</button>
+                        <button
+                          type="button"
+                          disabled={deletingId === file.id}
+                          onClick={() => handleDelete(file)}
+                          className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded disabled:opacity-50 transition-colors"
+                        >
+                          {deletingId === file.id ? "Deleting..." : "Delete"}
+                        </button>
                       </div>
                     </td>
                   </tr>

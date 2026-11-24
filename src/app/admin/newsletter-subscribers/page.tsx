@@ -130,7 +130,7 @@ export default function AdminNewsletterSubscribersPage() {
         </div>
         <select
           value={status}
-          onChange={(e) => { setStatus(e.target.value as any); setPage(1); }}
+          onChange={(e) => { setStatus(e.target.value as typeof status); setPage(1); }}
           className="px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
         >
           {STATUS_OPTIONS.map((s) => (

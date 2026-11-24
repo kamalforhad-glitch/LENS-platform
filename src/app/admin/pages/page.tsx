@@ -43,7 +43,7 @@ export default function PagesAdmin() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+  const [limit] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -111,8 +111,33 @@ export default function PagesAdmin() {
     }
   };
 
-  const setStatus = (p: PageItem, status: string) =>
-    run(p.id, () => updatePage(p.id, { status }), "Status change failed");
+  const setStatus = async (p: PageItem, status: string) => {
+    setBusyId(p.id);
+    setError(null);
+    try {
+      await updatePage(p.id, { status });
+      const prevStatus = p.status;
+      setPages((prev) =>
+        prev
+          .map((item) => (item.id === p.id ? { ...item, status, dateModified: new Date().toISOString() } : item))
+          .filter((item) => filter === "all" || item.status === filter)
+      );
+      setCounts((c) => {
+        const next = { ...c };
+        if (prevStatus === "published" || prevStatus === "draft" || prevStatus === "archived") {
+          next[prevStatus] = Math.max(0, next[prevStatus] - 1);
+        }
+        if (status === "published" || status === "draft" || status === "archived") {
+          next[status] = next[status] + 1;
+        }
+        return next;
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Status change failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const duplicate = (p: PageItem) =>
     run(p.id, async () => duplicatePage(p.id), "Duplicate failed");
@@ -170,8 +195,8 @@ export default function PagesAdmin() {
                 <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>{p.status}</span>
                 <span className="text-xs text-slate-500">{new Date(p.dateModified).toLocaleDateString()}</span>
                 <div className="flex items-center gap-1">
-                  <Link href={`/admin/pages/${p.id}`} className="px-2.5 py-1 text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded transition-colors">Edit</Link>
-                  <Link href={`/admin/preview/${p.id}`} className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors" title="Preview draft">Preview</Link>
+                  <Link href={`/admin/pages/${p.id}`} prefetch={false} className="px-2.5 py-1 text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded transition-colors">Edit</Link>
+                  <Link href={`/admin/preview/${p.id}`} prefetch={false} className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors" title="Preview draft">Preview</Link>
                   {p.status === "published" && p.slug !== "home" && (
                     <a href={`/${p.slug}`} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors" title="View live">View</a>
                   )}

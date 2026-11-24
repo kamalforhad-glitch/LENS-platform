@@ -682,7 +682,7 @@ export default function SiteHeaderClient({
             {ctaVisible && (
               <Link
                 href={ctaUrl}
-                className="hidden sm:inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-400 text-white text-sm font-semibold rounded-full hover:from-gold-400 hover:to-gold-300 transition-all shadow-md hover:shadow-lg hover:shadow-gold-500/20"
+                className="hidden sm:inline-flex items-center px-5 py-2.5 bg-[#00CFE8] text-[#020B18] text-sm font-semibold rounded-full hover:bg-[#00B8D4] hover:text-[#020B18] transition-all shadow-md shadow-[#00CFE8]/20 hover:shadow-lg hover:shadow-[#00CFE8]/30"
               >
                 {ctaLabel}
               </Link>
@@ -945,7 +945,7 @@ export default function SiteHeaderClient({
                 <Link
                   href={ctaUrl}
                   onClick={() => setMobileOpen(false)}
-                  className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-400 text-white text-sm font-semibold rounded-full w-full justify-center shadow-md"
+                  className="inline-flex items-center px-5 py-2.5 bg-[#00CFE8] text-[#020B18] text-sm font-semibold rounded-full w-full justify-center hover:bg-[#00B8D4] hover:text-[#020B18] transition-all shadow-md shadow-[#00CFE8]/20 hover:shadow-lg hover:shadow-[#00CFE8]/30"
                 >
                   {ctaLabel}
                 </Link>

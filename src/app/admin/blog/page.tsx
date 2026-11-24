@@ -24,13 +24,13 @@ const BLOG_STATUSES: readonly string[] = ["all", "published", "draft"];
 export default function BlogAdmin() {
   const [items, setItems] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [filter, setFilter] = useState("all");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+  const [limit] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -78,11 +78,11 @@ export default function BlogAdmin() {
     return () => controller.abort();
   }, [load]);
 
-  const toggleSelect = (id: string) => { const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); setSelected(n); };
-  const toggleAll = () => { selected.size === items.length ? setSelected(new Set()) : setSelected(new Set(items.map(i => i.id))); };
 
   const deleteItem = async (id: string) => {
-    if (!confirm("Delete this blog post?")) return;
+    if (deletingId || !confirm("Delete this blog post?")) return;
+    const target = items.find((i) => i.id === id);
+    setDeletingId(id);
     setError(null);
     try {
       const res = await fetch("/api/admin/blog", {
@@ -96,9 +96,20 @@ export default function BlogAdmin() {
           typeof err.error === "string" && err.error ? err.error : `Failed to delete blog post (${res.status})`
         );
       }
-      load();
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      setTotal((t) => Math.max(0, t - 1));
+      if (target) {
+        setCounts((c) => ({
+          ...c,
+          all: Math.max(0, c.all - 1),
+          ...(target.status === "published" ? { published: Math.max(0, c.published - 1) } : {}),
+          ...(target.status === "draft" ? { draft: Math.max(0, c.draft - 1) } : {}),
+        }));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete blog post.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -185,15 +196,18 @@ export default function BlogAdmin() {
                 <div className="flex items-center gap-1.5">
                   <Link
                     href={`/admin/blog/${item.id}`}
+                    prefetch={false}
                     className="px-2.5 py-1 text-xs font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 rounded border border-teal-200 transition-colors"
                   >
                     Edit
                   </Link>
                   <button
+                    type="button"
+                    disabled={deletingId === item.id}
                     onClick={() => deleteItem(item.id)}
-                    className="px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded border border-red-200 transition-colors"
+                    className="px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded border border-red-200 disabled:opacity-50 transition-colors"
                   >
-                    Delete
+                    {deletingId === item.id ? "Deleting..." : "Delete"}
                   </button>
                 </div>
               </div>

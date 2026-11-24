@@ -26,7 +26,7 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
   // Passthrough so cached getters still invoke their db logic under test.
-  unstable_cache: <T extends (...args: any[]) => any>(fn: T): T => fn,
+  unstable_cache: <T extends (...args: never[]) => unknown>(fn: T): T => fn,
 }));
 
 // Mock auth
@@ -82,10 +82,10 @@ describe("CMS System Tests", () => {
 
   describe("Public Cached Getters & Fallbacks", () => {
     it("returns database settings when present", async () => {
-      (db.siteSetting.findMany as any).mockResolvedValueOnce([
+      vi.mocked(db.siteSetting.findMany).mockResolvedValueOnce([
         { key: "site_name", value: "Custom LENS Name", valueBn: "কাস্টম লেন্স" },
         { key: "contact_email", value: "custom@lensbd.org", valueBn: "" },
-      ]);
+      ] as never);
 
       const settings = await getPublicSiteSettings();
       expect(settings.site_name.value).toBe("Custom LENS Name");
@@ -96,7 +96,7 @@ describe("CMS System Tests", () => {
     });
 
     it("falls back gracefully to defaults if database query errors", async () => {
-      (db.siteSetting.findMany as any).mockRejectedValueOnce(new Error("DB connection refused"));
+      vi.mocked(db.siteSetting.findMany).mockRejectedValueOnce(new Error("DB connection refused"));
 
       const settings = await getPublicSiteSettings();
       expect(settings.site_name.value).toBe("LENS Bangladesh");
@@ -105,7 +105,7 @@ describe("CMS System Tests", () => {
     });
 
     it("returns database page and sections when found", async () => {
-      (db.page.findFirst as any).mockResolvedValueOnce({
+      vi.mocked(db.page.findFirst).mockResolvedValueOnce({
         id: "page-123",
         slug: "home",
         title: "Home",
@@ -126,7 +126,7 @@ describe("CMS System Tests", () => {
             contentBn: JSON.stringify({ badge: "হালনাগাদ ব্যাজ" }),
           },
         ],
-      });
+      } as never);
 
       const page = await getPublicPage("home");
       expect(page).toBeDefined();
@@ -137,7 +137,7 @@ describe("CMS System Tests", () => {
     });
 
     it("falls back gracefully to default-home if home page query returns null", async () => {
-      (db.page.findFirst as any).mockResolvedValueOnce(null);
+      vi.mocked(db.page.findFirst).mockResolvedValueOnce(null);
 
       const page = await getPublicPage("home");
       expect(page).toBeDefined();
@@ -147,7 +147,7 @@ describe("CMS System Tests", () => {
     });
 
     it("falls back gracefully to fallback-home if home query errors", async () => {
-      (db.page.findFirst as any).mockRejectedValueOnce(new Error("Connection timeout"));
+      vi.mocked(db.page.findFirst).mockRejectedValueOnce(new Error("Connection timeout"));
 
       const page = await getPublicPage("home");
       expect(page).toBeDefined();

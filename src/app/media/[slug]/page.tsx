@@ -46,7 +46,6 @@ export default async function MediaDetailPage({ params }: { params: Promise<{ sl
   const bn = locale === "bn";
 
   const title = bn && item.titleBn ? item.titleBn : item.title;
-  const description = bn && item.descriptionBn ? item.descriptionBn : item.description;
   const content = bn && item.contentBn ? item.contentBn : (item.content || item.description);
 
   return (

@@ -48,98 +48,72 @@ export async function getMediaReferences(id: string): Promise<MediaReference[]> 
 
   const refs: MediaReference[] = [];
 
-  try {
-    const rows = await db.researchArticle.findMany({
+  const [
+    researchRes,
+    pubRes,
+    teamRes,
+    authorRes,
+    researcherRes,
+    programRes,
+    blogRes,
+    mediaRes,
+    resourceRes,
+    pageRes,
+    sectionRes,
+    settingRes,
+    menuRes,
+  ] = await Promise.allSettled([
+    db.researchArticle.findMany({
       where: { OR: [{ image: { contains: file.filename } }, { pdfUrl: { contains: file.filename } }] },
       select: { id: true, title: true, image: true, pdfUrl: true },
       take: 25,
-    });
-    for (const r of rows) pushKeep(refs, "research", r.title, r.id, [["image", r.image], ["pdfUrl", r.pdfUrl]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const rows = await db.publication.findMany({
+    }),
+    db.publication.findMany({
       where: { pdfUrl: { contains: file.filename } },
       select: { id: true, title: true, pdfUrl: true },
       take: 25,
-    });
-    for (const r of rows) pushKeep(refs, "publications", r.title, r.id, [["pdfUrl", r.pdfUrl]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const rows = await db.teamMember.findMany({
+    }),
+    db.teamMember.findMany({
       where: { image: { contains: file.filename } },
       select: { id: true, name: true, image: true },
       take: 25,
-    });
-    for (const r of rows) pushKeep(refs, "team", r.name, r.id, [["image", r.image]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const rows = await db.authorProfile.findMany({
+    }),
+    db.authorProfile.findMany({
       where: { image: { contains: file.filename } },
       select: { id: true, name: true, image: true },
       take: 25,
-    });
-    for (const r of rows) pushKeep(refs, "authors", r.name, r.id, [["image", r.image]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const rows = await db.researcherProfile.findMany({
+    }),
+    db.researcherProfile.findMany({
       where: { image: { contains: file.filename } },
       select: { id: true, name: true, image: true },
       take: 25,
-    });
-    for (const r of rows) pushKeep(refs, "researchers", r.name, r.id, [["image", r.image]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const rows = await db.program.findMany({
+    }),
+    db.program.findMany({
       where: { image: { contains: file.filename } },
       select: { id: true, title: true, image: true },
       take: 25,
-    });
-    for (const r of rows) pushKeep(refs, "programs", r.title, r.id, [["image", r.image]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const rows = await db.blogPost.findMany({
+    }),
+    db.blogPost.findMany({
       where: { image: { contains: file.filename } },
       select: { id: true, title: true, image: true },
       take: 25,
-    });
-    for (const r of rows) pushKeep(refs, "blog", r.title, r.id, [["image", r.image]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const rows = await db.mediaItem.findMany({
+    }),
+    db.mediaItem.findMany({
       where: { OR: [{ image: { contains: file.filename } }, { sourceUrl: { contains: file.filename } }] },
       select: { id: true, title: true, image: true, sourceUrl: true },
       take: 25,
-    });
-    for (const r of rows) pushKeep(refs, "media items", r.title, r.id, [["image", r.image], ["sourceUrl", r.sourceUrl]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const rows = await db.resource.findMany({
+    }),
+    db.resource.findMany({
       where: { OR: [{ image: { contains: file.filename } }, { fileUrl: { contains: file.filename } }] },
       select: { id: true, title: true, image: true, fileUrl: true },
       take: 25,
-    });
-    for (const r of rows) pushKeep(refs, "resources", r.title, r.id, [["image", r.image], ["fileUrl", r.fileUrl]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const rows = await db.page.findMany({
+    }),
+    db.page.findMany({
       where: { ogImage: { contains: file.filename } },
       select: { id: true, slug: true, title: true, ogImage: true },
       take: 25,
-    });
-    for (const r of rows) pushKeep(refs, "pages", `${r.title} (/${r.slug})`, r.id, [["ogImage", r.ogImage]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const sections = await db.pageSection.findMany({
+    }),
+    db.pageSection.findMany({
       where: {
         OR: [
           { content: { contains: file.filename } },
@@ -149,30 +123,61 @@ export async function getMediaReferences(id: string): Promise<MediaReference[]> 
       },
       select: { id: true, title: true, type: true, pageId: true },
       take: 25,
-    });
-    for (const s of sections)
-      pushKeep(refs, "page sections", `${s.title || s.type} (page ${s.pageId})`, s.id, [
-        ["content", true], ["settings", true],
-      ]);
-  } catch { /* best-effort */ }
-
-  try {
-    const settings = await db.siteSetting.findMany({
+    }),
+    db.siteSetting.findMany({
       where: { value: { contains: file.filename } },
       select: { id: true, key: true },
       take: 25,
-    });
-    for (const s of settings) pushKeep(refs, "site settings", s.key, s.id, [["value", true]]);
-  } catch { /* best-effort */ }
-
-  try {
-    const menus = await db.menuItem.findMany({
+    }),
+    db.menuItem.findMany({
       where: { url: { contains: file.filename } },
       select: { id: true, label: true },
       take: 25,
-    });
-    for (const m of menus) pushKeep(refs, "menus", m.label, m.id, [["url", true]]);
-  } catch { /* best-effort */ }
+    }),
+  ]);
+
+  if (researchRes.status === "fulfilled") {
+    for (const r of researchRes.value) pushKeep(refs, "research", r.title, r.id, [["image", r.image], ["pdfUrl", r.pdfUrl]]);
+  }
+  if (pubRes.status === "fulfilled") {
+    for (const r of pubRes.value) pushKeep(refs, "publications", r.title, r.id, [["pdfUrl", r.pdfUrl]]);
+  }
+  if (teamRes.status === "fulfilled") {
+    for (const r of teamRes.value) pushKeep(refs, "team", r.name, r.id, [["image", r.image]]);
+  }
+  if (authorRes.status === "fulfilled") {
+    for (const r of authorRes.value) pushKeep(refs, "authors", r.name, r.id, [["image", r.image]]);
+  }
+  if (researcherRes.status === "fulfilled") {
+    for (const r of researcherRes.value) pushKeep(refs, "researchers", r.name, r.id, [["image", r.image]]);
+  }
+  if (programRes.status === "fulfilled") {
+    for (const r of programRes.value) pushKeep(refs, "programs", r.title, r.id, [["image", r.image]]);
+  }
+  if (blogRes.status === "fulfilled") {
+    for (const r of blogRes.value) pushKeep(refs, "blog", r.title, r.id, [["image", r.image]]);
+  }
+  if (mediaRes.status === "fulfilled") {
+    for (const r of mediaRes.value) pushKeep(refs, "media items", r.title, r.id, [["image", r.image], ["sourceUrl", r.sourceUrl]]);
+  }
+  if (resourceRes.status === "fulfilled") {
+    for (const r of resourceRes.value) pushKeep(refs, "resources", r.title, r.id, [["image", r.image], ["fileUrl", r.fileUrl]]);
+  }
+  if (pageRes.status === "fulfilled") {
+    for (const r of pageRes.value) pushKeep(refs, "pages", `${r.title} (/${r.slug})`, r.id, [["ogImage", r.ogImage]]);
+  }
+  if (sectionRes.status === "fulfilled") {
+    for (const s of sectionRes.value)
+      pushKeep(refs, "page sections", `${s.title || s.type} (page ${s.pageId})`, s.id, [
+        ["content", true], ["settings", true],
+      ]);
+  }
+  if (settingRes.status === "fulfilled") {
+    for (const s of settingRes.value) pushKeep(refs, "site settings", s.key, s.id, [["value", true]]);
+  }
+  if (menuRes.status === "fulfilled") {
+    for (const m of menuRes.value) pushKeep(refs, "menus", m.label, m.id, [["url", true]]);
+  }
 
   return refs;
 }
@@ -208,7 +213,7 @@ export async function updateMediaFile(
   if (typeof data.alt === "string") writable.alt = data.alt.slice(0, 300);
   if (typeof data.altBn === "string") writable.altBn = data.altBn.slice(0, 300);
 
-  const updated = await db.mediaFile.update({ where: { id }, data: writable });
+  await db.mediaFile.update({ where: { id }, data: writable });
 
   await logAudit({
     action: AUDIT_ACTIONS.MEDIA_UPDATED,

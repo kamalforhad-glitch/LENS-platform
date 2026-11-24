@@ -84,8 +84,6 @@ export default function ContactContent({
   infoTitleBn,
   infoDescription,
   infoDescriptionBn,
-  infoParagraphs,
-  infoParagraphsBn,
   contactEmail = "info@lensbd.org",
   contactEmailBn,
   mediaEmail = "media@lensbd.org",
@@ -102,7 +100,6 @@ export default function ContactContent({
   formDescriptionBn,
   submitLabel,
   submitLabelBn,
-  fields,
   extraSections = [],
 }: ContactContentProps) {
   const sectionRef = useRef<HTMLDivElement>(null);

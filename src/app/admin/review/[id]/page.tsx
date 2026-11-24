@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getReviewAssignment, updateReviewStatus, addReviewComment, resolveReviewComment } from "@/lib/actions/review";
 
@@ -27,7 +27,6 @@ const SEVERITIES = ["suggestion", "issue", "critical", "praise"];
 
 export default function ReviewDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const [data, setData] = useState<ReviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
@@ -41,7 +40,15 @@ export default function ReviewDetailPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+    getReviewAssignment(params.id as string).then((result) => {
+      if (!active) return;
+      setData(result as unknown as ReviewData);
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, [params.id]);
 
   const handleStatusChange = async (status: string) => {
     setSubmitting(true);

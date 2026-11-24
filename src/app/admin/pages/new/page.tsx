@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, AlertCircle, Layout } from "lucide-react";
 import { createPage, createSection } from "@/lib/actions/cms";
 import { normalizeSlug, validateSlug } from "@/lib/cms-validation";
-import { TEMPLATES, type TemplateDef } from "@/lib/cms-templates";
+import { TEMPLATES } from "@/lib/cms-templates";
 
 export default function NewPageCreator() {
   const router = useRouter();

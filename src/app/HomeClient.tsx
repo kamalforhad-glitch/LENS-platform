@@ -9,7 +9,7 @@ import dynamic from "next/dynamic";
 import { useMemo, type ReactNode } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Hero from "@/components/Hero";
-import PageSectionsView from "@/components/page/PageSectionsView";
+import PageSectionsView, { type SectionWithResolved } from "@/components/page/PageSectionsView";
 import type { FocusAreaDto } from "@/lib/focus-types";
 
 // Below-the-fold sections are dynamically code-split with SSR enabled so
@@ -43,9 +43,9 @@ export interface HomeSectionData {
   descriptionBn?: string;
   sortOrder: number;
   visible?: boolean;
-  settings?: any;
-  content?: any;
-  contentBn?: any;
+  settings?: string | Record<string, unknown>;
+  content?: string | Record<string, unknown>;
+  contentBn?: string | Record<string, unknown>;
 }
 
 /** Coerce a CMS blob field into an object (CMS may store null/scalar). */
@@ -59,7 +59,7 @@ const asObject = (value: unknown): Record<string, unknown> =>
  * must be present, so defaults are applied once here rather than being
  * re-inlined at each call site.
  */
-function toPageSection(sec: HomeSectionData, index: number): HomeSectionData {
+function toPageSection(sec: HomeSectionData, index: number): SectionWithResolved {
   return {
     ...sec,
     title: sec.title || "",
@@ -82,7 +82,7 @@ export default function HomeClient({
 }: {
   header: ReactNode;
   footer: ReactNode;
-  pageData?: any;
+  pageData?: { sections?: HomeSectionData[] } | null;
   initialFocusAreas?: FocusAreaDto[];
 }) {
   // Section prep is pure and only depends on `pageData`, so it runs once
@@ -158,7 +158,7 @@ export default function HomeClient({
           <div key={key}>
             <SectionSeparator />
             <section id="tabs" className="relative">
-              <PageSectionsView sections={[toPageSection(sec, index) as any]} />
+              <PageSectionsView sections={[toPageSection(sec, index)]} />
             </section>
           </div>
         );
@@ -168,7 +168,7 @@ export default function HomeClient({
         return (
           <div key={key}>
             <SectionSeparator />
-            <PageSectionsView sections={[toPageSection(sec, index) as any]} />
+            <PageSectionsView sections={[toPageSection(sec, index)]} />
           </div>
         );
     }

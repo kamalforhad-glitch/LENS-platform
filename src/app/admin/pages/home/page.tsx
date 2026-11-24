@@ -14,6 +14,7 @@ import {
 } from "@/lib/actions/cms";
 import { firstUsable, syncImpactStatsSharedValues } from "@/lib/cms-content";
 import { SECTION_TYPE_DEFS } from "@/components/admin/PageSectionEditor";
+import type { TabItem } from "@/components/page/TabsSection";
 
 const MediaPickerModal = dynamic(() => import("@/components/admin/MediaPickerModal"), {
   ssr: false,
@@ -2310,8 +2311,8 @@ export default function HomepageCMS() {
                       {(section.type === "tabs" || section.type === "nested_tabs") && (
                         <div className="pt-3">
                           <TabsHierarchyEditor
-                            value={Array.isArray(editFormData.content.tabs) ? (editFormData.content.tabs as any) : []}
-                            valueBn={Array.isArray(editFormData.contentBn.tabs) ? (editFormData.contentBn.tabs as any) : []}
+                            value={Array.isArray(editFormData.content.tabs) ? (editFormData.content.tabs as TabItem[]) : []}
+                            valueBn={Array.isArray(editFormData.contentBn.tabs) ? (editFormData.contentBn.tabs as TabItem[]) : []}
                             activeLanguage={languageMode === "bn" ? "bn" : "en"}
                             onChange={(tabsEn, tabsBn) => {
                               setEditFormData({

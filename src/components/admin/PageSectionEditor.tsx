@@ -721,13 +721,6 @@ export default function PageSectionEditor({ pageId }: { pageId: string }) {
 }
 
 
-function getPlaceholder(field: FieldDef): string | undefined {
-  if (field.kind === "url") return "https://... or /path";
-  if (field.kind === "text" || field.kind === "textarea") return field.label;
-  return undefined;
-}
-
-
 // ============================================================
 // One section row (collapsed listing + expanded editor)
 // ============================================================
@@ -916,7 +909,7 @@ function SectionForm(props: RowProps) {
     setPickerKey(null);
   };
 
-  const fields = typeDef?.fields ?? [];
+  const fields = useMemo(() => typeDef?.fields ?? [], [typeDef?.fields]);
 
   const translationPercent = useMemo(() => {
     let total = 0;
@@ -1068,8 +1061,8 @@ function SectionForm(props: RowProps) {
       {(draft.type === "tabs" || draft.type === "nested_tabs") && (
         <div className="pt-2">
           <TabsHierarchyEditor
-            value={Array.isArray(content.tabs) ? (content.tabs as any) : []}
-            valueBn={Array.isArray(contentBn.tabs) ? (contentBn.tabs as any) : []}
+            value={Array.isArray(content.tabs) ? (content.tabs as Parameters<typeof TabsHierarchyEditor>[0]["value"]) : []}
+            valueBn={Array.isArray(contentBn.tabs) ? (contentBn.tabs as Parameters<typeof TabsHierarchyEditor>[0]["valueBn"]) : []}
             activeLanguage={activeLang}
             onChange={(newEn, newBn) => {
               setJson("content", { ...content, tabs: newEn });

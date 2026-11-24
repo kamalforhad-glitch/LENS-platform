@@ -31,7 +31,7 @@ export default function TranslationsAdminPage() {
     try {
       const data = await getTranslations();
       setItems(data);
-    } catch (_err) {
+    } catch {
       setError("Failed to load translations.");
     } finally {
       setLoading(false);

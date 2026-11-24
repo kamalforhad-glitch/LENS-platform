@@ -76,7 +76,7 @@ vi.mock("@/lib/audit", () => ({
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
-  unstable_cache: <T extends (...args: any[]) => any>(fn: T): T => fn,
+  unstable_cache: <T extends (...args: never[]) => unknown>(fn: T): T => fn,
 }));
 
 describe("Menu API Resilience & Error Handling", () => {

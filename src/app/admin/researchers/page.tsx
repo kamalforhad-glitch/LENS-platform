@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface Researcher {
@@ -71,11 +72,11 @@ export default function ResearchersAdmin() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const [editingItem, setEditingItem] = useState<Researcher | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+  const [limit] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
-  const [newItem, setNewItem] = useState({
+  const [, setNewItem] = useState({
     name: "",
     nameBn: "",
     email: "",
@@ -168,23 +169,6 @@ export default function ResearchersAdmin() {
     }
   };
 
-  const deleteItem = async (id: string) => {
-    if (!confirm("Delete this researcher profile?")) return;
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/researchers", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d.error || "Delete failed");
-      await loadItems();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
-    }
-  };
-
-  const parseJson = (str: string): string[] => {
-    try { return JSON.parse(str); } catch { return []; }
-  };
-
   if (loading) return <div className="p-6 space-y-2">{Array.from({ length: 5 }).map((_, i) => <SkeletonItem key={i} />)}</div>;
 
   return (
@@ -222,7 +206,7 @@ export default function ResearchersAdmin() {
             <div key={item.id} className={`p-4 rounded-xl border cursor-pointer transition-all ${editingItem?.id === item.id ? "ring-1 ring-teal-400" : "bg-white border-slate-200 hover:border-slate-300 shadow-2xs"}`} onClick={() => setEditingItem(item)}>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-lg font-bold shrink-0">
-                  {item.image ? <img src={item.image} alt={item.name} className="w-12 h-12 rounded-full object-cover" /> : item.name.charAt(0)}
+                  {item.image ? <Image src={item.image} alt={item.name} width={48} height={48} unoptimized className="w-12 h-12 rounded-full object-cover" /> : item.name.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-slate-900 font-medium text-sm truncate">{item.name} {item.nameBn && <span className="text-slate-500 ml-2">/ {item.nameBn}</span>}</p>

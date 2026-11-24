@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { getCurrentUser, requireEditor } from "@/lib/auth";
 import { researcherCreateSchema } from "@/lib/schemas";
 import { isRateLimited } from "@/lib/validation";
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
       } catch (slugError) {
         if (isSchemaColumnMissingError(slugError)) {
           console.warn("[Researcher Profile Lookup Warning - falling back to base columns]", slugError);
-          const rawProfiles = await db.$queryRaw<any[]>`
+          const rawProfiles = await db.$queryRaw<Record<string, unknown>[]>`
             SELECT id, slug, name, COALESCE(name, '') as "nameBn", email, affiliation,
                    COALESCE(affiliation, '') as "affiliationBn", position,
                    COALESCE(position, '') as "positionBn", bio, COALESCE(bio, '') as "bioBn",
@@ -80,16 +81,26 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const urlLimit = request.nextUrl.searchParams.get("limit");
+    const urlPage = request.nextUrl.searchParams.get("page");
+    const parsedLimit = urlLimit ? Math.min(Math.max(parseInt(urlLimit, 10) || 50, 1), 100) : undefined;
+    const parsedPage = urlPage ? Math.max(parseInt(urlPage, 10) || 1, 1) : 1;
+    const skip = parsedLimit && urlPage ? (parsedPage - 1) * parsedLimit : undefined;
+
     try {
       const researchers = await db.researcherProfile.findMany({
         where: { status: "active" },
         orderBy: [{ featured: "desc" }, { totalDownloads: "desc" }],
+        ...(parsedLimit ? { take: parsedLimit } : {}),
+        ...(skip ? { skip } : {}),
       });
       return NextResponse.json({ researchers });
     } catch (queryError) {
       if (isSchemaColumnMissingError(queryError)) {
         console.warn("[Researchers List Query Warning - falling back to base columns]", queryError);
-        const rawResearchers = await db.$queryRaw<any[]>`
+        const limitClause = parsedLimit ? Prisma.sql`LIMIT ${parsedLimit}` : Prisma.empty;
+        const offsetClause = skip ? Prisma.sql`OFFSET ${skip}` : Prisma.empty;
+        const rawResearchers = await db.$queryRaw<Record<string, unknown>[]>`
           SELECT id, slug, name, COALESCE(name, '') as "nameBn", email, affiliation,
                  COALESCE(affiliation, '') as "affiliationBn", position,
                  COALESCE(position, '') as "positionBn", bio, COALESCE(bio, '') as "bioBn",
@@ -101,6 +112,8 @@ export async function GET(request: NextRequest) {
           FROM researcher_profiles
           WHERE status = 'active'
           ORDER BY featured DESC, total_downloads DESC
+          ${limitClause}
+          ${offsetClause}
         `;
         return NextResponse.json({ researchers: rawResearchers || [] });
       }

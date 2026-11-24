@@ -33,7 +33,7 @@ export default function RevisionsAdminPage() {
   const [pages, setPages] = useState<PageOption[]>([]);
   const [selectedPageId, setSelectedPageId] = useState<string>("");
   const [revisions, setRevisions] = useState<RevisionRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [revisionsLoading, setRevisionsLoading] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export default function RevisionsAdminPage() {
           status: (r.status as string) || null,
         }))
       );
-    } catch (_err) {
+    } catch {
       setError("Failed to load revisions for this page.");
     } finally {
       setRevisionsLoading(false);

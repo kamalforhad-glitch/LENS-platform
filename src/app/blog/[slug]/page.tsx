@@ -46,7 +46,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const bn = locale === "bn";
 
   const title = bn && post.titleBn ? post.titleBn : post.title;
-  const description = bn && post.descriptionBn ? post.descriptionBn : post.description;
   const content = bn && post.contentBn ? post.contentBn : (post.content || post.description);
 
   return (

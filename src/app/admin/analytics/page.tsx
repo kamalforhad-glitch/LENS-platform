@@ -112,7 +112,7 @@ export default function AnalyticsPage() {
             <h2 className="text-sm font-semibold text-slate-700 mb-4">Articles by Category</h2>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }: any) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} (${((percent ?? 0) * 100).toFixed(0)}%)`}>
                   {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip />

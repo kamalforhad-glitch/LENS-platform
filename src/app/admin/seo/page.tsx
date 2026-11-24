@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Search, Share2, Globe, Save, CheckCircle, Image as ImageIcon } from "lucide-react";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
 import { normalizeSeoOgImageSettings } from "@/lib/seo-og-setting";
@@ -202,7 +203,7 @@ export default function SEOAdmin() {
           <div className="bg-[#1a2332] rounded-xl overflow-hidden border border-white/10">
             <div className="w-full h-32 bg-black/40 overflow-hidden relative">
               {ogImage ? (
-                <img src={ogImage} alt="OG Card" className="w-full h-full object-cover" />
+                <Image src={ogImage} alt="OG Card" fill unoptimized className="object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs">
                   No OG Image Selected

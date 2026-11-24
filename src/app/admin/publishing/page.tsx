@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useTransition } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Send,
@@ -29,7 +29,6 @@ export default function PublishingAdminPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const [toast, setToast] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -50,8 +49,11 @@ export default function PublishingAdminPage() {
     setBusyId(pageId);
     try {
       await updatePage(pageId, { status });
+      const nowIso = new Date().toISOString();
+      setPages((prev) =>
+        prev.map((p) => (p.id === pageId ? { ...p, status, dateModified: nowIso } : p))
+      );
       setToast(`Page "/${slug}" status changed to ${status.toUpperCase()}.`);
-      startTransition(loadData);
       setTimeout(() => setToast(null), 3000);
     } catch {
       alert("Failed to update publication status.");
@@ -202,7 +204,7 @@ export default function PublishingAdminPage() {
                             onClick={() => setStatus(page.id, page.slug, "draft")}
                             className="px-3 py-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors disabled:opacity-50"
                           >
-                            Unpublish (Draft)
+                            {isBusy ? "Updating..." : "Unpublish (Draft)"}
                           </button>
                         ) : (
                           <button
@@ -211,12 +213,13 @@ export default function PublishingAdminPage() {
                             onClick={() => setStatus(page.id, page.slug, "published")}
                             className="px-3 py-1 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors shadow-xs disabled:opacity-50"
                           >
-                            Publish Now
+                            {isBusy ? "Publishing..." : "Publish Now"}
                           </button>
                         )}
 
                         <Link
                           href={page.slug === "home" ? "/admin/pages/home" : `/admin/pages/${page.id}`}
+                          prefetch={false}
                           className="px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors inline-block"
                         >
                           Edit

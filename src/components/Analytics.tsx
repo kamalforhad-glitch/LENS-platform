@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import {
   trackEvent,
   trackPageView,
@@ -46,7 +46,6 @@ function initMetaPixel() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fbq: any = (...args: unknown[]) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (fbq.callMethod ? fbq.callMethod : fbq.push).apply(fbq, args);
   };
   if (!window._fbq) window._fbq = fbq;

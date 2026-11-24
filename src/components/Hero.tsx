@@ -1,16 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import { useTranslation } from "react-i18next";
 import MagneticButton from "./MagneticButton";
-
-// Decorative canvas telemetry is below the hero copy and not needed for the
-// first paint. It keeps its fixed-ratio container so deferring it causes no CLS.
-const LensWorldTelemetry = dynamic(() => import("./LensWorldTelemetry"), {
-  ssr: false,
-  loading: () => <div className="w-full h-full bg-slate-950/40" aria-hidden="true" />,
-});
+import HeroVisual from "./HeroVisual";
 import { resolveCmsValue } from "@/lib/cms-content";
 
 function asString(v: unknown): string {
@@ -37,9 +30,9 @@ export interface CmsSectionData {
   contentBn?: string | Record<string, unknown>;
 }
 
-function parseJsonSafe(val: unknown): Record<string, any> {
+function parseJsonSafe(val: unknown): Record<string, unknown> {
   if (!val) return {};
-  if (typeof val === "object") return val as Record<string, any>;
+  if (typeof val === "object") return val as Record<string, unknown>;
   try { return JSON.parse(val as string); } catch { return {}; }
 }
 
@@ -52,7 +45,6 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
   const sSettings = parseJsonSafe(cmsData?.settings);
 
   // Key-compatibility resolution (see lib/cms-content.ts)
-  const badgeText = asString(resolveCmsValue(isBn, cEn, cBn, ["badge"])) || t("hero.badge");
   const brandText = asString(resolveCmsValue(isBn, cEn, cBn, ["brandLine", "brand"])) || "LENS — Lighthouse for Evolving Narrative Systems";
   const descText = asString(resolveCmsValue(isBn, cEn, cBn, ["description"])) || t("hero.description");
   const ctaResearchText = asString(resolveCmsValue(isBn, cEn, cBn, ["primaryCtaText", "cta_research"])) || t("hero.cta_research");
@@ -72,7 +64,7 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
       : !isBn ? ["digital", "world"] : []
   );
 
-  // Media & Background Settings
+  // Media & Background Settings (kept for CMS compatibility, but HeroVisual provides the new background)
   const backgroundImage = asString(cEn.backgroundImage || cEn.heroBgImage || sSettings.backgroundImage);
   const backgroundImageMobile = asString(cEn.backgroundImageMobile || sSettings.backgroundImageMobile);
   const backgroundVideo = asString(cEn.backgroundVideo || cEn.heroBgVideo || sSettings.backgroundVideo);
@@ -81,19 +73,19 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
   const foregroundImage = asString(cEn.foregroundImage || sSettings.foregroundImage);
   const imageAlt = asString(resolveCmsValue(isBn, cEn, cBn, ["imageAlt", "alt"])) || "Hero visual background";
   const videoAlt = asString(resolveCmsValue(isBn, cEn, cBn, ["videoAlt"])) || "Hero background video";
-  const overlayColor = asString(cEn.overlayColor || sSettings.overlayColor || "#030810");
+  const overlayColor = asString(cEn.overlayColor || sSettings.overlayColor || "#020B18");
+  const layoutVariant = asString(cEn.layoutVariant || sSettings.layoutVariant || "split");
+  const textAlignment = asString(cEn.textAlignment || sSettings.textAlignment || "left");
+  const isCentered = layoutVariant === "centered" || textAlignment === "center";
+  // Legacy CMS flag (`showBackgroundGlobe`) now toggles the new HeroVisual
+  const showInsightBoard = sSettings.showBackgroundGlobe !== false && cEn.showBackgroundGlobe !== false;
+  const heroVisualActive = showInsightBoard && !backgroundImage && !backgroundVideo;
   const overlayOpacity = typeof cEn.overlayOpacity === "number"
     ? cEn.overlayOpacity
     : typeof sSettings.overlayOpacity === "number"
       ? sSettings.overlayOpacity
-      : (backgroundImage || backgroundVideo ? 0.75 : 1);
+      : (backgroundImage || backgroundVideo ? 0.75 : (heroVisualActive ? 0.15 : 1));
   const showGradients = cEn.overlayGradient !== false && sSettings.overlayGradient !== false;
-  const layoutVariant = asString(cEn.layoutVariant || sSettings.layoutVariant || "split");
-  const textAlignment = asString(cEn.textAlignment || sSettings.textAlignment || "left");
-  const isCentered = layoutVariant === "centered" || textAlignment === "center";
-  // Legacy CMS flag (`showBackgroundGlobe`) now toggles the world
-  // telemetry interface that replaced the 3D globe / bento board.
-  const showInsightBoard = sSettings.showBackgroundGlobe !== false && cEn.showBackgroundGlobe !== false;
 
   const headlineFromArray = asWordList(resolveCmsValue(isBn, cEn, cBn, ["headlineWords"]));
   const headlineFromString = asString(resolveCmsValue(isBn, cEn, cBn, ["headline"]));
@@ -129,7 +121,10 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
       className="relative min-h-[100vh] overflow-x-clip"
       aria-label="Hero"
     >
-      {/* Background Media: Video (WebM/MP4) with Poster and Reduced Motion Fallback */}
+      {/* New HeroVisual Background - "THE REALITY BEHIND THE LENS" */}
+      {showInsightBoard && <HeroVisual />}
+
+      {/* Fallback Background Media: Video (WebM/MP4) with Poster and Reduced Motion Fallback */}
       {backgroundVideo && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <video
@@ -163,13 +158,12 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
         </div>
       )}
 
-      {/* Background Media: Static Image (WebP/PNG/JPEG) with responsive mobile support */}
+      {/* Fallback Background Media: Static Image (WebP/PNG/JPEG) with responsive mobile support */}
       {!backgroundVideo && backgroundImage && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           {backgroundImageMobile ? (
             <picture className="w-full h-full">
               <source media="(max-width: 640px)" srcSet={backgroundImageMobile} />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={backgroundImage} alt={imageAlt} className="w-full h-full object-cover" />
             </picture>
           ) : (
@@ -179,7 +173,7 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
         </div>
       )}
 
-      {/* Configurable Contrast Overlay */}
+      {/* Configurable Contrast Overlay - Updated to new dark navy palette */}
       <div
         className="absolute inset-0 pointer-events-none z-[1]"
         style={{
@@ -188,20 +182,21 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
         }}
       />
 
-      {/* Deep layered gradient backgrounds (preserves original LENS atmosphere) */}
+      {/* Deep layered gradient backgrounds - New Dark Navy / Cyan / Red palette */}
       {showGradients && (
         <>
-          <div className="absolute inset-0 bg-gradient-to-br from-[#030810]/90 via-navy-950/80 to-[#061224]/90 pointer-events-none z-[2]" />
-          <div className="hero-bg-gradient absolute inset-0 bg-[radial-gradient(ellipse_at_15%_50%,rgba(8,145,178,0.12)_0%,transparent_50%)] pointer-events-none z-[2]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_75%_45%,rgba(8,145,178,0.14)_0%,transparent_40%)] pointer-events-none z-[2]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_30%,rgba(212,168,67,0.06)_0%,transparent_35%)] pointer-events-none z-[2]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_80%,rgba(8,145,178,0.04)_0%,transparent_30%)] pointer-events-none z-[2]" />
+          <div className={`absolute inset-0 bg-gradient-to-br ${heroVisualActive ? "from-[#05070D]/40 via-[#020B18]/20 to-[#05070D]/50" : "from-[#05070D]/95 via-[#020B18]/90 to-[#05070D]/95"} pointer-events-none z-[2]`} />
+          <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_15%_40%,rgba(0,217,245,0.08)_0%,transparent_50%)] pointer-events-none z-[2] ${heroVisualActive ? "opacity-60" : ""}`} />
+          <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_80%_35%,rgba(220,38,38,0.06)_0%,transparent_40%)] pointer-events-none z-[2] ${heroVisualActive ? "opacity-60" : ""}`} />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_85%,rgba(0,217,245,0.03)_0%,transparent_35%)] pointer-events-none z-[2]" />
+          {/* Subtle scanline texture */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none z-[2] opacity-20" />
         </>
       )}
 
-      {/* Gradient fade-outs */}
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#030810] to-transparent pointer-events-none z-[3]" />
-      <div className="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-[#030810]/70 to-transparent pointer-events-none z-[3]" />
+      {/* Gradient fade-outs - Updated to deep black */}
+      <div className={`absolute bottom-0 left-0 right-0 ${heroVisualActive ? "h-32" : "h-48"} bg-gradient-to-t from-[#05070D] to-transparent pointer-events-none z-[3]`} />
+      <div className={`absolute top-0 left-0 right-0 ${heroVisualActive ? "h-24" : "h-36"} bg-gradient-to-b from-[#05070D]/50 to-transparent pointer-events-none z-[3]`} />
 
       {/* Responsive Content Grid — vertically centered, zero CLS layout */}
       <div className="relative max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 w-full z-10">
@@ -234,15 +229,8 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
               </div>
             )}
 
-            {/* Hero Main Badge */}
-            <div className="hero-badge inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 mb-4 sm:mb-6 lg:mb-8 w-fit">
-              <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
-              <span className="text-teal-300 text-xs font-medium tracking-wide uppercase">
-                {badgeText}
-              </span>
-            </div>
-
-            <p className="hero-brand text-[11px] sm:text-xs font-semibold tracking-[0.22em] uppercase text-teal-200/70 mb-3 sm:mb-4 lg:mb-6">
+            {/* Hero Main Badge removed per UI refinement */}
+            <p className="hero-brand text-[11px] sm:text-xs font-semibold tracking-[0.22em] uppercase text-cyan-200/70 mb-3 sm:mb-4 lg:mb-6">
               {brandText}
             </p>
 
@@ -270,12 +258,12 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
               {descText}
             </p>
 
-            {/* Call to Action Buttons */}
+            {/* Call to Action Buttons - Updated to cyan/red theme */}
             <div className={`flex flex-wrap gap-3 sm:gap-4 ${isCentered ? "justify-center" : ""}`}>
               {ctaResearchText && (
                 <MagneticButton
                   href={ctaResearchLink}
-                  className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 bg-teal-500 hover:bg-teal-400 text-white text-sm sm:text-base font-semibold rounded-full transition-all shadow-lg shadow-teal-500/25 hover:shadow-teal-400/40"
+                  className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 bg-cyan-500 hover:bg-cyan-400 text-white text-sm sm:text-base font-semibold rounded-full transition-all shadow-lg shadow-cyan-500/25 hover:shadow-cyan-400/40"
                   data-cursor="Explore"
                 >
                   {ctaResearchText}
@@ -287,7 +275,7 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
               {ctaNetworkText && (
                 <MagneticButton
                   href={ctaNetworkLink}
-                  className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 border border-white/20 text-white text-sm sm:text-base font-semibold rounded-full hover:border-teal-400 hover:text-teal-300 transition-all"
+                  className="hero-cta px-5 sm:px-7 py-2.5 sm:py-3.5 border border-white/20 text-white text-sm sm:text-base font-semibold rounded-full hover:border-red-400 hover:text-red-300 transition-all"
                 >
                   {ctaNetworkText}
                 </MagneticButton>
@@ -295,16 +283,13 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
             </div>
           </div>
 
-          {/* Visual Column: foreground photograph OR editorial insight board */}
-          {!isCentered && showInsightBoard && (
+          {/* Visual Column: HeroVisual now handles the full background, 
+              but we keep this slot for CMS foreground image if configured */}
+          {!isCentered && showInsightBoard && foregroundImage && (
             <div className="col-span-1 lg:col-span-6 xl:col-span-7 flex justify-center items-center w-full">
-              <div className="relative w-full max-w-2xl xl:max-w-3xl aspect-[4/3] max-h-[520px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950/40 backdrop-blur-sm shadow-2xl">
-                {foregroundImage ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={foregroundImage} alt={imageAlt} className="w-full h-full object-cover" />
-                ) : (
-                  <LensWorldTelemetry />
-                )}
+              <div className="relative w-full max-w-2xl xl:max-w-3xl aspect-[4/3] max-h-[520px] overflow-hidden rounded-xl border border-slate-800/50 bg-slate-950/30 backdrop-blur-sm shadow-2xl">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={foregroundImage} alt={imageAlt} className="w-full h-full object-cover opacity-60" />
               </div>
             </div>
           )}
@@ -325,7 +310,7 @@ export default function Hero({ cmsData }: { cmsData?: CmsSectionData }) {
           {scrollText}
         </span>
         <div className="w-5 h-8 border-2 border-white/20 rounded-full flex justify-center pt-1.5">
-          <div className="w-1 h-2 bg-teal-400 rounded-full animate-bounce" />
+          <div className="w-1 h-2 bg-cyan-400 rounded-full animate-bounce" />
         </div>
       </div>
     </section>
